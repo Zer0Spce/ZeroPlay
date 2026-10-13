@@ -1,8 +1,16 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const {query}=require('../lib/catalog.cjs'),{handler}=require('../functions/tmdb.js');
+const {endpoint,query}=require('../lib/catalog.cjs'),{handler}=require('../functions/tmdb.js');
 test('TMDB route and query validation cannot become an arbitrary proxy',()=>{
   assert.equal(query({path:'/search/multi',query:'My own movie',page:'2'}).get('query'),'My own movie');assert.equal(query({path:'/tv/1399/season/0'}).get('include_adult'),'false');
   for(const params of [{path:'https://attacker.example'},{path:'/movie/../configuration'},{path:'/movie/299534',api_key:'replacement'},{path:'/search/multi',include_adult:'true'},{path:'/movie/popular',page:'501'},{path:'/movie/popular',page:'-1'},{path:'/watch/providers/movie',watch_region:'../US'},{path:'/movie/299534',append_to_response:'account'}])assert.throws(()=>query(params));
+});
+test('2.2 discovery routes and filters stay bounded to approved TMDB inputs',()=>{
+  for(const path of ['/tv/airing_today','/tv/on_the_air','/search/person','/person/287','/collection/86311','/discover/movie','/discover/tv'])assert.equal(endpoint(path),true,path);
+  for(const path of ['/search/company','/person/0','/collection/../1','/discover/person'])assert.equal(endpoint(path),false,path);
+  const movie=query({path:'/discover/movie',page:'3',with_genres:'878',with_original_language:'en','primary_release_date.gte':'2025-01-01','primary_release_date.lte':'2026-10-13','vote_average.gte':'7.5','vote_count.gte':'250','with_runtime.lte':'120',with_origin_country:'US',sort_by:'popularity.desc'});
+  assert.equal(movie.get('with_genres'),'878');assert.equal(movie.get('vote_average.gte'),'7.5');assert.equal(movie.get('with_runtime.lte'),'120');assert.equal(movie.get('with_origin_country'),'US');
+  assert.equal(query({path:'/person/287',append_to_response:'combined_credits'}).get('append_to_response'),'combined_credits');
+  for(const params of [{path:'/discover/movie',with_genres:'28|35'},{path:'/discover/movie',with_original_language:'EN'},{path:'/discover/movie','vote_average.gte':'11'},{path:'/discover/movie','with_runtime.lte':'601'},{path:'/discover/movie',with_origin_country:'usa'},{path:'/discover/movie','primary_release_date.gte':'2026/01/01'}])assert.throws(()=>query(params));
 });
 test('Function enforces GET, handles missing key, and does not return upstream secrets',async()=>{
   const oldKey=process.env.TMDB_API_KEY,oldFetch=global.fetch;
