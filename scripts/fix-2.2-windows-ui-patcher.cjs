@@ -9,4 +9,5 @@ if(!text.includes('ZERO22_COLLECTION_POSTPASS')){
   fs.writeFileSync(target,text);
   console.log('Adjusted stale Windows UI collection patch marker');
 }else console.log('Windows UI patcher marker already adjusted');
+// Keep the branch-only regression fixtures aligned with the generated 2.2 UI contract.
 require('./fix-2.2-windows-regression-tests.cjs');
