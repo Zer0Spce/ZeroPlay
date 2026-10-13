@@ -17,13 +17,13 @@ patch('windows/main.cjs',[
  ['try{const saved=JSON.parse(fs.readFileSync(file,\'utf8\'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}if(!state.settings.trailerDelay175)','try{const saved=JSON.parse(fs.readFileSync(file,\'utf8\'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}if(!state.settings.autoSourceRecoveryDefaultOff22){state.settings.autoSourceRecovery=false;state.settings.autoSourceRecoveryDefaultOff22=true;}if(!state.settings.trailerDelay175)','Windows one-time recovery migration']
 ]);
 patch('windows/ui/app.js',[
- ['$(\'#zero22-recovery\').checked=state.settings.autoSourceRecovery!==false','$(\'#zero22-recovery\').checked=state.settings.autoSourceRecovery===true','Windows recovery checkbox default'],
+ ["$('#zero22-recovery').checked=state.settings.autoSourceRecovery!==false","$('#zero22-recovery').checked=state.settings.autoSourceRecovery===true",'Windows recovery checkbox default'],
  ["autoSourceRecovery:$('#zero22-recovery')?.checked!==false","autoSourceRecovery:$('#zero22-recovery')?.checked===true",'Windows recovery save opt-in']
 ]);
 
 // Keep deterministic 2.2 generators aligned so regeneration cannot turn recovery back on.
 patch('scripts/apply-2.2-android-core.cjs',[
- ['getBoolean(\\"autoSourceRecovery\\",true)','getBoolean(\\"autoSourceRecovery\\",false)','Android generator recovery defaults']
+ ['getBoolean("autoSourceRecovery",true)','getBoolean("autoSourceRecovery",false)','Android generator recovery defaults']
 ]);
 patch('scripts/apply-2.2-windows.cjs',[
  ['autoSourceRecovery:true','autoSourceRecovery:false','Windows generator defaults'],
