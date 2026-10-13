@@ -1,0 +1,53 @@
+name: Disable Automatic Source Recovery Default
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/disable-auto-source-recovery-default.yml'
+      - 'scripts/disable-auto-source-recovery-default.cjs'
+      - 'tests/auto-source-recovery-default.test.cjs'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeroplay-2-2-recovery-default
+  cancel-in-progress: false
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/2.2-navigation-discovery-performance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Make automatic source recovery opt-in
+        run: node scripts/disable-auto-source-recovery-default.cjs
+      - name: Verify recovery defaults and syntax
+        run: |
+          node --test tests/auto-source-recovery-default.test.cjs tests/source-selection-regression.test.cjs
+          node --check windows/main.cjs
+          node --check windows/ui/app.js
+          node --check scripts/apply-2.2-android-core.cjs
+          node --check scripts/apply-2.2-windows.cjs
+          git diff --check
+      - name: Commit recovery-off defaults
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java \
+                  app/src/main/java/com/zerostreams/app/MainActivity.java \
+                  windows/main.cjs windows/ui/app.js \
+                  scripts/apply-2.2-android-core.cjs scripts/apply-2.2-windows.cjs
+          if git diff --cached --quiet; then
+            echo 'Recovery defaults already correct.'
+            exit 0
+          fi
+          git commit -m 'Default automatic source recovery to off'
+          git pull --rebase origin feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance
