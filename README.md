@@ -1,276 +1,232 @@
-# 🎬 ZeroPlay 2.1
+# 🎬 ZeroPlay 2.2
 
-### Movies. Series. Live TV. Live Sports. Your screen, your way.
+### Movies. Series. Live TV. Live Sports. Faster discovery. Smarter TV controls.
 
-**ZeroPlay** is a cross-platform entertainment hub for **Android, Android TV / Google TV, and Windows**. Discover movies, TV series and anime through TMDB, keep a local library and history, switch playback sources, follow Live TV / PPV / Sports, use offline/download features for authorized media, and customize the experience from one app.
+**ZeroPlay** is a cross-platform entertainment hub for **Android, Android TV / Google TV, Windows, and Web**. Browse movies, series and anime through TMDB, keep a local library and playback history, switch playback providers, follow Live TV / PPV / Sports, use authorized offline/download features, and customize the experience around your screen.
 
 [![ZeroPlay Windows home](docs/screenshots/windows-home.png)](docs/screenshots/windows-home.png)
 
-**[⬇️ Download ZeroPlay 2.1](https://github.com/Zer0Spce/ZeroPlay/releases/tag/v2.1)** · **[📋 Full 2.1 release notes](docs/release-2.1.md)** · **[📺 Android TV controls](docs/android-tv-controls.md)**
-
-> [!IMPORTANT]
-> ### Windows 2.0 / 2.0.1 / 2.0.2 / 2.0.3 users: manual 2.1 download required
->
-> The Windows updater included in 2.0 through 2.0.3 is the updater bug fixed by 2.1, so those versions cannot be relied on to install their own replacement.
->
-> **Download `ZeroPlay-2.1-Windows-x64.zip` manually, extract it to a fresh folder, and launch `ZeroPlay.exe`. Once you are on 2.1, future Windows updates can be installed in-app.**
-
-Android production builds keep the established signing identity so supported production installs can update in place.
+**[⬇️ Download ZeroPlay 2.2](https://github.com/Zer0Spce/ZeroPlay/releases/tag/v2.2)** · **[📋 Full 2.2 release notes](docs/release-2.2.md)** · **[📺 Android TV controls](docs/android-tv-controls.md)**
 
 ---
 
-## 🚀 What changed in ZeroPlay 2.1
+## ⭐ ZeroPlay 2.2 highlights
 
-### 🔄 Windows updater repaired
+### 📺 Android TV Hybrid Mode — the headline feature
 
-ZeroPlay 2.1 replaces the fragile Windows update/replacement flow with a dedicated **`ZeroPlayUpdater.exe`** helper.
+ZeroPlay 2.2 introduces **Hybrid player navigation** for Android TV / Google TV.
 
-- SHA-256 verifies the downloaded update before activation.
-- The helper waits for ZeroPlay to close before installing.
-- Updates are extracted with the .NET ZIP implementation.
-- New versions are installed into `versions/<version>/` instead of overwriting the running app.
-- `current.json` is switched atomically only after validation.
-- The launcher uses a detached handoff so the updated app stays alive after relaunch.
-- Pending-version confirmation and rollback remain available if activation fails.
-- Temporary update/staging folders are cleaned after success.
-- Helper failures can write `ZeroPlayUpdater-error.txt` with the exact error.
-- The final updater path was validated with multiple temporary newer-version tests before 2.1 was released.
+Instead of forcing every embedded provider into one remote-control style, Hybrid Mode chooses the best interaction strategy for the player that is actually on screen:
 
-### 🎞️ Homepage carousel source parity
+- uses **D-pad / focus navigation** when the provider exposes reliable controls;
+- falls back to ZeroPlay's **virtual mouse** when an embedded player does not expose a usable focus graph;
+- wakes hidden provider controls before navigating;
+- handles provider menus, settings and overlays without changing the rest of the app's remote behavior;
+- keeps staged Back behavior so menus/controls close before playback exits;
+- keeps **Mouse** and **D-pad** modes available for users who prefer a fixed mode.
 
-Windows, Android and Android TV now use the same carousel-source behavior.
+Hybrid Mode is shared by the full **Android TV** and lightweight **Android TV Lite** builds.
 
-Choose from:
+### ▶️ More playback sources + safer source selection
 
-- **This Week Top Picks**
-- **Watchlist**
-- **Recommended Movies**
-- **Popular Movies**
-- **Now Playing**
-- **Continue Watching**
+- Added **Embedwave (BETA)** for movies and series.
+- VidStuck and VidSrc.sh remain available; RawCast remains optional where configured.
+- Fixed a 2.2 test-build regression where manual source choices could be silently replaced by Embedwave.
+- Source priority now respects the explicit title choice, saved per-title choice, then global Settings choice.
+- Source health information can assist recovery without overriding the initial manual choice.
+- **Automatic Source Recovery is OFF by default** and runs only when the user enables it.
+- Normal movie/series playback keeps the provider's **native/default controls** — ZeroPlay no longer draws an extra control strip over the video.
 
-The carousel now supports up to **10 cards**, uses the actual ordered source feed, and keeps the muted trailer tied to the exact movie currently displayed. Android/TV also fixes the release-layer renderer that previously forced the visible hero back to Trending regardless of the selected setting.
+### ⚡ Performance and caching
 
-### 📺 Android / Android TV polish
+- Local TMDB catalog caching with memory + disk caching on Windows and persistent catalog caching on Android.
+- Cached content can be shown quickly while network work refreshes in the background.
+- Reduced repeated tab/catalog requests and unnecessary view regeneration.
+- Smarter/lazier artwork loading and lower-cost artwork choices.
+- New **Performance Mode** for slower TVs/boxes.
+- Background work is reduced while playback is active.
 
-- Stronger Season/Episode focus, pressed and selected states.
-- Clearer selector styling in both dark and light themes.
-- Improved Season/Episode labels and sizing.
-- `No, Go Back` confirmation copy where Android playback/application confirmation is used.
-- New **Reset application and settings** option that clears settings/library/history/API preferences while keeping downloaded media files.
+### 🧭 Discovery and personalization
 
-### 🖥️ Windows behavior cleanup
+2.2 adds a much richer local discovery layer:
 
-- Removed the desktop **Exit ZeroPlay?** confirmation — closing the Windows app now closes it normally.
-- Fixed carousel trailer/source mismatch on Windows.
-- Windows portable packaging now includes the standalone updater helper at the portable root.
+- **Up Next** for the next episode of shows you are following.
+- **Because You Watched** recommendations.
+- **Hidden Gems** discovery.
+- **Tonight's Picks** / shorter-watch discovery.
+- TV airing / episode-calendar discovery.
+- richer movie/series filters and sorting.
+- mood-based discovery helpers.
+- person / actor discovery and credits.
+- franchise / collection navigation.
+- local **Not Interested** preference.
+- improved homepage panel ordering and customization.
+- local profiles with isolated history, Continue Watching, watchlists, collections and recommendation context.
 
-Read the complete change record in **[docs/release-2.1.md](docs/release-2.1.md)**.
+### ⏯️ Better progress and episode handling
+
+- Improved Continue Watching state.
+- Episode/season progress tracking.
+- Next-episode calculation and Up Next integration.
+- Autoplay-next setting.
+- episode quick navigation support.
+- configurable intro/recap skip timing support without pretending provider metadata is exact.
+- fixed duplicate series cards in Windows **Up Next** by keeping only the newest progress record per TMDB series.
+
+### 🖥️ Windows improvements
+
+- Source health and explicit source-preference handling.
+- Player diagnostics and recovery plumbing.
+- Mini-player infrastructure and desktop playback shortcuts.
+- improved fullscreen/back behavior.
+- catalog cache with stale fallback.
+- homepage/state restoration improvements.
+- smoke-test and fixture cleanup hardening.
+- production portable ZIP remains installer-free.
+
+### 🌐 Website 2.2
+
+The website receives the new discovery/performance work while preserving the intentional website-only scope:
+
+- Movies and Series discovery remain available.
+- Embedwave (BETA) joins VidStuck on Web.
+- filtered catalog requests, profiles/person discovery, Because You Watched, Hidden Gems and episode-calendar helpers are included.
+- tab/infinite-scroll fixes prevent runaway or random catalog loading.
+- **Live TV, Live Sports and PPV remain intentionally absent from the website.**
 
 ---
 
-## ✨ What ZeroPlay can do
+## 🪶 New Android Lite editions
+
+ZeroPlay 2.2 ships two optional lightweight builds alongside the normal Android apps:
+
+- **ZeroPlay Android Lite** — `com.zerostreams.app.lite.mobile`
+- **ZeroPlay Android TV Lite** — `com.zerostreams.app.lite.tv`
+
+Lite keeps the shared 2.2 catalog/player engine but reduces presentation overhead:
+
+- no rotating hero carousel;
+- fewer homepage cards kept alive;
+- smaller TMDB artwork requests;
+- backdrop/blur atmosphere disabled;
+- animations, focus trailers and homepage trailers disabled by default;
+- Performance Mode enabled by default;
+- Classic lightweight layout by default.
+
+**Android TV Lite still includes Hybrid Mode and the 2.2 provider/navigation fixes.** Lite is not a separate old player engine; it is the lightweight presentation layer running on the current 2.2 playback core.
+
+---
+
+## ✨ Core ZeroPlay features
 
 | | Feature |
 | --- | --- |
-| 🔎 **TMDB discovery & search** | Trending, popular, now playing, upcoming, recommendations and explicit Search-button results without searching every keystroke. |
-| 🎲 **Surprise Me** | Pick a random released TMDB movie beyond the currently visible homepage. |
-| 🗂️ **Categories** | Artwork-rich movie and TV genres, Anime, alphabetical browsing and international/language collections with infinite loading. |
+| 🔎 **TMDB discovery & explicit search** | Trending, popular, now playing, upcoming, recommendations and Search-button results without searching every keystroke. |
+| 🎲 **Surprise Me** | Pick a random released movie beyond the visible page. |
+| 🗂️ **Categories** | Artwork-rich movie/TV genres, Anime, alphabetical browsing and international/language collections with infinite loading. |
 | 🎞️ **Rich title pages** | Artwork, synopsis, genres, cast, trailers, ratings, recommendations and provider information. |
-| 🧑‍🎬 **Clickable cast & filmography** | Browse movie + TV combined credits using the exact TMDB person ID. |
-| 🍅 **Ratings** | TMDB metadata plus Rotten Tomatoes through OMDb when an OMDb key is configured. |
-| ❤️ **Library** | Watchlist, Plan to Watch, custom collections, watch history and search history stored locally. |
-| ⏯️ **Continue Watching** | Resume supported movie / episode playback positions when the provider reports progress. |
-| ▶️ **Playback sources** | VidStuck recommended, VidSrc.sh, plus optional RawCast playback when enabled with your own key. |
+| 🧑‍🎬 **People & filmography** | Browse movie + TV credits from exact TMDB person IDs. |
+| ❤️ **Local library** | Watchlist, Plan to Watch, custom collections, history, searches and local profiles. |
+| ⏯️ **Continue Watching / Up Next** | Resume supported playback and surface the next series episode. |
+| ▶️ **Playback sources** | VidStuck, **Embedwave (BETA)**, VidSrc.sh, plus optional RawCast where supported. |
 | 📡 **Live PPV** | Dedicated PPV/Sports playlist browsing with refresh and in-app playback. |
-| 📺 **Live TV** | IPTV groups, favorites, refresh and independent Windows controls for Cignal and Converge channels. |
+| 📺 **Live TV** | IPTV groups, favorites, refresh and platform-specific channel handling. |
 | 🏟️ **Live Sports** | Event categories, schedules, artwork, alternate streams, refresh/retry and fullscreen playback. |
-| 🎨 **Four UI layouts** | Clean, Modern, Flix and Native / Original. Layout choice is independent from color theme. |
+| 📺 **Android TV Hybrid Mode** | Automatically chooses focus/D-pad or virtual mouse interaction for embedded players. |
+| 🎨 **Four UI layouts** | Clean, Modern, Flix and Native / Original. |
 | 🌈 **17 themes** | Zero Dark, Zero Light, Ocean, Orchid, Sunset, Midnight Blue, Ember Glow, Forest Moss, Rose Noir, Amethyst, Cyber Mint, Cobalt Sky, Golden Hour, Coral Night, Aurora, Slate Ice and Mocha. |
-| 🎞️ **Configurable homepage carousel** | Choose Top Picks, Watchlist, Recommended, Popular, Now Playing or Continue Watching; up to 10 cards. |
-| ✨ **UI animation controls** | Optional animations, focus/hover previews, focus trailers and a muted homepage trailer carousel. |
-| ⚙️ **Homepage customization** | Enable/disable homepage panels and additional categories from Settings. |
-| ♻️ **Reset app/settings** | Restore local app settings and library/history state without deleting downloaded media files. |
-| 📥 **Downloads** | Hosted TSP Search configuration, healthy-result filtering, queue/progress information, delete controls and completed-download history. |
-| 💬 **Offline subtitles** | Local SRT, VTT, ASS and SSA support for downloaded media, including automatic matching where available. |
-| ↗️ **External player** | Completed Windows/Android downloads can be opened in an external local video player. |
-| 🛡️ **Adblock 2.0** | Known ad-network blocking, confirmed QR-ad learning, popup/navigation hardening, provider/CDN protection and expiring learned-host quarantine. |
+| ⚙️ **Homepage customization** | Enable, disable and order homepage sections. |
+| ⚡ **Performance controls** | Performance Mode, adaptive artwork behavior and reduced background work during playback. |
+| 📥 **Downloads** | Hosted TSP Search configuration, filtering, queue/progress, delete controls and completed-download history for authorized media. |
+| 💬 **Offline subtitles** | Local SRT, VTT, ASS and SSA support for downloaded media. |
+| ↗️ **External player** | Open completed local media in another installed player. |
+| 🛡️ **Adblock 2.0** | Known-network blocking, confirmed QR-ad learning, popup/navigation hardening and provider/CDN protection. |
 | 🔊 **Audio boost** | Off / 1.5× / 2× on compatible embedded audio. |
-| 🔄 **In-app updater** | Repaired Windows updater plus Android and Android TV update flows with version/changelog handling. |
-| 🖥️ **Windows portable** | No installer required. Extract the ZIP and run ZeroPlay. |
-| 🖥️ **True app fullscreen** | Full-screen the entire Windows interface while keeping scrolling available. |
-| 📺 **Android TV remote support** | Settings-selected Mouse or D-pad mode, visible focus/navigation and staged Back behavior. |
+| 🔄 **In-app updater** | Windows, Android and Android TV update flows with version/changelog handling. |
+| 🖥️ **Windows portable** | No installer. Extract the ZIP and run ZeroPlay. |
 
 ---
 
-## 🎨 Four interfaces
+## 📺 Android TV controls in 2.2
 
-Choose the layout under **Settings → Appearance → UI layout**.
+Choose the player navigation mode in Settings:
 
-| Layout | Experience | Fresh-install default |
+### ✨ Hybrid — Recommended
+
+- D-pad/focus is used when ZeroPlay can reliably navigate the provider's visible controls.
+- Virtual mouse fallback is used when the embedded provider does not expose a dependable focus layout.
+- Provider menus and hidden control bars are detected/woken as needed.
+- The provider's own visible controls remain the player UI.
+
+### 🎯 D-pad / Focus
+
+- arrows move between detected provider controls;
+- OK activates the focused provider control;
+- a visible focus treatment marks the current target.
+
+### 🖱️ Mouse
+
+- arrows move ZeroPlay's virtual pointer;
+- OK clicks at the pointer position.
+
+The **Menu** button opens ZeroPlay's playback utility menu when needed. Holding Menu/OK does **not** silently change playback source. Automatic source recovery is disabled by default.
+
+See **[Android TV controls](docs/android-tv-controls.md)** for the full behavior.
+
+---
+
+## ⬇️ Download ZeroPlay 2.2
+
+Production files are published at **[GitHub Releases](https://github.com/Zer0Spce/ZeroPlay/releases/tag/v2.2)**.
+
+| Platform | File | Notes |
 | --- | --- | --- |
-| **Clean UI** | YouTube-TV-inspired navigation with a sidebar that collapses to an icon rail while browsing | **Windows** |
-| **Modern UI** | Google-TV-inspired top navigation, cinematic discovery and portrait content cards | **Android phone / tablet** |
-| **Flix UI** | Cinematic artwork-first presentation with isolated layout rules and overlapping shelves | Optional |
-| **Native / Original UI** | The familiar ZeroPlay layout and Android TV focus flow | **Android TV / Google TV** |
+| 📱 Android | `ZeroPlay-2.2-Android.apk` | Full signed Android build. |
+| 📺 Android TV / Google TV | `ZeroPlay-2.2-Android-TV.apk` | Full signed TV build with **Hybrid Mode**. |
+| 🪶 Android Lite | `ZeroPlay-2.2-Android-Lite.apk` | Separate lightweight package. |
+| 🪶📺 Android TV Lite | `ZeroPlay-2.2-Android-TV-Lite.apk` | Lightweight TV package with **Hybrid Mode**. |
+| 🖥️ Windows x64 | `ZeroPlay-2.2-Windows-x64.zip` | Portable ZIP; no installer. |
+| ✅ Integrity | `SHA256SUMS.txt` | SHA-256 for all production assets. |
 
-### Clean UI
-
-[![ZeroPlay Clean UI](docs/screenshots/1.8.0/windows-youtube.png)](docs/screenshots/1.8.0/windows-youtube.png)
-
-### Modern UI
-
-[![ZeroPlay Modern UI](docs/screenshots/1.8.0/windows-google.png)](docs/screenshots/1.8.0/windows-google.png)
-
-### Native / Original UI
-
-[![ZeroPlay Native UI](docs/screenshots/1.8.0/windows-classic.png)](docs/screenshots/1.8.0/windows-classic.png)
-
-Flix is the fourth selectable layout and stays isolated so its cinematic CSS does not leak into Clean, Modern or Native.
+Android production builds continue using the established signing identity for their corresponding package IDs.
 
 ---
 
-## 📸 ZeroPlay across platforms
+## ⚠️ Provider / platform notes
 
-### 📱 Android
-
-<a href="docs/screenshots/android-mobile-home.png"><img src="docs/screenshots/android-mobile-home.png" alt="ZeroPlay Android home" width="360"></a>
-
-### 📺 Android TV / Google TV
-
-[![ZeroPlay Android TV home](docs/screenshots/android-tv-home.png)](docs/screenshots/android-tv-home.png)
-
-### 🗂️ Categories
-
-[![ZeroPlay Windows categories](docs/screenshots/windows-categories.png)](docs/screenshots/windows-categories.png)
-
-<a href="docs/screenshots/android-mobile-categories.png"><img src="docs/screenshots/android-mobile-categories.png" alt="ZeroPlay Android categories" width="360"></a>
-
-### 🏟️ Live Sports
-
-[![ZeroPlay Windows Live Sports](docs/screenshots/windows-sports.png)](docs/screenshots/windows-sports.png)
-
-[![ZeroPlay Android TV Live Sports](docs/screenshots/android-tv-live-sports.png)](docs/screenshots/android-tv-live-sports.png)
-
-### ⚙️ Settings & homepage customization
-
-[![ZeroPlay Windows settings](docs/screenshots/windows-settings.png)](docs/screenshots/windows-settings.png)
-
-[![ZeroPlay Windows homepage panels](docs/screenshots/windows-home-panels.png)](docs/screenshots/windows-home-panels.png)
-
-<a href="docs/screenshots/android-mobile-home-panels.png"><img src="docs/screenshots/android-mobile-home-panels.png" alt="ZeroPlay Android homepage customization" width="360"></a>
-
-[![ZeroPlay Android TV homepage panels](docs/screenshots/android-tv-home-panels.png)](docs/screenshots/android-tv-home-panels.png)
+- Embedded playback providers are third-party services and can change independently of ZeroPlay.
+- A new QR creative may still need to be closed with its own X or allowed to expire while ZeroPlay learns confirmed ad-host evidence.
+- ZeroPlay does not solve or bypass CAPTCHA / Cloudflare / verification challenges.
+- Windows SmartScreen reputation can still depend on Authenticode reputation even after Defender scanning.
+- Windows offline playback behavior can depend on local codecs/compositor conditions; external-player opening remains available for completed downloads.
+- **Embedwave is labeled BETA** because provider behavior can change independently.
 
 ---
 
-## 📺 Android TV controls
+## 🛠️ Release validation
 
-Player mode is selected in **Settings**.
+The 2.2 release pipeline validates the merged release source before publication:
 
-### D-pad mode
+- Android Mobile + Android TV release unit tests;
+- Android Lite + Android TV Lite release unit tests;
+- signed APK builds for all four Android variants;
+- APK signature, package-ID and version checks;
+- lint for all four Android variants;
+- TV player/navigation regression tests including Hybrid behavior;
+- Windows unit, UI, player-guard and Electron smoke tests;
+- preservation of the existing production Windows updater/offline-player stack;
+- portable Windows packaging and packaged-ASAR verification;
+- Microsoft Defender scan of the packaged Windows build;
+- website unit/UI/build validation;
+- credential audit and SHA-256 checksum generation;
+- publication only after required production jobs succeed.
 
-- Arrow keys navigate real player controls.
-- A visible focus treatment shows the active control.
-- OK activates the selected control.
-- Hidden player controls can be woken before normal navigation continues.
-
-### Mouse mode
-
-- Arrow keys move ZeroPlay’s virtual pointer.
-- OK clicks at the pointer.
-- Back closes an open player function/menu first.
-- With no function open, Back hides visible player controls.
-- The following Back exits playback.
-
----
-
-## 🛡️ Adblock 2.0
-
-ZeroPlay favors confirmed evidence over aggressive guessing:
-
-- Confirmed QR-ad hosts are quarantined for the current session.
-- Learned confirmed hosts expire instead of becoming permanent forever.
-- VidStuck, VidSrc.sh and common player/video CDN hosts are explicitly protected.
-- Block decisions can be logged locally with ruleset version + reason.
-- New-window/popunder attempts are denied inside app playback.
-- CAPTCHA / Cloudflare / verification controls are not clicked, solved or removed by ZeroPlay.
-
----
-
-## ⬇️ Download ZeroPlay 2.1
-
-Get production files from **[GitHub Releases](https://github.com/Zer0Spce/ZeroPlay/releases/tag/v2.1)**.
-
-| Platform | File | Getting started |
-| --- | --- | --- |
-| 📱 Android phone / tablet | `ZeroPlay-2.1-Android.apk` | Android 6+. Install the signed mobile APK. |
-| 📺 Android TV / Google TV | `ZeroPlay-2.1-Android-TV.apk` | Android 6+. Install the signed TV APK and choose Mouse/D-pad mode in Settings. |
-| 🖥️ Windows 10 / 11 x64 | `ZeroPlay-2.1-Windows-x64.zip` | **2.0–2.0.3 users: manual download required once.** Extract to a fresh folder and launch `ZeroPlay.exe`. |
-| ✅ Integrity | `SHA256SUMS.txt` | Verify downloaded assets against the published SHA-256 hashes. |
-
-### Windows upgrade note
-
-If you are currently using **2.0, 2.0.1, 2.0.2, or 2.0.3 on Windows**, do not rely on that version's in-app updater for the move to 2.1. Manually download the 2.1 Windows ZIP once. **Future updates after 2.1 can use the repaired in-app updater.**
-
-Windows stays portable-only; no installer is required.
-
----
-
-## ⚠️ Known issues & workarounds
-
-### Windows Offline Player controls
-
-Some Windows media/compositor combinations can make Offline Player controls unreliable. If needed, choose **Open in external player** from a completed download and use your preferred local player. The downloaded media file itself is unaffected.
-
-### Windows SmartScreen
-
-A Windows build without a trusted Authenticode signing certificate may show **Windows protected your PC / Unrecognized app**. The production pipeline scans the packaged Windows build with Microsoft Defender before publication, but SmartScreen reputation still depends on trusted signing/reputation.
-
-### Embedded providers
-
-VidStuck / VidSrc.sh are third-party players and can change independently. Provider changes can temporarily affect controls, progress events, subtitles or advertising behavior.
-
-### QR overlays
-
-If a new creative is not yet recognized, close it with its own **X** or wait for it to expire. ZeroPlay deliberately does not bypass verification challenges.
-
----
-
-## 🔧 Configuration notes
-
-- **TMDB:** catalogue and metadata. A user-entered TMDB v3 key overrides a bundled key.
-- **OMDb:** optional Rotten Tomatoes ratings when `OMDB_API_KEY` is configured.
-- **TSP Search:** optional hosted search configuration for authorized/public-domain/user-owned downloads.
-- **RawCast:** optional playback source, hidden/off by default and using the user’s own API quota.
-- **Live TV:** Cignal and Converge can be enabled independently on Windows.
-
-Use download functionality only for content you are authorized to obtain.
-
----
-
-## 🛠️ Build & release
-
-The 2.1 production pipeline builds from the merged `main` commit and validates both platforms before publishing:
-
-- signed Android Mobile + Android TV production APKs
-- Android unit tests + lint + APK signature/version verification
-- Windows test suite + desktop smoke test
-- standalone `ZeroPlayUpdater.exe` build and package validation
-- verification that legacy Windows updater replacement logic is absent
-- Microsoft Defender scan of the packaged Windows build
-- credential audit
-- SHA-256 checksums
-- final GitHub Release publication only after Android and Windows gates pass
-
-**Windows packaging remains portable ZIP only — no installer.**
-
-Production Android signing uses the established ZeroPlay keystore. Keep signing credentials private and backed up.
+**Windows remains portable-only.**
 
 ---
 
 ## 🙌 Credits
 
-Metadata and artwork: **TMDB** and their respective rights holders. This product uses the TMDB API but is not endorsed or certified by TMDB. Provider availability: **JustWatch through TMDB**. Optional ratings: **OMDb**. Embedded players: **VidStuck** and **VidSrc.sh**. QR decoding: **ZXing**. Android media playback: **AndroidX Media3**. Windows torrent engine: **WebTorrent**.
+Metadata and artwork: **TMDB** and their respective rights holders. This product uses the TMDB API but is not endorsed or certified by TMDB. Provider availability: **JustWatch through TMDB**. Optional ratings: **OMDb**. Embedded playback providers include **VidStuck**, **Embedwave** and **VidSrc.sh**. QR decoding: **ZXing**. Android media playback: **AndroidX Media3**. Windows torrent engine: **WebTorrent**.
 
-See **[ZeroPlay 2.1 release notes](docs/release-2.1.md)** for the complete 2.1 change record and Windows migration instructions.
+See **[ZeroPlay 2.2 release notes](docs/release-2.2.md)** for the complete feature, optimization and fix record.
