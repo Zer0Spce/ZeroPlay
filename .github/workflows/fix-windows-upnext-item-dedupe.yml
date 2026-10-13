@@ -1,0 +1,97 @@
+name: Fix Windows Up Next Item Duplicates
+
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/fix-windows-upnext-item-dedupe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-windows-upnext-item-dedupe
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/2.2-navigation-discovery-performance
+          fetch-depth: 0
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Apply Up Next unique-series fix
+        run: node scripts/fix-windows-upnext-item-dedupe.cjs
+      - name: Verify syntax and Up Next regression
+        shell: pwsh
+        run: |
+          node --check windows/ui/app.js
+          if ($LASTEXITCODE -ne 0) { throw 'Windows renderer syntax failed' }
+          node --check scripts/apply-2.2-windows-ui.cjs
+          if ($LASTEXITCODE -ne 0) { throw '2.2 UI generator syntax failed' }
+          node --test tests/windows-upnext-items-dedupe.test.cjs tests/windows-home-order-dedupe.test.cjs tests/source-selection-regression.test.cjs tests/auto-source-recovery-default.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows 2.2 regression test failed' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'Generated diff check failed' }
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Windows unit tests
+        working-directory: windows
+        run: npm test
+      - name: Configure development keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Windows Electron smoke test
+        timeout-minutes: 9
+        working-directory: windows
+        run: npx electron . --smoke-test
+      - name: Package corrected Windows test build
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
+          $zip=Get-ChildItem dist -Filter 'ZeroPlay-*.zip' | Select-Object -First 1
+          if(-not $zip){ throw 'Windows ZIP missing' }
+          New-Item -ItemType Directory -Force delivery | Out-Null
+          Copy-Item $zip.FullName delivery/ZeroPlay-2.2-TEST-Windows-UpNext-Fix.zip -Force
+          (Get-FileHash delivery/ZeroPlay-2.2-TEST-Windows-UpNext-Fix.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content delivery/SHA256-Windows-UpNext-Fix.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-TEST-Windows-UpNext-Fix
+          path: windows/delivery/*
+          if-no-files-found: error
+          compression-level: 0
+      - name: Commit validated renderer and generator fix
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add windows/ui/app.js scripts/apply-2.2-windows-ui.cjs
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host 'No generated changes to commit.'; exit 0 }
+          git commit -m 'Fix duplicate titles inside Windows Up Next'
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance
