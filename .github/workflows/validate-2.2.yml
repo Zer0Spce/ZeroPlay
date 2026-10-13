@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify source-selection precedence
+        run: node --test tests/source-selection-regression.test.cjs
       - name: Validate committed website JavaScript
         run: |
           git diff --exit-code
