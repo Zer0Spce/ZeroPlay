@@ -8,6 +8,7 @@ on:
       - 'scripts/apply-2.2-web.cjs'
       - 'web/public/zero22.js'
       - 'web/public/zero22.css'
+      - 'web/test/web-surface.test.cjs'
   workflow_dispatch:
 permissions:
   contents: write
