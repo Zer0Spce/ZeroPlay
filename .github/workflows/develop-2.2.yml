@@ -7,6 +7,7 @@ on:
       - '.github/workflows/develop-2.2.yml'
       - 'scripts/apply-2.2-android-core.cjs'
       - 'scripts/fix-2.2-android-generated.cjs'
+      - 'scripts/fix-2.2-android-compile.cjs'
       - 'app/src/main/java/com/zerostreams/app/CatalogDiskCache.java'
       - 'app/src/main/java/com/zerostreams/app/Zero22.java'
       - 'app/src/main/java/com/zerostreams/app/PlaybackHealth.java'
@@ -40,6 +41,7 @@ jobs:
         run: |
           node scripts/apply-2.2-android-core.cjs
           node scripts/fix-2.2-android-generated.cjs
+          node scripts/fix-2.2-android-compile.cjs
       - name: Show generated diff
         run: git diff --check && git diff --stat
       - uses: actions/setup-java@v4
