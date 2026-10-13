@@ -105,4 +105,6 @@ jobs:
                   app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java \
                   app/src/main/assets/tv-player-input.js
           git commit -m '[2.2 generated] Apply Android discovery navigation performance and Embedwave features'
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
           git push origin HEAD:feature/2.2-navigation-discovery-performance
