@@ -1,7 +1,8 @@
 'use strict';
 (() => {
   const overlayIds=['web-player','settings','detail'];
-  const allowedExternalHosts=new Set(['www.youtube.com','www.themoviedb.org','vidstuck.xyz']);
+  const allowedExternalHosts=new Set(['www.youtube.com','www.themoviedb.org','vidstuck.xyz','embedwave.cc']);
+  const allowedPlaybackSources=new Set(['vidstuck','embedwave']);
   let closingFromHistory=false;
 
   const topOpenDialog=()=>overlayIds.map(id=>document.getElementById(id)).find(node=>node?.open)||null;
@@ -61,7 +62,7 @@
   const enforceWebSource=()=>{
     for(const option of document.querySelectorAll('option[value="vidsrc-sh"]'))option.remove();
     for(const select of document.querySelectorAll('#playback-source,.title-source')){
-      if(select.value!=='vidstuck')select.value='vidstuck';
+      if(!allowedPlaybackSources.has(select.value))select.value='vidstuck';
     }
   };
   enforceWebSource();
