@@ -151,7 +151,7 @@ public class BrowserPlayerActivity extends Activity {
             mouse=new TvMouse(this,web,screen,this::wakeControls);applyNavigationMode(navigationMode);
             Toast.makeText(this,"Movie player · "+navigationModeLabel(),Toast.LENGTH_LONG).show();
         }
-        if(!reader)buildQuickBar();
+        // Keep the provider player visually native; ZeroPlay controls stay off the video surface.
         setContentView(screen);
         if(!reader)hideSystemBars();
         loadStarted=android.os.SystemClock.elapsedRealtime();web.loadUrl(address);scheduleLoadTimeout();
@@ -228,7 +228,7 @@ public class BrowserPlayerActivity extends Activity {
     }
 
     private void wakeControls(){
-        if(web==null)return;showQuickBar();
+        if(web==null)return;
         web.evaluateJavascript("if(window.__zeroTvWake)window.__zeroTvWake();else if(window.__zeroRemoteActivity)window.__zeroRemoteActivity();",null);
     }
 
@@ -281,12 +281,12 @@ public class BrowserPlayerActivity extends Activity {
     private void applySmartMode(){if(!tvPlayer||mouse==null||!navigationMode.equals("smart")||web==null)return;web.evaluateJavascript("(typeof window.__zeroTvCanFocus==='function'&&window.__zeroTvCanFocus())",value->{boolean focus="true".equals(String.valueOf(value));mouse.setEnabled(!focus);});}
     private void scheduleLoadTimeout(){tvUi.removeCallbacks(loadTimeout);if(getIntent().getBooleanExtra("reader",false))return;tvUi.postDelayed(loadTimeout,12000);}
     private final Runnable loadTimeout=()->{if(web==null||isFinishing())return;web.evaluateJavascript("(function(){var v=document.querySelector('video');return !!(v&&v.readyState>=2);})()",value->{if(!"true".equals(String.valueOf(value)))handlePlayerFailure("Player timeout");});};
-    private void handlePlayerFailure(String reason){PlaybackHealth.failure(prefs,currentProvider());if(prefs.getBoolean("autoSourceRecovery",true)&&!failoverTried){failoverTried=true;if(loadNextSource())return;}Toast.makeText(this,reason+" · use Menu for Retry / Next Source",Toast.LENGTH_LONG).show();showQuickBar();}
+    private void handlePlayerFailure(String reason){PlaybackHealth.failure(prefs,currentProvider());if(prefs.getBoolean("autoSourceRecovery",true)&&!failoverTried){failoverTried=true;if(loadNextSource())return;}Toast.makeText(this,reason+" · use Menu for Retry / Next Source",Toast.LENGTH_LONG).show();}
     private String alternateUrl(){String parent=getIntent().getStringExtra("parent"),key=getIntent().getStringExtra("key");if(parent==null||!parent.matches("tmdb-(movie|series)-[0-9]+"))return "";String id=parent.substring(parent.lastIndexOf('-')+1),type=parent.startsWith("tmdb-series-")?"tv":"movie";int season=1,episode=1;if(type.equals("tv")&&key!=null){java.util.regex.Matcher m=java.util.regex.Pattern.compile(":s([0-9]+)e([0-9]+)$").matcher(key);if(m.find()){season=Integer.parseInt(m.group(1));episode=Integer.parseInt(m.group(2));}}String current=currentProvider(),next=current.equals("vidstuck")?"embedwave":current.equals("embedwave")?"vidsrc-sh":"vidstuck";try{return PlaybackSources.url(id,type,season,episode,next);}catch(Exception e){return "";}}
     private boolean loadNextSource(){String next=alternateUrl();if(next.isEmpty())return false;currentAddress=next;loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Trying next source…");web.loadUrl(next);scheduleLoadTimeout();return true;}
     private void runPlayer(String script){if(web!=null)web.evaluateJavascript(script,null);}
-    private void buildQuickBar(){quickBar=new LinearLayout(this);quickBar.setGravity(Gravity.CENTER_VERTICAL);quickBar.setPadding(8,5,8,5);quickBar.setBackgroundColor(0xDD101621);String[] labels={"←","−10","▶/Ⅱ","+10","Intro","Menu"};for(String label:labels){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setBackgroundColor(Color.TRANSPARENT);if(label.equals("←"))b.setOnClickListener(v->confirmExit());else if(label.equals("−10"))b.setOnClickListener(v->runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy(-10)"));else if(label.equals("▶/Ⅱ"))b.setOnClickListener(v->runPlayer("window.__zeroTogglePlayback&&window.__zeroTogglePlayback()"));else if(label.equals("+10"))b.setOnClickListener(v->runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy(10)"));else if(label.equals("Intro"))b.setOnClickListener(v->runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipIntroSeconds",90)+")"));else b.setOnClickListener(v->showQuickMenu());quickBar.addView(b,new LinearLayout.LayoutParams(0,-2,1));}FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);screen.addView(quickBar,lp);hideQuickBar=()->{if(quickBar!=null)quickBar.setVisibility(View.GONE);};showQuickBar();}
-    private void showQuickBar(){if(quickBar==null)return;quickBar.setVisibility(View.VISIBLE);tvUi.removeCallbacks(hideQuickBar);tvUi.postDelayed(hideQuickBar,4500);}
+    private void buildQuickBar(){}
+    private void showQuickBar(){}
     private boolean seriesPlayback(){String parent=getIntent().getStringExtra("parent");return parent!=null&&parent.matches("tmdb-series-[0-9]+");}
     private String seriesId(){String parent=getIntent().getStringExtra("parent");return seriesPlayback()?parent.substring(parent.lastIndexOf('-')+1):"";}
     private int[] currentEpisodePosition(){try{java.util.regex.Matcher url=java.util.regex.Pattern.compile("/embed/tv/[0-9]+/([0-9]+)/([0-9]+)").matcher(String.valueOf(currentAddress));if(url.find())return new int[]{Integer.parseInt(url.group(1)),Integer.parseInt(url.group(2))};String key=getIntent().getStringExtra("key");java.util.regex.Matcher saved=java.util.regex.Pattern.compile(":s([0-9]+)e([0-9]+)$").matcher(String.valueOf(key));if(saved.find())return new int[]{Integer.parseInt(saved.group(1)),Integer.parseInt(saved.group(2))};}catch(Exception ignored){}return new int[]{1,1};}
