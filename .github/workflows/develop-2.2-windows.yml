@@ -29,6 +29,11 @@ jobs:
         with:
           ref: feature/2.2-navigation-discovery-performance
           fetch-depth: 0
+      - name: Keep repository line endings identical to committed source
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
