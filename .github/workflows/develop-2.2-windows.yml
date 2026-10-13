@@ -17,6 +17,7 @@ on:
       - 'windows/scripts/experience-check.cjs'
       - 'windows/scripts/layout-check.cjs'
       - 'windows/scripts/media-check.cjs'
+      - 'windows/ui/layouts.js'
   workflow_dispatch:
 permissions:
   contents: write
@@ -49,17 +50,19 @@ jobs:
           cache: npm
           cache-dependency-path: windows/package-lock.json
       - name: Apply deterministic 2.2 Windows patches
+        shell: pwsh
         run: |
-          node scripts/apply-2.2-windows.cjs
-          node scripts/fix-2.2-windows-ui-patcher.cjs
-          node scripts/apply-2.2-windows-ui.cjs
-          node scripts/apply-embedwave-beta.cjs
+          $ErrorActionPreference='Stop'
+          foreach ($script in @('scripts/apply-2.2-windows.cjs','scripts/fix-2.2-windows-ui-patcher.cjs','scripts/apply-2.2-windows-ui.cjs','scripts/apply-embedwave-beta.cjs')) {
+            node $script
+            if ($LASTEXITCODE -ne 0) { throw "Windows 2.2 patch failed: $script" }
+          }
       - name: Validate generated JavaScript
         shell: pwsh
         run: |
           git diff --check
           if ($LASTEXITCODE -ne 0) { throw 'git diff validation failed' }
-          foreach ($path in @('windows/main.cjs','windows/core.cjs','windows/preload.cjs','windows/player-tools.cjs','windows/playback-sources.cjs','windows/ui/app.js','windows/ui/player-tools.js')) {
+          foreach ($path in @('windows/main.cjs','windows/core.cjs','windows/preload.cjs','windows/player-tools.cjs','windows/playback-sources.cjs','windows/ui/app.js','windows/ui/player-tools.js','windows/ui/layouts.js')) {
             node --check $path
             if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax validation failed: $path" }
           }
@@ -191,7 +194,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add windows/core.cjs windows/main.cjs windows/preload.cjs windows/player-tools.cjs windows/ui/app.js windows/ui/style.css windows/ui/player-tools.html windows/ui/player-tools.js
+          git add windows/core.cjs windows/main.cjs windows/preload.cjs windows/player-tools.cjs windows/ui/app.js windows/ui/style.css windows/ui/player-tools.html windows/ui/player-tools.js windows/ui/layouts.js
           git diff --cached --quiet
           if ($LASTEXITCODE -eq 0) {
             Write-Host 'No Windows generated changes to commit.'
