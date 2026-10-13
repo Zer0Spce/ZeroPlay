@@ -17,22 +17,21 @@ test('website does not expose Live TV, PPV or Live Sports',()=>{
   assert.equal(fs.existsSync(path.join(root,'api/live.js')),false);
 });
 
-test('website infinite scroll only advances after an actual downward page scroll',()=>{
+test('website movies and series append more cards below the current grid',()=>{
   const html=read('web/public/index.html');
   const infinite=read('web/public/infinite-scroll.js');
   const sw=read('web/public/sw.js');
-  assert.match(html,/infinite-scroll\.js\?v=20261013b/);
-  assert.match(sw,/zeroplay-web-2\.1\.2-shell-v4/);
-  assert.match(sw,/infinite-scroll\.js\?v=20261013b/);
-  assert.match(infinite,/data-action="next-page"/);
-  assert.match(infinite,/scrollIntentUntil/);
+  assert.match(html,/infinite-scroll\.js\?v=20261013c/);
+  assert.match(sw,/zeroplay-web-2\.1\.2-shell-v5/);
+  assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
+  assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
+  assert.match(infinite,/async function appendCatalogPage/);
+  assert.match(infinite,/const data=await api\(path,\{page:nextPage\}\)/);
+  assert.match(infinite,/grid\.insertAdjacentHTML\('beforeend',html\)/);
+  assert.match(infinite,/page=nextPage/);
+  assert.match(infinite,/grid\.children\.length\+' titles loaded'/);
+  assert.match(infinite,/if\(canAppendCatalog\(\)\)\{appendCatalogPage\(grid,pager\);return;\}/);
   assert.match(infinite,/function nearBottom\(\)\{return window\.scrollY>0/);
   assert.match(infinite,/function resetTabPosition\(\)/);
-  assert.match(infinite,/closest\('\[data-nav\],\.brand'\)/);
-  assert.match(infinite,/window\.scrollTo\(\{top:0,behavior:'auto'\}\)/);
   assert.match(infinite,/if\(y>lastScrollY\+2\)\{armScrollIntent\(\);scheduleCheck\(\);\}/);
-  assert.doesNotMatch(infinite,/addEventListener\('wheel'/);
-  assert.doesNotMatch(infinite,/addEventListener\('touchmove'/);
-  assert.match(infinite,/savedGrid\.appendChild/);
-  assert.match(infinite,/paging\.hidden=true/);
 });
