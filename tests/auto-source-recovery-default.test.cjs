@@ -23,8 +23,8 @@ test('automatic source recovery defaults off and is opt-in across 2.2 platforms'
 test('deterministic 2.2 generators cannot restore recovery-on defaults',()=>{
   const androidPatch=read('scripts/apply-2.2-android-core.cjs');
   const windowsPatch=read('scripts/apply-2.2-windows.cjs');
-  assert.match(androidPatch,/autoSourceRecovery\\",false/);
-  assert.doesNotMatch(androidPatch,/autoSourceRecovery\\",true/);
+  assert.match(androidPatch,/autoSourceRecovery",false/);
+  assert.doesNotMatch(androidPatch,/autoSourceRecovery",true/);
   assert.match(windowsPatch,/autoSourceRecovery:false/);
   assert.match(windowsPatch,/autoSourceRecovery===true/);
   assert.doesNotMatch(windowsPatch,/autoSourceRecovery:true/);
