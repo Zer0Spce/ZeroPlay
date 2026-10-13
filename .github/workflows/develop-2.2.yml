@@ -16,6 +16,7 @@ on:
       - 'app/src/main/java/com/zerostreams/app/HomePanels.java'
       - 'app/src/main/java/com/zerostreams/app/TvMouse.java'
       - 'app/src/test/java/com/zerostreams/app/HomePanelsTest.java'
+      - 'app/src/test/java/com/zerostreams/app/PlaybackSourcesTest.java'
       - 'app/src/main/assets/player-22.js'
       - 'tests/PlayerRulesTest.java'
       - 'tests/tv-navigation.test.cjs'
@@ -79,21 +80,7 @@ jobs:
           grep -F 'https://embedwave.cc' app/src/main/java/com/zerostreams/app/PlaybackSources.java
           grep -F 'Embedwave (BETA)' app/src/main/java/com/zerostreams/app/PlaybackSources.java
       - name: Android unit tests
-        run: |
-          mkdir -p ci-diagnostics
-          set +e
-          gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest --console=plain 2>&1 | tee ci-diagnostics/android-unit-tests.txt
-          rc=${PIPESTATUS[0]}
-          find app/build/test-results -type f -name '*.xml' -print -exec cat {} \; >> ci-diagnostics/android-unit-tests.txt 2>/dev/null || true
-          exit $rc
-      - name: Commit Android unit-test diagnostics on failure
-        if: failure()
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add ci-diagnostics/android-unit-tests.txt
-          git commit -m '[2.2 diagnostics] Capture Android unit-test failure' || exit 0
-          git push origin HEAD:feature/2.2-navigation-discovery-performance
+        run: gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest
       - name: Build Android and Android TV debug APKs
         run: gradle :app:assembleMobileDebug :app:assembleTvDebug
       - name: Lint Android variants
