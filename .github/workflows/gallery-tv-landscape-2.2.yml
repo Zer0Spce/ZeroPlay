@@ -2,7 +2,7 @@ name: Capture ZeroPlay 2.2 TV landscape and Hybrid controls
 on:
   push:
     branches: [docs/zeroplay-2.2-gallery]
-    paths: [.github/workflows/gallery-tv-landscape-2.2.yml]
+    paths: [.github/workflows/gallery-tv-landscape-2.2.yml, scripts/FeatureGalleryTest.java]
   workflow_dispatch:
 permissions:
   contents: write
