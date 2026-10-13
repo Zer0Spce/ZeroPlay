@@ -41,9 +41,10 @@ test('website preserves loaded pages on detail back and syncs provider filter mo
   assert.match(polish,/\/genre\/'\+providerType/);
 });
 
-test('website infinite scrolling deduplicates preloads and retries',()=>{
+test('website infinite scrolling deduplicates pages retries and waits until the real bottom',()=>{
   const infinite=read('web/public/infinite-scroll.js');
-  assert.match(infinite,/2200/);
+  assert.match(infinite,/<500/);
+  assert.match(infinite,/window\.scrollY>0/);
   assert.match(infinite,/existing\.has/);
   assert.match(infinite,/retries<=2/);
   assert.match(infinite,/Loading more titles/);
