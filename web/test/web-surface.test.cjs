@@ -26,7 +26,9 @@ test('website movies and series append more cards below the current grid',()=>{
   assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
   assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
   assert.match(infinite,/async function appendCatalogPage/);
-  assert.match(infinite,/const data=await api\(path,\{page:nextPage\}\)/);
+  assert.match(infinite,/zero22CatalogRequest\?window\.zero22CatalogRequest\(section,nextPage\):null/);
+  assert.match(infinite,/requestParams=request\?\.params\|\|\{page:nextPage\}/);
+  assert.match(infinite,/const data=await api\(path,requestParams\)/);
   assert.match(infinite,/grid\.insertAdjacentHTML\('beforeend',html\)/);
   assert.match(infinite,/page=nextPage/);
   assert.match(infinite,/grid\.children\.length\+' titles loaded'/);
