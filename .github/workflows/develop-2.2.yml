@@ -8,11 +8,14 @@ on:
       - 'scripts/apply-2.2-android-core.cjs'
       - 'scripts/fix-2.2-android-generated.cjs'
       - 'scripts/fix-2.2-android-compile.cjs'
+      - 'scripts/apply-embedwave-beta.cjs'
       - 'app/src/main/java/com/zerostreams/app/CatalogDiskCache.java'
       - 'app/src/main/java/com/zerostreams/app/Zero22.java'
       - 'app/src/main/java/com/zerostreams/app/PlaybackHealth.java'
+      - 'app/src/main/java/com/zerostreams/app/PlaybackSources.java'
       - 'app/src/main/java/com/zerostreams/app/HomePanels.java'
       - 'app/src/main/java/com/zerostreams/app/TvMouse.java'
+      - 'app/src/test/java/com/zerostreams/app/HomePanelsTest.java'
       - 'app/src/main/assets/player-22.js'
       - 'tests/PlayerRulesTest.java'
       - 'tests/tv-navigation.test.cjs'
@@ -42,6 +45,7 @@ jobs:
           node scripts/apply-2.2-android-core.cjs
           node scripts/fix-2.2-android-generated.cjs
           node scripts/fix-2.2-android-compile.cjs
+          node scripts/apply-embedwave-beta.cjs
       - name: Show generated diff
         run: git diff --check && git diff --stat
       - uses: actions/setup-java@v4
@@ -69,6 +73,11 @@ jobs:
           npm install --prefix /tmp/zero-qr-tests --no-audit --no-fund jsdom@24.1.3
           node tests/player-guard.test.cjs
           node tests/tv-navigation.test.cjs
+      - name: Verify Embedwave source builder
+        run: |
+          grep -F '"embedwave"' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -F 'https://embedwave.cc' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -F 'Embedwave (BETA)' app/src/main/java/com/zerostreams/app/PlaybackSources.java
       - name: Android unit tests
         run: gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest
       - name: Build Android and Android TV debug APKs
@@ -94,5 +103,5 @@ jobs:
                   app/src/main/java/com/zerostreams/app/MainActivity.java \
                   app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java \
                   app/src/main/assets/tv-player-input.js
-          git commit -m '[2.2 generated] Apply Android discovery navigation and performance features'
+          git commit -m '[2.2 generated] Apply Android discovery navigation performance and Embedwave features'
           git push origin HEAD:feature/2.2-navigation-discovery-performance
