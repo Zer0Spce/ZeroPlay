@@ -8,8 +8,10 @@ on:
       - 'scripts/apply-2.2-web.cjs'
       - 'scripts/apply-embedwave-beta.cjs'
       - 'web/public/playback-sources.js'
+      - 'web/public/web-fixes.js'
       - 'web/public/zero22.js'
       - 'web/public/zero22.css'
+      - 'web/scripts/ui-check.cjs'
       - 'web/test/web-surface.test.cjs'
   workflow_dispatch:
 permissions:
