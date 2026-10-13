@@ -7,6 +7,9 @@ on:
       - '.github/workflows/develop-2.2-windows.yml'
       - 'scripts/apply-2.2-windows.cjs'
       - 'scripts/apply-2.2-windows-ui.cjs'
+      - 'scripts/fix-2.2-windows-ui-patcher.cjs'
+      - 'scripts/apply-embedwave-beta.cjs'
+      - 'windows/playback-sources.cjs'
       - 'windows/assets/player-22.js'
   workflow_dispatch:
 permissions:
@@ -42,7 +45,9 @@ jobs:
       - name: Apply deterministic 2.2 Windows patches
         run: |
           node scripts/apply-2.2-windows.cjs
+          node scripts/fix-2.2-windows-ui-patcher.cjs
           node scripts/apply-2.2-windows-ui.cjs
+          node scripts/apply-embedwave-beta.cjs
       - name: Validate generated JavaScript
         shell: pwsh
         run: |
@@ -51,9 +56,20 @@ jobs:
           node --check windows/core.cjs
           node --check windows/preload.cjs
           node --check windows/player-tools.cjs
+          node --check windows/playback-sources.cjs
           node --check windows/ui/app.js
           node --check windows/ui/player-tools.js
           git diff --stat
+      - name: Verify Embedwave source
+        shell: pwsh
+        run: |
+          $source = Get-Content windows/playback-sources.cjs -Raw
+          $main = Get-Content windows/main.cjs -Raw
+          $ui = Get-Content windows/ui/app.js -Raw
+          if (!$source.Contains("id:'embedwave'") -or !$source.Contains('embedwave.cc')) { throw 'Embedwave URL builder missing' }
+          if (!$main.Contains('embedwave.cc') -or !$main.Contains('autoSourceRecovery')) { throw 'Embedwave recovery/trust integration missing' }
+          if (!$ui.Contains('Embedwave (BETA)')) { throw 'Embedwave source picker missing' }
+          Write-Host 'Embedwave Windows integration verified.'
       - name: Install Windows dependencies
         working-directory: windows
         run: npm ci --no-audit --no-fund
@@ -118,5 +134,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add windows/core.cjs windows/main.cjs windows/preload.cjs windows/player-tools.cjs windows/ui/app.js windows/ui/style.css windows/ui/player-tools.html windows/ui/player-tools.js
-          git commit -m '[2.2 generated] Apply Windows discovery player and performance features'
+          git commit -m '[2.2 generated] Apply Windows discovery player performance and Embedwave features'
           git push origin HEAD:feature/2.2-navigation-discovery-performance
