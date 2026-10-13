@@ -18,7 +18,7 @@ final class TvMouse extends View implements Choreographer.FrameCallback {
         enabled=activity.getSharedPreferences("zero",Activity.MODE_PRIVATE).getBoolean("playerMouse",false);
     }
     boolean isMouseEnabled(){return enabled;}
-    void setEnabled(boolean value){enabled=value;stop();if(value)wakeNow();}
+    @Override public void setEnabled(boolean value){super.setEnabled(value);enabled=value;stop();if(value)wakeNow();}
     boolean wakeNow(){if(!enabled)return false;if(x<0){x=Math.max(2,web.getWidth()/2f);y=Math.max(2,web.getHeight()/2f);}setVisibility(VISIBLE);invalidate();handler.removeCallbacks(hide);handler.postDelayed(hide,5000);long now=SystemClock.uptimeMillis();MotionEvent hover=MotionEvent.obtain(now,now,MotionEvent.ACTION_HOVER_MOVE,x,y,0);hover.setSource(InputDevice.SOURCE_MOUSE);web.dispatchGenericMotionEvent(hover);hover.recycle();lastHover=now;lastWake=now;wake.run();return true;}
     boolean handle(KeyEvent event){int key=event.getKeyCode();if(!enabled)return false;
         if(key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER){if(event.getAction()==KeyEvent.ACTION_DOWN)wakeNow();if(event.getAction()==KeyEvent.ACTION_UP)click();return true;}
