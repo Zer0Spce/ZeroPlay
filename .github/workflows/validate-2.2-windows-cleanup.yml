@@ -1,0 +1,84 @@
+name: ZeroPlay 2.2 Windows Final Cleanup Validation
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/validate-2.2-windows-cleanup.yml'
+      - 'windows/scripts/live-playback-fixture.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zeroplay-2-2-windows-cleanup-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  windows:
+    name: Windows smoke + package after fixture cleanup fix
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+          git diff --exit-code
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Validate smoke fixture shutdown fix
+        shell: pwsh
+        run: |
+          node --check windows/scripts/live-playback-fixture.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Smoke fixture syntax validation failed' }
+          $fixture=Get-Content windows/scripts/live-playback-fixture.cjs -Raw
+          if (!$fixture.Contains('server.closeAllConnections')) { throw 'Forced fixture connection cleanup missing' }
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Configure bundled development keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Windows smoke test
+        timeout-minutes: 6
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npx electron . --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "Windows smoke test failed with exit code $LASTEXITCODE" }
+      - name: Package Windows development build
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows development packaging failed' }
+      - name: Verify packaged 2.2 assets
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $asar='dist/win-unpacked/resources/app.asar'
+          if (!(Test-Path $asar)) { throw "Packaged app.asar missing: $asar" }
+          $listing=npx --yes @electron/asar list $asar
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect packaged app.asar' }
+          $joined=($listing -join "`n").Replace('\','/')
+          foreach ($required in @('/assets/player-22.js','/ui/player-tools.html','/ui/player-tools.js')) {
+            if (!$joined.Contains($required)) { throw "2.2 packaged asset missing from app.asar: $required" }
+          }
+      - name: Upload final Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-final-Windows-cleanup-${{ github.sha }}
+          path: |
+            windows/dist/ZeroPlay-*.zip
+            windows/dist/desktop-preview.png
+          if-no-files-found: error
