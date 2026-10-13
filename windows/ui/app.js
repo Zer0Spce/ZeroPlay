@@ -17,7 +17,8 @@ document.addEventListener('change',event=>{const kind=event.target.dataset.sort;
 function reorderTitles(){const grid=$('#catalog-grid');if(!grid)return;const items=[...loadedKeys].map(id=>titles.get(id)).filter(Boolean);grid.innerHTML=sortedTitles(items).map(item=>card(item)).join('');}
 const sources=[['vidstuck','VidStuck'],['embedwave','Embedwave (BETA)'],['vidsrc-sh','VidSrc.sh'],['rawcast','RawCast · Limited quota']];
 function sourceOverrides(){try{return JSON.parse(localStorage.getItem('zero-title-sources')||'{}')||{};}catch{return {};}}
-function sourceFor(item){if(!item)return 'vidstuck';const once=oneTimeSources.get(key(item));if(sources.some(([id])=>id===once))return once;const saved=sourceOverrides()[key(item)];return sources.some(([id])=>id===saved)?saved:'vidstuck';}
+function playbackSourceValid(id){return sources.some(([sourceId])=>sourceId===id);}
+function sourceFor(item){const global=state?.settings?.source;if(!item)return playbackSourceValid(global)?global:'vidstuck';const once=oneTimeSources.get(key(item));if(playbackSourceValid(once))return once;const saved=sourceOverrides()[key(item)];if(playbackSourceValid(saved))return saved;return playbackSourceValid(global)?global:'vidstuck';}
 function sourceName(id){return sources.find(x=>x[0]===id)?.[1]||'VidStuck';}
 function sourceLabel(item){const id=sourceFor(item);return sourceName(id)+(id==='vidstuck'?' · Recommended':'');}
 function sourceButton(item){return `<button data-action="source">${escape(sourceLabel(item))} ▾</button>`;}
