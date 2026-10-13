@@ -85,7 +85,7 @@ async function openPlayer(value,selected,fixture,prepare=false,sourceOverride){
   toolbar=new WebContentsView({webPreferences:{preload:path.join(__dirname,'player-tools.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
   player.setBackgroundColor('#000000');toolbar.setBackgroundColor('#101621');
   const view=player,contents=view.webContents;
-  playerHost=new PlayerHost(main,view,toolbar);installPlayerScripts(contents);
+  playerHost=new PlayerHost(main,view,toolbar,{toolbar:false});installPlayerScripts(contents);
   toolbar.webContents.setWindowOpenHandler(()=>({action:'deny'}));toolbar.webContents.on('will-navigate',event=>event.preventDefault());
   await toolbar.webContents.loadFile(path.join(__dirname,'ui/player-tools.html'));toolbar.webContents.send('player-title',value.title);
   main.setTitle(value.title+' — ZeroPlay');
@@ -160,7 +160,7 @@ async function openLive(section,index,offline){
   liveSession.webRequest.onHeadersReceived({urls:['http://*/*','https://*/*']},(details,callback)=>{const h=details.responseHeaders||{};for(const name of Object.keys(h))if(name.toLowerCase().startsWith('access-control-'))delete h[name];h['Access-Control-Allow-Origin']=['*'];h['Access-Control-Allow-Headers']=['*'];h['Access-Control-Allow-Methods']=['GET,HEAD,OPTIONS'];callback({responseHeaders:h});});
   player=new WebContentsView({webPreferences:{partition,preload:path.join(__dirname,'live-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
   toolbar=new WebContentsView({webPreferences:{preload:path.join(__dirname,'player-tools.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
-  const view=player;playerHost=new PlayerHost(main,view,toolbar);view.setBackgroundColor('#000');toolbar.setBackgroundColor('#101621');
+  const view=player;playerHost=new PlayerHost(main,view,toolbar,{toolbar:false});view.setBackgroundColor('#000');toolbar.setBackgroundColor('#101621');
   for(const contents of [view.webContents,toolbar.webContents]){contents.setWindowOpenHandler(()=>({action:'deny'}));contents.on('will-navigate',event=>event.preventDefault());}
   view.webContents.on('render-process-gone',()=>{if(player===view)closePlayer();});
   await toolbar.webContents.loadFile(path.join(__dirname,'ui/player-tools.html'));toolbar.webContents.send('player-title',channel.name);main.setTitle(channel.name+' — ZeroPlay Live');
