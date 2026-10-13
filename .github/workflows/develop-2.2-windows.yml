@@ -8,6 +8,7 @@ on:
       - 'scripts/apply-2.2-windows.cjs'
       - 'scripts/apply-2.2-windows-ui.cjs'
       - 'scripts/fix-2.2-windows-ui-patcher.cjs'
+      - 'scripts/fix-2.2-windows-regression-tests.cjs'
       - 'scripts/apply-embedwave-beta.cjs'
       - 'windows/playback-sources.cjs'
       - 'windows/assets/player-22.js'
