@@ -80,14 +80,16 @@ jobs:
       - name: Commit generated web source only after checks pass
         run: |
           set -euo pipefail
-          if git diff --quiet; then
-            echo 'No generated web changes to commit.'
-            exit 0
-          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add web/lib/catalog.cjs web/public/browser.js web/public/app.js web/public/index.html web/public/infinite-scroll.js
+          if git diff --cached --quiet; then
+            echo 'No web generated changes to commit.'
+            git reset --hard HEAD
+            exit 0
+          fi
           git commit -m '[2.2 generated] Apply website discovery performance and Embedwave features'
+          git reset --hard HEAD
           git fetch origin feature/2.2-navigation-discovery-performance
           git rebase origin/feature/2.2-navigation-discovery-performance
           git push origin HEAD:feature/2.2-navigation-discovery-performance
