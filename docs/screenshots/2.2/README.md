@@ -18,7 +18,7 @@ These PNG files capture the running application. They are not generated images, 
 
 - Source: the 2.2 native app on the documentation branch, with unchanged application source relative to release commit `da84f6ec941d128adf4aad280f4b1d43a7efa995`.
 - Capture: the existing native `GalleryTest` instrumentation test and Android `screencap -p`.
-- Environment: Android API 28 emulator; Mobile density 420; TV density 240 with a 1920 × 1080 landscape display.
+- Environment: Android API 28 emulator; Mobile density 420; TV density 240 with a native `tv_1080p` 1920 × 1080 landscape display profile.
 - These are native application captures from a debug/instrumentation build of the 2.2 source, rather than a claim that they were taken on a physical device or from a signed release APK.
 - Catalog/artwork load through the app’s normal TMDB path. Navigation/layout changes use native application methods and settings.
 - Screenshots retain the emulator’s actual resolution and layout.

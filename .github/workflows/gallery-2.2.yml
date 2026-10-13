@@ -50,8 +50,10 @@ jobs:
         include:
           - variant: Mobile
             density: 420
+            profile: pixel_2
           - variant: Tv
             density: 240
+            profile: tv_1080p
     env:
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
     steps:
@@ -73,9 +75,10 @@ jobs:
           api-level: 28
           arch: x86_64
           target: google_apis
-          profile: pixel_2
+          profile: ${{ matrix.profile }}
           disable-animations: true
           script: |
+            adb shell wm size reset
             adb shell wm density ${{ matrix.density }}
             gradle :app:connected${{ matrix.variant }}DebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zerostreams.app.GalleryTest
             mkdir -p docs/screenshots/2.2

@@ -600,6 +600,7 @@ Some 2.0 behavior was subsequently replaced: Windows updater/offline playback we
 
 - [2.0.3: full fixes and release notes](docs/release-2.0.3.md)
 - [2.0.2: full fixes and release notes](docs/release-2.0.2.md)
+- [2.0.1: full fixes and release notes](docs/release-2.0.1.md)
 - [1.9: full fixes and release notes](docs/release-1.9.md)
 - [1.8.2: full fixes and release notes](docs/release-1.8.2.md)
 - [1.8.1: full fixes and release notes](docs/release-1.8.1.md)
