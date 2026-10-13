@@ -128,14 +128,17 @@ jobs:
       - name: Commit generated Windows source only after checks pass
         shell: pwsh
         run: |
-          if (-not (git status --porcelain)) {
-            Write-Host 'No generated changes to commit.'
-            exit 0
-          }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add windows/core.cjs windows/main.cjs windows/preload.cjs windows/player-tools.cjs windows/ui/app.js windows/ui/style.css windows/ui/player-tools.html windows/ui/player-tools.js
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'No Windows generated changes to commit.'
+            git reset --hard HEAD
+            exit 0
+          }
           git commit -m '[2.2 generated] Apply Windows discovery player performance and Embedwave features'
+          git reset --hard HEAD
           git fetch origin feature/2.2-navigation-discovery-performance
           git rebase origin/feature/2.2-navigation-discovery-performance
           git push origin HEAD:feature/2.2-navigation-discovery-performance
