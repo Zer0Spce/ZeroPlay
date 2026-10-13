@@ -1,0 +1,8 @@
+{
+  "version": "2.2.0",
+  "source": "Published ZeroPlay-2.2-Windows-x64.zip",
+  "capture": "Playwright CDP screenshots of actual released Electron UI",
+  "mockData": false,
+  "settings": "Fresh runner profile; trailers disabled for stable captures; layouts selected through app settings.",
+  "capturedAt": "2026-10-13T15:20:48.415Z"
+}
