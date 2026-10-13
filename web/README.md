@@ -1,8 +1,15 @@
 # ZeroPlay website
 
-**Current website version: ZeroPlay 2.1.2 Web.**
+**Current website version: ZeroPlay 2.2 Web.**
 
 Responsive movie/TV website using the same core discovery experience as ZeroPlay. The website intentionally does **not** include Live TV, PPV / Sports, or Live Sports.
+
+## ZeroPlay 2.2 additions
+
+- Embedwave (BETA) source selection alongside VidStuck.
+- Local profiles, person discovery, Hidden Gems, Because You Watched and episode-calendar helpers.
+- Tab/pagination fixes that prevent runaway or unrelated catalog appends.
+- Improved in-place page appends and cache/bundle refresh handling.
 
 ## Website-only experience upgrades
 
@@ -21,7 +28,7 @@ The web build now includes:
 - Installable PWA support using the existing ZeroPlay icon and an offline-capable cached app shell.
 - Web performance improvements including lazy image tuning, `content-visibility`, bounded enhancement caching and smarter next-page preloading.
 
-TMDB powers discovery, provider browsing, metadata, cast, trailers and related titles. VidStuck remains the website playback source. Libraries, Plan to Watch, collections and watch/search history stay local to the browser.
+TMDB powers discovery, provider browsing, metadata, cast, trailers and related titles. VidStuck and Embedwave (BETA) are the website playback sources. Libraries, Plan to Watch, collections and watch/search history stay local to the browser.
 
 ## Deploy to Vercel
 
@@ -42,7 +49,7 @@ Netlify remains supported. Root `netlify.toml` runs the same build command, publ
 
 No authentication or cross-device account synchronization is included; libraries stay in this browser.
 
-VidStuck is embedded using its documented TMDB URLs and options. Playback progress is accepted only from the active iframe and exact VidStuck origin, matching content ID/type and validated timestamps. Embedded popups and top-level redirects are restricted by the website controls and hosting Content Security Policy.
+VidStuck is embedded using its documented TMDB URLs and options. Playback progress is accepted only from the active iframe and validated provider origin, matching content ID/type where exposed and validated timestamps. Embedded popups and top-level redirects are restricted by the website controls and hosting Content Security Policy.
 
 A normal website cannot inspect or remove content inside VidStuck's cross-origin iframe. The Android/Windows QR scanner, control filtering, remote mouse and audio boost do not run on the website. Provider advertisements/verification and playback availability remain controlled by VidStuck. The website's own close/title controls hide after idle time; the provider's controls remain its own.
 
@@ -59,4 +66,4 @@ The build check also validates JavaScript syntax for the web runtime files and v
 
 For Vercel local development, use `vercel dev` with `TMDB_API_KEY` configured outside source control. For Netlify, use `netlify dev`.
 
-Credits: TMDB metadata/artwork; JustWatch availability through TMDB; VidStuck playback. This product uses the TMDB API but is not endorsed or certified by TMDB.
+Credits: TMDB metadata/artwork; JustWatch availability through TMDB; VidStuck and Embedwave playback. This product uses the TMDB API but is not endorsed or certified by TMDB.

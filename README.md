@@ -1,232 +1,640 @@
+<p align="center"><img src="docs/screenshots/2.2/zeroplay-logo.svg" alt="ZeroPlay — white Zero and mint-gradient Play" width="100%"></p>
+
 # 🎬 ZeroPlay 2.2
 
-### Movies. Series. Live TV. Live Sports. Faster discovery. Smarter TV controls.
+### Movies. Series. Anime. Live TV. Sports. Your own space to watch.
 
-**ZeroPlay** is a cross-platform entertainment hub for **Android, Android TV / Google TV, Windows, and Web**. Browse movies, series and anime through TMDB, keep a local library and playback history, switch playback providers, follow Live TV / PPV / Sports, use authorized offline/download features, and customize the experience around your screen.
+ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2** adds **Hybrid TV controls**, local profiles, deeper discovery, persistent catalog caching and updated **Lite editions**.
 
-[![ZeroPlay Windows home](docs/screenshots/windows-home.png)](docs/screenshots/windows-home.png)
+**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2 release notes](docs/release-2.2.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
 
-**[⬇️ Download ZeroPlay 2.2](https://github.com/Zer0Spce/ZeroPlay/releases/tag/v2.2)** · **[📋 Full 2.2 release notes](docs/release-2.2.md)** · **[📺 Android TV controls](docs/android-tv-controls.md)**
+> [!IMPORTANT]
+> **Windows 2.0–2.0.3 users: update manually once.** Download the current Windows ZIP, extract it into a fresh folder and launch `ZeroPlay.exe`. Those old versions contain the broken updater. Versions 2.1 and newer include the repaired in-app update flow.
 
----
+## ⬇️ Choose your edition
 
-## ⭐ ZeroPlay 2.2 highlights
-
-### 📺 Android TV Hybrid Mode — the headline feature
-
-ZeroPlay 2.2 introduces **Hybrid player navigation** for Android TV / Google TV.
-
-Instead of forcing every embedded provider into one remote-control style, Hybrid Mode chooses the best interaction strategy for the player that is actually on screen:
-
-- uses **D-pad / focus navigation** when the provider exposes reliable controls;
-- falls back to ZeroPlay's **virtual mouse** when an embedded player does not expose a usable focus graph;
-- wakes hidden provider controls before navigating;
-- handles provider menus, settings and overlays without changing the rest of the app's remote behavior;
-- keeps staged Back behavior so menus/controls close before playback exits;
-- keeps **Mouse** and **D-pad** modes available for users who prefer a fixed mode.
-
-Hybrid Mode is shared by the full **Android TV** and lightweight **Android TV Lite** builds.
-
-### ▶️ More playback sources + safer source selection
-
-- Added **Embedwave (BETA)** for movies and series.
-- VidStuck and VidSrc.sh remain available; RawCast remains optional where configured.
-- Fixed a 2.2 test-build regression where manual source choices could be silently replaced by Embedwave.
-- Source priority now respects the explicit title choice, saved per-title choice, then global Settings choice.
-- Source health information can assist recovery without overriding the initial manual choice.
-- **Automatic Source Recovery is OFF by default** and runs only when the user enables it.
-- Normal movie/series playback keeps the provider's **native/default controls** — ZeroPlay no longer draws an extra control strip over the video.
-
-### ⚡ Performance and caching
-
-- Local TMDB catalog caching with memory + disk caching on Windows and persistent catalog caching on Android.
-- Cached content can be shown quickly while network work refreshes in the background.
-- Reduced repeated tab/catalog requests and unnecessary view regeneration.
-- Smarter/lazier artwork loading and lower-cost artwork choices.
-- New **Performance Mode** for slower TVs/boxes.
-- Background work is reduced while playback is active.
-
-### 🧭 Discovery and personalization
-
-2.2 adds a much richer local discovery layer:
-
-- **Up Next** for the next episode of shows you are following.
-- **Because You Watched** recommendations.
-- **Hidden Gems** discovery.
-- **Tonight's Picks** / shorter-watch discovery.
-- TV airing / episode-calendar discovery.
-- richer movie/series filters and sorting.
-- mood-based discovery helpers.
-- person / actor discovery and credits.
-- franchise / collection navigation.
-- local **Not Interested** preference.
-- improved homepage panel ordering and customization.
-- local profiles with isolated history, Continue Watching, watchlists, collections and recommendation context.
-
-### ⏯️ Better progress and episode handling
-
-- Improved Continue Watching state.
-- Episode/season progress tracking.
-- Next-episode calculation and Up Next integration.
-- Autoplay-next setting.
-- episode quick navigation support.
-- configurable intro/recap skip timing support without pretending provider metadata is exact.
-- fixed duplicate series cards in Windows **Up Next** by keeping only the newest progress record per TMDB series.
-
-### 🖥️ Windows improvements
-
-- Source health and explicit source-preference handling.
-- Player diagnostics and recovery plumbing.
-- Mini-player infrastructure and desktop playback shortcuts.
-- improved fullscreen/back behavior.
-- catalog cache with stale fallback.
-- homepage/state restoration improvements.
-- smoke-test and fixture cleanup hardening.
-- production portable ZIP remains installer-free.
-
-### 🌐 Website 2.2
-
-The website receives the new discovery/performance work while preserving the intentional website-only scope:
-
-- Movies and Series discovery remain available.
-- Embedwave (BETA) joins VidStuck on Web.
-- filtered catalog requests, profiles/person discovery, Because You Watched, Hidden Gems and episode-calendar helpers are included.
-- tab/infinite-scroll fixes prevent runaway or random catalog loading.
-- **Live TV, Live Sports and PPV remain intentionally absent from the website.**
-
----
-
-## 🪶 New Android Lite editions
-
-ZeroPlay 2.2 ships two optional lightweight builds alongside the normal Android apps:
-
-- **ZeroPlay Android Lite** — `com.zerostreams.app.lite.mobile`
-- **ZeroPlay Android TV Lite** — `com.zerostreams.app.lite.tv`
-
-Lite keeps the shared 2.2 catalog/player engine but reduces presentation overhead:
-
-- no rotating hero carousel;
-- fewer homepage cards kept alive;
-- smaller TMDB artwork requests;
-- backdrop/blur atmosphere disabled;
-- animations, focus trailers and homepage trailers disabled by default;
-- Performance Mode enabled by default;
-- Classic lightweight layout by default.
-
-**Android TV Lite still includes Hybrid Mode and the 2.2 provider/navigation fixes.** Lite is not a separate old player engine; it is the lightweight presentation layer running on the current 2.2 playback core.
-
----
-
-## ✨ Core ZeroPlay features
-
-| | Feature |
-| --- | --- |
-| 🔎 **TMDB discovery & explicit search** | Trending, popular, now playing, upcoming, recommendations and Search-button results without searching every keystroke. |
-| 🎲 **Surprise Me** | Pick a random released movie beyond the visible page. |
-| 🗂️ **Categories** | Artwork-rich movie/TV genres, Anime, alphabetical browsing and international/language collections with infinite loading. |
-| 🎞️ **Rich title pages** | Artwork, synopsis, genres, cast, trailers, ratings, recommendations and provider information. |
-| 🧑‍🎬 **People & filmography** | Browse movie + TV credits from exact TMDB person IDs. |
-| ❤️ **Local library** | Watchlist, Plan to Watch, custom collections, history, searches and local profiles. |
-| ⏯️ **Continue Watching / Up Next** | Resume supported playback and surface the next series episode. |
-| ▶️ **Playback sources** | VidStuck, **Embedwave (BETA)**, VidSrc.sh, plus optional RawCast where supported. |
-| 📡 **Live PPV** | Dedicated PPV/Sports playlist browsing with refresh and in-app playback. |
-| 📺 **Live TV** | IPTV groups, favorites, refresh and platform-specific channel handling. |
-| 🏟️ **Live Sports** | Event categories, schedules, artwork, alternate streams, refresh/retry and fullscreen playback. |
-| 📺 **Android TV Hybrid Mode** | Automatically chooses focus/D-pad or virtual mouse interaction for embedded players. |
-| 🎨 **Four UI layouts** | Clean, Modern, Flix and Native / Original. |
-| 🌈 **17 themes** | Zero Dark, Zero Light, Ocean, Orchid, Sunset, Midnight Blue, Ember Glow, Forest Moss, Rose Noir, Amethyst, Cyber Mint, Cobalt Sky, Golden Hour, Coral Night, Aurora, Slate Ice and Mocha. |
-| ⚙️ **Homepage customization** | Enable, disable and order homepage sections. |
-| ⚡ **Performance controls** | Performance Mode, adaptive artwork behavior and reduced background work during playback. |
-| 📥 **Downloads** | Hosted TSP Search configuration, filtering, queue/progress, delete controls and completed-download history for authorized media. |
-| 💬 **Offline subtitles** | Local SRT, VTT, ASS and SSA support for downloaded media. |
-| ↗️ **External player** | Open completed local media in another installed player. |
-| 🛡️ **Adblock 2.0** | Known-network blocking, confirmed QR-ad learning, popup/navigation hardening and provider/CDN protection. |
-| 🔊 **Audio boost** | Off / 1.5× / 2× on compatible embedded audio. |
-| 🔄 **In-app updater** | Windows, Android and Android TV update flows with version/changelog handling. |
-| 🖥️ **Windows portable** | No installer. Extract the ZIP and run ZeroPlay. |
-
----
-
-## 📺 Android TV controls in 2.2
-
-Choose the player navigation mode in Settings:
-
-### ✨ Hybrid — Recommended
-
-- D-pad/focus is used when ZeroPlay can reliably navigate the provider's visible controls.
-- Virtual mouse fallback is used when the embedded provider does not expose a dependable focus layout.
-- Provider menus and hidden control bars are detected/woken as needed.
-- The provider's own visible controls remain the player UI.
-
-### 🎯 D-pad / Focus
-
-- arrows move between detected provider controls;
-- OK activates the focused provider control;
-- a visible focus treatment marks the current target.
-
-### 🖱️ Mouse
-
-- arrows move ZeroPlay's virtual pointer;
-- OK clicks at the pointer position.
-
-The **Menu** button opens ZeroPlay's playback utility menu when needed. Holding Menu/OK does **not** silently change playback source. Automatic source recovery is disabled by default.
-
-See **[Android TV controls](docs/android-tv-controls.md)** for the full behavior.
-
----
-
-## ⬇️ Download ZeroPlay 2.2
-
-Production files are published at **[GitHub Releases](https://github.com/Zer0Spce/ZeroPlay/releases/tag/v2.2)**.
-
-| Platform | File | Notes |
+| Edition | Download | What you get |
 | --- | --- | --- |
-| 📱 Android | `ZeroPlay-2.2-Android.apk` | Full signed Android build. |
-| 📺 Android TV / Google TV | `ZeroPlay-2.2-Android-TV.apk` | Full signed TV build with **Hybrid Mode**. |
-| 🪶 Android Lite | `ZeroPlay-2.2-Android-Lite.apk` | Separate lightweight package. |
-| 🪶📺 Android TV Lite | `ZeroPlay-2.2-Android-TV-Lite.apk` | Lightweight TV package with **Hybrid Mode**. |
-| 🖥️ Windows x64 | `ZeroPlay-2.2-Windows-x64.zip` | Portable ZIP; no installer. |
-| ✅ Integrity | `SHA256SUMS.txt` | SHA-256 for all production assets. |
+| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android.apk) | Full phone/tablet presentation and native player core. |
+| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
+| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
+| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
+| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
+| ✅ Checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/SHA256SUMS.txt) | Verify the published files. |
 
-Android production builds continue using the established signing identity for their corresponding package IDs.
+Android requires Android 6.0 or newer. Full and Lite apps have separate package IDs and can be installed independently. Signed production updates retain the established signing identity for each package.
 
----
+## ⭐ What’s new in 2.2
 
-## ⚠️ Provider / platform notes
+**Hybrid TV controls · Embedwave (BETA) · Local profiles · Up Next · Because You Watched · Hidden Gems · Performance Mode · Persistent catalog caching · Updated Lite editions**
 
-- Embedded playback providers are third-party services and can change independently of ZeroPlay.
-- A new QR creative may still need to be closed with its own X or allowed to expire while ZeroPlay learns confirmed ad-host evidence.
-- ZeroPlay does not solve or bypass CAPTCHA / Cloudflare / verification challenges.
-- Windows SmartScreen reputation can still depend on Authenticode reputation even after Defender scanning.
-- Windows offline playback behavior can depend on local codecs/compositor conditions; external-player opening remains available for completed downloads.
-- **Embedwave is labeled BETA** because provider behavior can change independently.
+[![Actual released Windows 2.2 homepage](docs/screenshots/2.2/windows-home.png)](docs/screenshots/2.2/windows-home.png)
 
----
+## ✨ Current feature inventory
 
-## 🛠️ Release validation
+### 🔎 Find your next watch
 
-The 2.2 release pipeline validates the merged release source before publication:
+- **TMDB-powered catalog:** movies, TV series and anime, metadata and artwork without rebuilding the app for every new title.
+- **Discovery shelves:** trending, popular, recommendations, now playing, upcoming movies and series worth watching.
+- **Explicit search:** submit with Search / Enter; typing does not issue a catalog search on every letter.
+- **People search and filmography:** actor/person discovery, biographies and combined movie/TV credits using TMDB identities.
+- **Infinite browsing:** load subsequent pages in place, retain earlier results and deduplicate titles instead of using Next/Back page buttons.
+- **Artwork categories:** movie and TV genres, Anime, Japanese, Korean, Filipino, French, Spanish and Hindi collections.
+- **Catalog filters:** genre, year/date, rating, language, runtime and country where exposed by the active interface.
+- **Sorting:** featured, popular, top rated, newest, oldest and alphabetical orders where available.
+- **Surprise Me:** discover a released random movie beyond the currently visible homepage; Surprise Me Again on surprise-opened titles.
+- **Because You Watched:** recommendations informed by local viewing history.
+- **Hidden Gems:** discovery with popularity/rating/vote thresholds.
+- **Tonight’s Picks:** shorter and highly rated choices for watching now.
+- **Mood discovery:** funny, scary, action, romance, family, mind-bending, highly rated and shorter watches.
+- **TV discovery:** airing today, recent/returning shows and upcoming episode-calendar helpers where exposed.
+- **Franchise/collection discovery:** connected movie collections and related titles when TMDB supplies those relationships.
+- **Streaming-provider discovery:** region-aware provider availability from TMDB / JustWatch; availability is separate from embed playback.
 
-- Android Mobile + Android TV release unit tests;
-- Android Lite + Android TV Lite release unit tests;
-- signed APK builds for all four Android variants;
-- APK signature, package-ID and version checks;
-- lint for all four Android variants;
-- TV player/navigation regression tests including Hybrid behavior;
-- Windows unit, UI, player-guard and Electron smoke tests;
-- preservation of the existing production Windows updater/offline-player stack;
-- portable Windows packaging and packaged-ASAR verification;
-- Microsoft Defender scan of the packaged Windows build;
-- website unit/UI/build validation;
-- credential audit and SHA-256 checksum generation;
-- publication only after required production jobs succeed.
+### 🎞️ Title pages and personal library
 
-**Windows remains portable-only.**
+- Posters/backdrops, synopsis, genres, release information, rating/vote information, cast, trailers, recommendations and provider information.
+- Clickable cast and filmography using the selected person’s exact TMDB ID.
+- Optional **Rotten Tomatoes** ratings through OMDb when configured.
+- **Watchlist**, **Plan to Watch**, custom collections, watch history and saved search history.
+- **Continue Watching** with supported provider progress and season/episode context.
+- **Up Next** using saved series progress; Windows deduplicates shows by TMDB series ID.
+- Episode watched / in-progress indicators, season and episode selection and next-episode calculation.
+- **Autoplay next episode** setting and episode utility-navigation support.
+- Configurable intro/recap durations; these are user timings, not guaranteed exact provider timestamps.
+- **Local profiles:** independent history, progress, watchlist, planned titles, searches, collections and Not Interested preferences without a cloud account.
+- **Not Interested:** hide or down-rank unwanted recommendations locally.
+- Quick title actions where supported: play, details, watchlist, mark watched, collection and Not Interested.
+- Dedicated watched-history clearing that preserves watchlist, downloads and settings.
+- Reset application/settings action that retains downloaded media files.
 
----
+### ▶️ Playback and TV remote controls
+
+- **VidStuck**, **Embedwave (BETA)** and **VidSrc.sh** in native apps; optional **RawCast** when enabled and configured. Web offers VidStuck and Embedwave.
+- Title-level source selection, saved per-title choices and global preferences.
+- Initial source priority: **one-time title choice → saved title choice → Settings choice → fallback**.
+- Source-health tracking with optional **Automatic Source Recovery**, **OFF by default**.
+- Movie/series embeds keep their **provider-native controls**; the experimental permanent ZeroPlay video toolbar was removed.
+- Fullscreen and staged Back handling, subject to the provider’s exposed controls.
+- **Android TV Hybrid / Smart mode:** focus navigation when reliable controls are detected, virtual-mouse fallback when required.
+- **Fixed D-pad mode:** arrows navigate detected controls and OK activates the focused control; navigation does not intentionally map Left/Right to seeking.
+- **Fixed Mouse mode:** arrows move the pointer and OK clicks.
+- Hidden-control wake handling, spatial focus, iframe/Shadow DOM support and provider menu detection.
+- Menu opens supported playback utilities; holding Menu/OK does not silently switch the source.
+- Playback exit safeguards and Android app exit confirmation; ordinary Windows window closing exits immediately.
+- Player diagnostics for provider, navigation and recovery troubleshooting where supported.
+- Windows mini-player infrastructure and keyboard playback shortcuts; support varies with the playback surface.
+- Compatible embedded audio boost: **Off / 1.5× / 2×**.
+
+### 📡 Native live entertainment
+
+| Section | Features |
+| --- | --- |
+| **Live PPV / PPV-Sports** | Separate live-event playlist, groups/logos, submitted channel search, manual refresh and in-app playback. |
+| **Live TV** | IPTV groups, logos, favorites and refresh. Cignal and Converge options can be controlled separately; Windows defaults both off. |
+| **Live Sports** | Event categories, schedules, artwork, alternate streams, manual refresh, retry and fullscreen; memory-only Windows sports browsing session. |
+| **Live players** | Platform-appropriate playback controls, channel switching, retry/live-edge handling, audio/subtitles and fit/fill where supported; HLS/DASH and playlist request-header/ClearKey support depend on stream/device. |
+
+**Live TV, PPV and Live Sports are native-app features. They remain intentionally absent from the website.** Playlist/event refresh behavior and playback availability depend on the upstream source.
+
+### 🎨 Make ZeroPlay yours
+
+- **Four layouts:** Clean, Modern, Flix and Native / Original.
+- Fresh full-app defaults: **Windows → Clean**, **Android phone/tablet → Modern**, **Android TV → Native / Original**. Saved choices are retained.
+- **17 themes:** Zero Dark, Zero Light, Ocean, Orchid, Sunset, Midnight Blue, Ember Glow, Forest Moss, Rose Noir, Amethyst, Cyber Mint, Cobalt Sky, Golden Hour, Coral Night, Aurora, Slate Ice and Mocha.
+- Theme-aware branding, light/dark choices, artwork atmosphere and optional animations.
+- Homepage panel toggles, saved panel ordering and category shelves.
+- Carousel sources: **This Week Top Picks, Watchlist, Recommended Movies, Popular Movies, Now Playing, Continue Watching**.
+- Carousel capped at **10 cards**, with **15-second** rotation and transitions respecting animation settings.
+- Focus information, configurable preview delay, focus trailers and homepage trailers linked to the displayed title.
+- Compact navigation/sidebar behavior, responsive card presentation and visible TV focus states.
+
+### ⚡ Performance and Lite editions
+
+- Persistent TMDB catalog caching; **Windows memory + disk** cache and Android persistent cache helpers.
+- Bounded cache age/size and stale-cache fallback when catalog requests temporarily fail.
+- Fewer repeated requests, better section-state retention and less unnecessary page regeneration.
+- Lazy artwork, adaptive quality choices and reduced work for offscreen images.
+- **Performance Mode** reduces presentation/preview overhead on slower hardware.
+- Reduced unrelated homepage/background work during playback.
+- **Lite defaults:** Classic/Original lightweight layout, Performance Mode on, saver artwork, smaller artwork requests, fewer homepage cards, no rotating hero or backdrop/blur atmosphere, animations and focus/home trailers off.
+- Lite shares the current catalog/player core: TV Lite includes Hybrid Mode, Embedwave and the current source-selection fixes.
+
+### 📥 Downloads and offline playback — native apps
+
+- Configurable **TSP Search**, a separate provider key, result/quality/health filters and download confirmation.
+- Download queue, progress, active-download limits, delete controls and completed-download history for media you are authorized to download.
+- Completed local media can be opened in an installed external player.
+- Local subtitles: **SRT / VTT / ASS / SSA** support varies by platform/player; optional automatic-subtitle configuration is available in native settings.
+- Windows bundles an **mpv-based offline engine** and native video surface with hardware decoding where available.
+- Windows offline controls include play/pause, seeking, volume/mute, playback speed, fit/fill, fullscreen, embedded audio/subtitle tracks and external subtitle selection.
+- The release preserves the established Windows offline-player/updater stack while integrating the 2.2 discovery/player changes.
+
+### 🛡️ Adblock 2.0 and updates
+
+- Known ad/tracker-host blocking, including **HiStats** rules.
+- Native player network filtering, denied popup/popunder windows and restricted external navigation.
+- Positively decoded QR-ad host learning, exact-host session quarantine and learned-host expiry after **seven days**.
+- Provider/video-CDN allowlists and local diagnostic logs to reduce playback breakage.
+- QR recognition does not open its destination or interact with verification controls.
+- In-app version/changelog/update flows for Windows, Android and Android TV.
+- Windows **`ZeroPlayUpdater.exe`** helper with checksum verification, versioned installation folders, atomic activation, independent relaunch, pending-version confirmation and rollback handling.
+- Android updater selects the matching signed package and hands installation to Android.
+
+### 🌐 Website-specific features
+
+- Movies/Series discovery, filters, profiles/person discovery, recommendations and episode-calendar helpers.
+- VidStuck and **Embedwave (BETA)** source selection.
+- Continuous pagination with retry, deduplication, end-of-results handling and improved tab/scroll restoration.
+- Shareable title/catalog/search routes and browser Back/Forward support.
+- Rich metadata, movie franchise rows, browser-local library and homepage section toggles.
+- Hover quick actions and keyboard navigation: `/` focuses Search; arrow keys navigate cards; `W` toggles the focused title’s watchlist state.
+- Installable PWA app shell, lazy-image improvements, bounded caching and smarter next-page loading.
+- Browser restrictions mean native QR inspection, TV mouse, native offline playback and audio boost do not run inside a third-party web iframe.
+
+Features with provider events, local media or interface-specific controls depend on the active platform/provider. A feature helper or setting does not guarantee every third-party player exposes the required events.
+
+## 🖼️ Real app screenshots
+
+**These are screenshots of the actual 2.2 app, not AI images or recreated interfaces.** Windows captures come from the checksum-verified published executable. Android/mobile and TV captures come from the native 2.2 application on emulators. The logo above is a branding asset, not a screenshot. [Capture provenance](docs/screenshots/2.2/README.md).
+
+### 🖥️ Windows — four actual layouts
+
+**Clean homepage**
+
+[![Clean homepage](docs/screenshots/2.2/windows-home.png)](docs/screenshots/2.2/windows-home.png)
+
+
+<details>
+<summary>Modern layout</summary>
+
+[![Modern layout](docs/screenshots/2.2/windows-modern.png)](docs/screenshots/2.2/windows-modern.png)
+
+</details>
+
+<details>
+<summary>Flix layout</summary>
+
+[![Flix layout](docs/screenshots/2.2/windows-flix.png)](docs/screenshots/2.2/windows-flix.png)
+
+</details>
+
+<details>
+<summary>Native / Original layout</summary>
+
+[![Native / Original layout](docs/screenshots/2.2/windows-original.png)](docs/screenshots/2.2/windows-original.png)
+
+</details>
+
+### 🔎 Discovery, categories and title controls
+
+**Movie discovery and filters**
+
+[![Movie discovery and filters](docs/screenshots/2.2/windows-movies-filters.png)](docs/screenshots/2.2/windows-movies-filters.png)
+
+
+<details>
+<summary>Series discovery and filters</summary>
+
+[![Series discovery and filters](docs/screenshots/2.2/windows-series-filters.png)](docs/screenshots/2.2/windows-series-filters.png)
+
+</details>
+
+<details>
+<summary>Artwork categories</summary>
+
+[![Artwork categories](docs/screenshots/2.2/windows-categories.png)](docs/screenshots/2.2/windows-categories.png)
+
+</details>
+
+**Real title details**
+
+[![Real title details](docs/screenshots/2.2/windows-title-details.png)](docs/screenshots/2.2/windows-title-details.png)
+
+
+**Title-level playback source picker**
+
+[![Title-level playback source picker](docs/screenshots/2.2/windows-sources.png)](docs/screenshots/2.2/windows-sources.png)
+
+
+### ⚙️ Profiles, performance and customization
+
+**Local profiles, Performance Mode and episode preferences**
+
+[![Local profiles, Performance Mode and episode preferences](docs/screenshots/2.2/windows-profiles-performance.png)](docs/screenshots/2.2/windows-profiles-performance.png)
+
+
+**Homepage panels and ordering**
+
+[![Homepage panels and ordering](docs/screenshots/2.2/windows-home-panels.png)](docs/screenshots/2.2/windows-home-panels.png)
+
+
+<details>
+<summary>Carousel-source settings</summary>
+
+[![Carousel-source settings](docs/screenshots/2.2/windows-carousel.png)](docs/screenshots/2.2/windows-carousel.png)
+
+</details>
+
+<details>
+<summary>Playback preferences</summary>
+
+[![Playback preferences](docs/screenshots/2.2/windows-playback-settings.png)](docs/screenshots/2.2/windows-playback-settings.png)
+
+</details>
+
+<details>
+<summary>Theme selection</summary>
+
+[![Theme selection](docs/screenshots/2.2/windows-themes.png)](docs/screenshots/2.2/windows-themes.png)
+
+</details>
+
+<details>
+<summary>Settings overview</summary>
+
+[![Settings overview](docs/screenshots/2.2/windows-settings.png)](docs/screenshots/2.2/windows-settings.png)
+
+</details>
+
+### 📡 Live sections and your library
+
+<details>
+<summary>Live PPV playlist</summary>
+
+[![Live PPV playlist](docs/screenshots/2.2/windows-live-ppv.png)](docs/screenshots/2.2/windows-live-ppv.png)
+
+</details>
+
+<details>
+<summary>Live TV channel browser</summary>
+
+[![Live TV channel browser](docs/screenshots/2.2/windows-live-tv.png)](docs/screenshots/2.2/windows-live-tv.png)
+
+</details>
+
+**Live Sports events**
+
+[![Live Sports events](docs/screenshots/2.2/windows-live-sports.png)](docs/screenshots/2.2/windows-live-sports.png)
+
+
+<details>
+<summary>Fresh-profile local library</summary>
+
+[![Fresh-profile local library](docs/screenshots/2.2/windows-library.png)](docs/screenshots/2.2/windows-library.png)
+
+</details>
+
+<details>
+<summary>Downloads view before provider configuration</summary>
+
+[![Downloads view before provider configuration](docs/screenshots/2.2/windows-downloads.png)](docs/screenshots/2.2/windows-downloads.png)
+
+</details>
+
+### 📱 Android phone / tablet
+
+<img src="docs/screenshots/2.2/android-mobile-home.png" alt="Actual Android 2.2 homepage" width="360">
+
+<details>
+<summary>Homepage</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-home.png" alt="ZeroPlay 2.2 mobile — Homepage" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-home.png)
+
+</details>
+
+<details>
+<summary>Categories</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-categories.png" alt="ZeroPlay 2.2 mobile — Categories" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-categories.png)
+
+</details>
+
+<details>
+<summary>Live Sports</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-live-sports.png" alt="ZeroPlay 2.2 mobile — Live Sports" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-live-sports.png)
+
+</details>
+
+<details>
+<summary>Native settings</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-settings.png" alt="ZeroPlay 2.2 mobile — Native settings" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-settings.png)
+
+</details>
+
+<details>
+<summary>Homepage customization</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-home-panels.png" alt="ZeroPlay 2.2 mobile — Homepage customization" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-home-panels.png)
+
+</details>
+
+<details>
+<summary>Modern layout</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-layout-google.png" alt="ZeroPlay 2.2 mobile — Modern layout" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-layout-google.png)
+
+</details>
+
+<details>
+<summary>Native / Original layout</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-layout-classic.png" alt="ZeroPlay 2.2 mobile — Native / Original layout" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-layout-classic.png)
+
+</details>
+
+<details>
+<summary>Clean layout</summary>
+
+<img src="docs/screenshots/2.2/android-mobile-layout-youtube.png" alt="ZeroPlay 2.2 mobile — Clean layout" width="420">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-mobile-layout-youtube.png)
+
+</details>
+
+### 📺 Android TV / Google TV
+
+[![Actual native TV homepage in landscape](docs/screenshots/2.2/android-tv-home.png)](docs/screenshots/2.2/android-tv-home.png)
+
+**Hybrid player controls**
+
+[![Actual TV Hybrid navigation settings](docs/screenshots/2.2/android-tv-hybrid-controls.png)](docs/screenshots/2.2/android-tv-hybrid-controls.png)
+
+**Local profiles and mood discovery**
+
+| Local profiles | What should I watch? |
+| --- | --- |
+| ![Actual TV profiles](docs/screenshots/2.2/android-tv-profiles.png) | ![Actual TV mood picker](docs/screenshots/2.2/android-tv-moods.png) |
+
+<details>
+<summary>Homepage</summary>
+
+<img src="docs/screenshots/2.2/android-tv-home.png" alt="ZeroPlay 2.2 tv — Homepage" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-home.png)
+
+</details>
+
+<details>
+<summary>Categories</summary>
+
+<img src="docs/screenshots/2.2/android-tv-categories.png" alt="ZeroPlay 2.2 tv — Categories" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-categories.png)
+
+</details>
+
+<details>
+<summary>Live Sports</summary>
+
+<img src="docs/screenshots/2.2/android-tv-live-sports.png" alt="ZeroPlay 2.2 tv — Live Sports" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-live-sports.png)
+
+</details>
+
+<details>
+<summary>Native settings</summary>
+
+<img src="docs/screenshots/2.2/android-tv-settings.png" alt="ZeroPlay 2.2 tv — Native settings" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-settings.png)
+
+</details>
+
+<details>
+<summary>Homepage customization</summary>
+
+<img src="docs/screenshots/2.2/android-tv-home-panels.png" alt="ZeroPlay 2.2 tv — Homepage customization" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-home-panels.png)
+
+</details>
+
+<details>
+<summary>Modern layout</summary>
+
+<img src="docs/screenshots/2.2/android-tv-layout-google.png" alt="ZeroPlay 2.2 tv — Modern layout" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-layout-google.png)
+
+</details>
+
+<details>
+<summary>Native / Original layout</summary>
+
+<img src="docs/screenshots/2.2/android-tv-layout-classic.png" alt="ZeroPlay 2.2 tv — Native / Original layout" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-layout-classic.png)
+
+</details>
+
+<details>
+<summary>Clean layout</summary>
+
+<img src="docs/screenshots/2.2/android-tv-layout-youtube.png" alt="ZeroPlay 2.2 tv — Clean layout" width="960">
+
+[Open full-resolution capture](docs/screenshots/2.2/android-tv-layout-youtube.png)
+
+</details>
+
+## 🔧 Fixes and improvements
+
+The lists below distinguish the **current 2.2 changes** from earlier fixes that built the current experience. Earlier release notes are historical records; a removed experimental feature is not a current feature. [Full release-by-release archive](docs/changelog.md).
+
+### 2.2 — navigation, discovery, personalization and performance
+
+1. Fixed manual playback sources being silently replaced by Embedwave; explicit per-title/global preferences now win.
+2. Restored VidSrc.sh to Android/TV’s visible source picker after Embedwave insertion shifted its index.
+3. Set Automatic Source Recovery OFF by default for fresh and migrated settings.
+4. Removed the experimental movie/series toolbar; restored provider-native controls while retaining specialized Sports controls.
+5. Added Embedwave to trusted-provider/network allowlists without relaxing general popup/navigation protection.
+6. Retained the production Windows player network filter and HiStats protection in the 2.2 player stack.
+7. Improved TV spatial focus, hidden-control wake-up, iframe fallback and menu detection through Hybrid navigation.
+8. Kept staged Back handling and prevented Menu/Center holds from silently changing the provider.
+9. Normalized/deduplicated Windows homepage panel order to prevent duplicate Up Next sections.
+10. Deduplicated Windows Up Next titles by series ID and newest progress record.
+11. Improved Continue Watching persistence, season/episode context, next-episode calculation and completion handling.
+12. Reduced repeated catalog requests and unnecessary regeneration; added bounded persistent cache and stale fallback.
+13. Improved artwork loading/quality choices and reduced unrelated work during playback.
+14. Restored dedicated Lite flavors and lightweight defaults on the shared 2.2 core.
+15. Fixed website tab/pagination behavior that continuously appended or loaded unrelated Movies/Series.
+16. Made web pages append in place and tightened bundle/cache refresh behavior after pagination fixes.
+17. Fixed stale source-count regression tests after adding Embedwave.
+18. Fixed stale homepage-panel expectations after adding the new discovery shelves.
+19. Updated web guards/tests that still assumed a single provider.
+20. Fixed the Windows smoke-test shutdown hang caused by fixture-server keep-alive connections.
+21. Hardened CI generated-source handling against unrelated platform diffs and push races.
+22. Expanded regressions for Hybrid controls, ad protection, manual sources, recovery defaults, native controls, panel order and unique-series Up Next.
+
+[Full 2.2 record, including feature and validation details](docs/release-2.2.md).
+
+<details>
+<summary><strong>2.1.2 — Windows source/close regression and stronger ad filtering</strong></summary>
+
+- Fixed `Cannot access 'action' before initialization` in the Windows title/source interface.
+- Restored series details Close/X and source-selection actions.
+- Retained per-title source confirmation and the verified Windows completion logic.
+- Added HiStats blocking on Windows, Android and TV.
+- Added Windows network-level cancellation of blocked ad/tracker frames while preserving provider/CDN allowlists.
+- This hotfix did not claim the unfinished Android episode-parity experiment was fixed.
+
+[Full 2.1.2 notes](docs/release-2.1.2.md).
+
+</details>
+
+<details>
+<summary><strong>2.1.1 — mpv offline playback, episode completion and per-title history</strong></summary>
+
+- Replaced Windows Chromium-only offline playback with mpv and a native child video surface.
+- Added embedded audio/subtitle tracks, local subtitle loading and hardware-decoding support.
+- Refreshed episode progress while details remain open.
+- Captured real video position/duration and `ended` events; episodes at 95%+ finalize as 100% / Watched.
+- Final completion bypasses progress throttling; finished episodes are locked before auto-next can overwrite them.
+- Fixed Continue % / Watched selector state.
+- Retained one-time/per-title source preferences, per-episode history and dedicated history clearing.
+- Retained finalized carousel-source parity, stronger selectors and reset behavior on Android/TV.
+
+[Full 2.1.1 notes](docs/release-2.1.1.md).
+
+</details>
+
+<details>
+<summary><strong>2.1 — Windows updater rebuild, carousel parity and settings fixes</strong></summary>
+
+- Replaced fragile in-place ZIP replacement with the dedicated updater helper.
+- Added verified download, versioned extraction, atomic activation, process handoff, rollback and staging cleanup.
+- Fixed updated app relaunch by launching the active version independently.
+- Added helper error reporting and retained version confirmation safeguards.
+- Fixed carousel settings not changing the actual visible hero on Windows/Android/TV.
+- Kept all six carousel sources distinct; empty Watchlist/Continue Watching no longer silently become Trending.
+- Capped the carousel at ten titles and linked trailer previews to the displayed movie.
+- Improved Android/TV season/episode focused, pressed and selected states in light/dark themes.
+- Clarified exit choices and added reset while retaining downloaded files.
+- Removed ordinary Windows app exit confirmation.
+
+[Full 2.1 notes](docs/release-2.1.md).
+
+</details>
+
+<details>
+<summary><strong>2.0 — all 52 interface, TV, player, update and protection changes</strong></summary>
+
+1. **Windows updater rebuilt** — checks GitHub on launch and manually, shows version/changelog, supports Update / Cancel / Skip, download progress, verification and relaunch.
+2. **Android / Android TV updater added** — checks the GitHub release, downloads the matching APK and hands it to the Android installer with TV/mobile-friendly controls.
+3. **Windows Settings reorganized** into General, Home, Appearance, Experience, Playback & Downloads, Player and About while preserving existing settings handlers.
+4. **Android / Android TV Settings cleanup** brought the same grouping and readability improvements to the mobile/TV builds.
+5. **Clean UI rebuilt around a YouTube-TV-style navigation model** with a full sidebar that collapses to a compact icon rail when browsing content.
+6. **Modern UI rebuilt around a Google-TV-style presentation** with balanced header/navigation, cinematic discovery and portrait movie cards.
+7. **Flix UI added** as a fourth cinematic layout with its own isolated layout rules so it does not leak styling into the other interfaces.
+8. **Native / Original UI preserved** for users who prefer the original ZeroPlay layout.
+9. **Fresh-install defaults corrected:** Windows → Clean UI, Android phone/tablet → Modern UI, Android TV → Native / Original UI. Existing saved choices remain untouched.
+10. **Modern Movies & Shows shelves made more compact** so more content fits naturally without oversized cards.
+11. **Portrait vs. landscape card behavior corrected** across content sections.
+12. **Carousel timing standardized to 15 seconds** with directional transitions that respect the UI Animations setting.
+13. **17 exact themes finalized:** Zero Dark, Zero Light, Ocean, Orchid, Sunset, Midnight Blue, Ember Glow, Forest Moss, Rose Noir, Amethyst, Cyber Mint, Cobalt Sky, Golden Hour, Coral Night, Aurora, Slate Ice and Mocha.
+14. **Theme-aware ZeroPlay branding added** so `Zero` remains the primary word while `Play` follows the active accent color.
+15. **Clickable cast added on Windows** using the exact TMDB person ID rather than name guessing.
+16. **Clickable cast / filmography added on Android** using TMDB combined credits.
+17. **Filmography pages corrected** to use combined movie + TV credits and the selected person’s exact TMDB identity.
+18. **Categories redesigned** with clearer artwork, alphabetical browsing, international/language collections and Anime using the same visual system as the other categories.
+19. **Surprise Me Again scoped correctly** so the control appears only on a title that was actually opened through Surprise Me.
+20. **Rotten Tomatoes ratings added** through OMDb when `OMDB_API_KEY` is configured.
+21. **Android TV Settings focus visibility fixed** so dropdowns and selectable settings show a clear highlight.
+22. **Android TV Home navigation restored** to normal Android focus dispatch after custom key interception caused focus regressions.
+23. **Android TV player mode made Settings-only** — Mouse / D-pad selection is no longer accidentally changed by a playback key.
+24. **Android TV D-pad player navigation rewritten from scratch.** The previous collection of iframe guesses, wake interceptors and competing handlers was removed in favor of one TV input controller.
+25. **D-pad focus highlight cleaned up** with a slimmer teal focus treatment that also works with open Shadow DOM controls.
+26. **D-pad left/right navigation no longer intentionally maps to provider seek actions** while navigating the control surface.
+27. **D-pad hidden-control wake handling rebuilt** so the first remote input is reserved for restoring provider controls before normal navigation continues.
+28. **Android TV Mouse mode kept independent** from the D-pad controller; the smooth virtual pointer remains the Mouse-mode input path.
+29. **Mouse-mode Back sequence fixed:** an open settings/quality/subtitle function closes first; visible player controls hide next; only the following Back exits playback.
+30. **Player Back behavior is no longer allowed to dump the user out of playback just because an embedded provider is slow to answer.**
+31. **Playback exit confirmation added** so leaving a movie/episode requires an explicit `Yes, exit` choice; `No` returns to playback.
+32. **App exit confirmation added** to reduce accidental exits from the main application.
+33. **Live TV reliability improved** with safer retry/error handling on Windows and Android.
+34. **Cignal and Converge controls separated** so each provider can be enabled independently; Windows defaults both off while keeping other Live TV channels available.
+35. **Android TV icon centering corrected** across focusable navigation surfaces.
+36. **Windows Flix top-right controls corrected** and kept isolated from the other layouts.
+37. **Windows Offline Player rebuilt around local/native playback** with local SRT/VTT/ASS/SSA parsing, playback controls, Fit / Fill, speed and fullscreen support.
+38. **Windows Offline Player compositor handling improved** with the Direct Composition video-overlay workaround retained for files that previously hid controls behind the video surface.
+39. **Manual Offline Player show/hide control added** as a fallback after automatic hide proved unreliable across Windows media/compositor combinations.
+40. **Windows app fullscreen button added** beside Surprise Me / Update. It enters true app fullscreen, removes the normal Windows chrome and hides the visual scrollbar while preserving scrolling.
+41. **Live PPV / Live TV / Live Sports player behavior retained** while the movie/offline-player work was isolated from those stacks.
+42. **Adblock ruleset versioned** as `2.0-known-good-2026-10-08` so the known-good baseline is identifiable and reversible.
+43. **Confirmed-host quarantine added:** a host positively identified by the QR scanner is blocked exactly for the rest of the current session.
+44. **Temporary learned ad-host list added:** confirmed hosts are remembered for seven days rather than becoming permanent rules forever.
+45. **Explicit provider/CDN allowlist added** so VidStuck, VidSrc.sh and common player/video CDN hosts cannot be accidentally caught by future ad rules.
+46. **Local adblock debug log added** with the ruleset version, blocked host and reason, making playback regressions easier to diagnose without sending browsing data anywhere.
+47. **Safer cosmetic ad cleanup added:** the app first removes an exact confirmed-host ad frame/container; the broader legacy QR cleanup is used only as a confirmed-QR fallback.
+48. **Popunder/new-window hardening retained and reinforced** through denied popup windows, denied unsupported top-level redirects and allowlist-aware network rules.
+49. **Windows adblock now mirrors the learned-host model** with an expiring local learned-host file and rolling local debug log.
+50. **QR confirmation never opens the QR destination and never interacts with CAPTCHA/verification controls.**
+51. **Release/test coverage expanded** for the rewritten TV controller, Shadow DOM focus, staged Back behavior, adblock allowlist, ruleset version and exact-host quarantine.
+52. **Windows portable packaging remains installer-free** and keeps all normal browsing/playback in one application window.
+
+Some 2.0 behavior was subsequently replaced: Windows updater/offline playback were rebuilt in 2.1/2.1.1, Windows app exit confirmation was removed in 2.1, and TV Hybrid mode was added in 2.2.
+
+[Full 2.0 notes](docs/release-2.0.md).
+
+</details>
+
+<details>
+<summary><strong>Earlier releases — complete fixes and historical changes</strong></summary>
+
+- [2.0.3: full fixes and release notes](docs/release-2.0.3.md)
+- [2.0.2: full fixes and release notes](docs/release-2.0.2.md)
+- [1.9: full fixes and release notes](docs/release-1.9.md)
+- [1.8.2: full fixes and release notes](docs/release-1.8.2.md)
+- [1.8.1: full fixes and release notes](docs/release-1.8.1.md)
+- [1.8.0: full fixes and release notes](docs/release-1.8.0.md)
+- [1.7.5: full fixes and release notes](docs/release-1.7.5.md)
+- [1.7.3: full fixes and release notes](docs/release-1.7.3.md)
+- [1.7.2: full fixes and release notes](docs/release-1.7.2.md)
+- [1.7.1.1: full fixes and release notes](docs/release-1.7.1.1.md)
+- [1.7.1: full fixes and release notes](docs/release-1.7.1.md)
+- [1.7: full fixes and release notes](docs/release-1.7.md)
+- [1.6.1: full fixes and release notes](docs/release-1.6.1.md)
+- [1.6.0: full fixes and release notes](docs/release-1.6.0.md)
+- [1.5.1: full fixes and release notes](docs/release-1.5.1.md)
+- [1.5: full fixes and release notes](docs/release-1.5.md)
+- [1.0.1: full fixes and release notes](docs/release-1.0.1.md)
+- [1.0: full fixes and release notes](docs/release-1.0.md)
+- [0.4.5: full fixes and release notes](docs/release-0.4.5.md)
+
+Every retained release note is included in the [full changelog archive](docs/changelog.md), including the updater/series maintenance releases, trailer/layout fixes, download/subtitle changes, live-player repairs and early ad/remote-navigation fixes.
+
+</details>
+
+## 🧪 Release verification
+
+The production pipeline covers native unit tests, all four APK builds/lint/signatures/package IDs, TV-navigation regressions, Windows unit/UI/player-guard/Electron smoke checks, preserved updater/mpv packaging, packaged-ASAR checks, Microsoft Defender scanning, web checks, credential audits and SHA-256 checksums. [Details](docs/release-2.2.md#-release-validation).
+
+## ℹ️ Playback notes
+
+- Providers can change independently; **Embedwave remains BETA**.
+- Progress, remote controls, subtitles and audio boost depend on provider/device support.
+- A changed QR creative may require its own X or timeout until recognized.
+- ZeroPlay does not solve or bypass CAPTCHA/Cloudflare verification.
+- Local media compatibility varies; **Open in external player** remains available.
+- Libraries/profiles are local; there is no cloud account synchronization.
 
 ## 🙌 Credits
 
-Metadata and artwork: **TMDB** and their respective rights holders. This product uses the TMDB API but is not endorsed or certified by TMDB. Provider availability: **JustWatch through TMDB**. Optional ratings: **OMDb**. Embedded playback providers include **VidStuck**, **Embedwave** and **VidSrc.sh**. QR decoding: **ZXing**. Android media playback: **AndroidX Media3**. Windows torrent engine: **WebTorrent**.
-
-See **[ZeroPlay 2.2 release notes](docs/release-2.2.md)** for the complete feature, optimization and fix record.
+Metadata/artwork: **TMDB** and the respective rights holders. This product uses the TMDB API but is not endorsed or certified by TMDB. Availability: **JustWatch through TMDB**. Optional ratings: **OMDb**. Embed providers: **VidStuck, Embedwave, VidSrc.sh**; optional RawCast where configured. QR decoding: **ZXing**. Android media: **AndroidX Media3**. Windows downloads: **WebTorrent**; offline playback: **mpv**.
