@@ -1,0 +1,94 @@
+name: Validate Recovery Default Off
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/validate-recovery-default-off.yml'
+      - 'app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java'
+      - 'app/src/main/java/com/zerostreams/app/MainActivity.java'
+      - 'windows/main.cjs'
+      - 'windows/ui/app.js'
+      - 'tests/auto-source-recovery-default.test.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zeroplay-2-2-recovery-default-validation-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  android:
+    name: Android + TV recovery-default validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify recovery defaults
+        run: node --test tests/auto-source-recovery-default.test.cjs tests/source-selection-regression.test.cjs
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Android and TV unit tests
+        run: gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest
+      - name: Build Android and TV debug APKs
+        run: gradle :app:assembleMobileDebug :app:assembleTvDebug
+
+  windows:
+    name: Windows recovery-default validation
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Verify recovery defaults and Windows syntax
+        shell: pwsh
+        run: |
+          node --test tests/auto-source-recovery-default.test.cjs tests/source-selection-regression.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Recovery-default regression failed' }
+          node --check windows/main.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows main syntax failed' }
+          node --check windows/ui/app.js
+          if ($LASTEXITCODE -ne 0) { throw 'Windows UI syntax failed' }
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Windows unit tests
+        working-directory: windows
+        run: npm test
+      - name: Configure bundled development keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Windows smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npx electron . --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "Windows smoke test failed with exit code $LASTEXITCODE" }
