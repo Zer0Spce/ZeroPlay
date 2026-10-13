@@ -1,7 +1,7 @@
 {
   "name": "zerostreams-windows",
-  "version": "2.1.2",
-  "description": "ZeroPlay movies, series, Live TV and Live Sports with sports ad filtering",
+  "version": "2.2.0",
+  "description": "ZeroPlay movies, series, Live TV and Live Sports with enhanced discovery, playback reliability and performance",
   "author": "ZeroPlay",
   "private": true,
   "main": "bootstrap.cjs",
@@ -38,7 +38,7 @@
       "target": [
         "zip"
       ],
-      "artifactName": "ZeroPlay-2.1.2-Windows-x64.${ext}",
+      "artifactName": "ZeroPlay-2.2-Windows-x64.${ext}",
       "icon": "assets/icon.ico"
     },
     "asar": true,
