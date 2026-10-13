@@ -33,15 +33,28 @@ jobs:
           api-level: 28
           arch: x86_64
           target: google_apis
-          profile: pixel_2
+          profile: tv_1080p
           disable-animations: true
           script: |
-            adb shell wm size 1920x1080
+            adb shell wm size reset
             adb shell wm density 240
             adb shell settings put system accelerometer_rotation 0
+            adb shell settings put system user_rotation 0
             gradle :app:connectedTvDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zerostreams.app.GalleryTest,com.zerostreams.app.FeatureGalleryTest
             mkdir -p docs/screenshots/2.2
             for name in home categories live-sports settings home-panels layout-google layout-classic layout-youtube hybrid-controls profiles moods; do adb pull "/data/local/tmp/zeroplay-$name.png" "docs/screenshots/2.2/android-tv-$name.png"; done
+      - name: Verify landscape PNG geometry
+        run: |
+          python - <<'PYTHON'
+          import struct
+          from pathlib import Path
+          paths=list(Path('docs/screenshots/2.2').glob('android-tv-*.png'))
+          assert len(paths)==11, len(paths)
+          for p in paths:
+              width,height=struct.unpack('>II',p.read_bytes()[16:24])
+              assert (width,height)==(1920,1080),(p.name,width,height)
+          print('All eleven captures are true 1920x1080 landscape PNGs')
+          PYTHON
       - uses: actions/upload-artifact@v4
         with:
           name: gallery-tv-landscape-2.2
