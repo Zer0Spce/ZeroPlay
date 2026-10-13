@@ -1,4 +1,4 @@
-name: Fix ZeroPlay 2.2 Source Selection
+name: Remove ZeroPlay Player Overlay
 on:
   push:
     branches:
@@ -9,7 +9,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: zeroplay-2-2-source-selection-fix
+  group: zeroplay-2-2-player-overlay-fix
   cancel-in-progress: false
 jobs:
   patch:
@@ -22,19 +22,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply targeted source-selection fix
+      - name: Remove custom playback overlays
         run: node scripts/fix-2.2-source-selection.cjs
-      - name: Verify source-selection regression
+      - name: Verify provider-default player controls
         run: |
-          node --test tests/source-selection-regression.test.cjs
-          node --check windows/main.cjs
-          node --check windows/ui/app.js
+          node --test tests/default-player-controls-regression.test.cjs
+          node --check windows/player-host.cjs
           git diff --check
-      - name: Commit corrected sources
+      - name: Commit overlay removal
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add windows/main.cjs windows/ui/app.js app/src/main/java/com/zerostreams/app/MainActivity.java tests/source-selection-regression.test.cjs
+          git add windows/player-host.cjs app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java tests/default-player-controls-regression.test.cjs
           git diff --cached --exit-code && exit 0
-          git commit -m 'Fix 2.2 manual playback source precedence'
+          git commit -m 'Keep provider default player controls'
           git push origin HEAD:feature/2.2-navigation-discovery-performance
