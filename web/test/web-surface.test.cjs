@@ -17,11 +17,18 @@ test('website does not expose Live TV, PPV or Live Sports',()=>{
   assert.equal(fs.existsSync(path.join(root,'api/live.js')),false);
 });
 
-test('website loads additional movie and series pages automatically while scrolling',()=>{
+test('website infinite scroll waits for real user scroll intent and does not chain-load on tab render',()=>{
   const html=read('web/public/index.html');
   const infinite=read('web/public/infinite-scroll.js');
   assert.match(html,/infinite-scroll\.js/);
   assert.match(infinite,/data-action="next-page"/);
+  assert.match(infinite,/scrollIntentUntil/);
+  assert.match(infinite,/function armScrollIntent\(\)\{if\(!loading\)scrollIntentUntil=/);
+  assert.match(infinite,/if\(Date\.now\(\)>scrollIntentUntil\|\|loading/);
+  assert.match(infinite,/scrollIntentUntil=0;loading=true/);
+  assert.match(infinite,/addEventListener\('wheel'/);
+  assert.match(infinite,/addEventListener\('touchmove'/);
+  assert.match(infinite,/addEventListener\('keydown'/);
   assert.match(infinite,/addEventListener\('scroll'/);
   assert.match(infinite,/savedGrid\.appendChild/);
   assert.match(infinite,/paging\.hidden=true/);
