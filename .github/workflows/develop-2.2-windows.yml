@@ -11,6 +11,7 @@ on:
       - 'scripts/apply-embedwave-beta.cjs'
       - 'windows/playback-sources.cjs'
       - 'windows/assets/player-22.js'
+      - 'windows/test/playback-sources.test.cjs'
   workflow_dispatch:
 permissions:
   contents: write
@@ -74,8 +75,26 @@ jobs:
         working-directory: windows
         run: npm ci --no-audit --no-fund
       - name: Windows unit tests
+        shell: pwsh
         working-directory: windows
-        run: npm test
+        run: |
+          New-Item -ItemType Directory -Force -Path ../ci-diagnostics | Out-Null
+          npm test 2>&1 | Tee-Object -FilePath ../ci-diagnostics/windows-unit-tests.txt
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { exit $code }
+      - name: Commit Windows unit-test diagnostics on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          if (!(Test-Path ci-diagnostics/windows-unit-tests.txt)) { exit 0 }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ci-diagnostics/windows-unit-tests.txt
+          git commit -m '[2.2 diagnostics] Capture Windows unit-test failure'
+          if ($LASTEXITCODE -ne 0) { exit 0 }
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance
       - name: Desktop interface regressions
         working-directory: windows
         run: |
@@ -135,4 +154,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add windows/core.cjs windows/main.cjs windows/preload.cjs windows/player-tools.cjs windows/ui/app.js windows/ui/style.css windows/ui/player-tools.html windows/ui/player-tools.js
           git commit -m '[2.2 generated] Apply Windows discovery player performance and Embedwave features'
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
           git push origin HEAD:feature/2.2-navigation-discovery-performance
