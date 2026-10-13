@@ -94,17 +94,19 @@ jobs:
       - name: Commit generated source only after checks pass
         run: |
           set -euo pipefail
-          if git diff --quiet; then
-            echo 'No generated changes to commit.'
-            exit 0
-          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/src/main/java/com/zerostreams/app/ContentApi.java \
                   app/src/main/java/com/zerostreams/app/MainActivity.java \
                   app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java \
                   app/src/main/assets/tv-player-input.js
+          if git diff --cached --quiet; then
+            echo 'No Android generated changes to commit.'
+            git reset --hard HEAD
+            exit 0
+          fi
           git commit -m '[2.2 generated] Apply Android discovery navigation performance and Embedwave features'
+          git reset --hard HEAD
           git fetch origin feature/2.2-navigation-discovery-performance
           git rebase origin/feature/2.2-navigation-discovery-performance
           git push origin HEAD:feature/2.2-navigation-discovery-performance
