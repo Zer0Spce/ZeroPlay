@@ -1,0 +1,117 @@
+name: ZeroPlay 2.2 Windows Development
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/develop-2.2-windows.yml'
+      - 'scripts/apply-2.2-windows.cjs'
+      - 'scripts/apply-2.2-windows-ui.cjs'
+      - 'windows/assets/player-22.js'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeroplay-2-2-windows-development
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/2.2-navigation-discovery-performance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Apply deterministic 2.2 Windows patches
+        run: |
+          node scripts/apply-2.2-windows.cjs
+          node scripts/apply-2.2-windows-ui.cjs
+      - name: Validate generated JavaScript
+        shell: pwsh
+        run: |
+          git diff --check
+          node --check windows/main.cjs
+          node --check windows/core.cjs
+          node --check windows/preload.cjs
+          node --check windows/player-tools.cjs
+          node --check windows/ui/app.js
+          node --check windows/ui/player-tools.js
+          git diff --stat
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Windows unit tests
+        working-directory: windows
+        run: npm test
+      - name: Desktop interface regressions
+        working-directory: windows
+        run: |
+          npm install --prefix ../ui-test-deps --no-audit --no-fund jsdom@24.1.3
+          $env:NODE_PATH = "${{ github.workspace }}\ui-test-deps\node_modules"
+          node scripts/ui-check.cjs
+          node scripts/experience-check.cjs
+          node scripts/layout-check.cjs
+          node scripts/live-compat-check.cjs
+          node scripts/player-exit-check.cjs
+          node scripts/media-check.cjs
+          node scripts/tmdb-check.cjs
+      - name: Verify player guard
+        working-directory: windows
+        run: |
+          $env:NODE_PATH = "${{ github.workspace }}\ui-test-deps\node_modules"
+          $env:ZERO_GUARD_PATH = "assets/player-guard.js"
+          node ../tests/player-guard.test.cjs
+      - name: Configure bundled development keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Windows smoke test
+        working-directory: windows
+        run: npx electron . --smoke-test
+      - name: Package development build
+        working-directory: windows
+        run: npm run build
+      - name: Verify packaged 2.2 assets
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $root = 'dist/win-unpacked/resources/app.asar.unpacked'
+          foreach ($path in @(
+            (Join-Path $root 'assets/player-22.js'),
+            (Join-Path $root 'ui/player-tools.html'),
+            (Join-Path $root 'ui/player-tools.js')
+          )) {
+            if (!(Test-Path $path)) { throw "2.2 packaged asset missing: $path" }
+          }
+          Write-Host '2.2 player assets verified in packaged app.'
+      - name: Upload Windows 2.2 development artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-Windows-development
+          path: |
+            windows/dist/ZeroPlay-*.zip
+            windows/dist/desktop-preview.png
+          if-no-files-found: error
+      - name: Commit generated Windows source only after checks pass
+        shell: pwsh
+        run: |
+          if (-not (git status --porcelain)) {
+            Write-Host 'No generated changes to commit.'
+            exit 0
+          }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add windows/core.cjs windows/main.cjs windows/preload.cjs windows/player-tools.cjs windows/ui/app.js windows/ui/style.css windows/ui/player-tools.html windows/ui/player-tools.js
+          git commit -m '[2.2 generated] Apply Windows discovery player and performance features'
+          git push origin HEAD:feature/2.2-navigation-discovery-performance
