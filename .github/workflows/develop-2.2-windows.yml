@@ -98,9 +98,56 @@ jobs:
       - name: Configure bundled development keys
         working-directory: windows
         run: npm run prepare-config
-      - name: Windows smoke test
+      - name: Instrument Windows smoke test temporarily
+        shell: pwsh
         working-directory: windows
-        run: npx electron . --smoke-test
+        run: |
+          Copy-Item main.cjs "$env:RUNNER_TEMP\zeroplay-main-2.2.cjs" -Force
+          $main = Get-Content main.cjs -Raw
+          $replacements = @(
+            @("if(smoke){try{await main.webContents.executeJavaScript", "if(smoke){const smokeWatchdog=setTimeout(()=>{console.error('[smoke] watchdog: smoke exceeded 7 minutes');app.exit(124);},420000);smokeWatchdog.unref();try{console.log('[smoke] stage: initial-ui');await main.webContents.executeJavaScript"),
+            @("for(const layout of ['youtube','google','flix','classic'])", "console.log('[smoke] stage: layouts');for(const layout of ['youtube','google','flix','classic'])"),
+            @("for(const [section,name] of [['Categories','categories'],['Live Sports','sports']])", "console.log('[smoke] stage: navigation');for(const [section,name] of [['Categories','categories'],['Live Sports','sports']])"),
+            @("await openPlayer({id:299534,type:'movie',title:'Fullscreen test'}", "console.log('[smoke] stage: movie-fullscreen');await openPlayer({id:299534,type:'movie',title:'Fullscreen test'}"),
+            @("const fixture=await require('./scripts/live-playback-fixture.cjs').createFixture();", "console.log('[smoke] stage: media-fixtures');const fixture=await require('./scripts/live-playback-fixture.cjs').createFixture();"),
+            @("const sportsData={success:true,streams:", "console.log('[smoke] stage: sports-fixtures');const sportsData={success:true,streams:")
+          )
+          foreach ($pair in $replacements) {
+            if (!$main.Contains($pair[0])) { throw "Smoke instrumentation marker missing: $($pair[0])" }
+            $main = $main.Replace($pair[0], $pair[1])
+          }
+          Set-Content -Path main.cjs -Value $main -NoNewline
+          node --check main.cjs
+      - name: Windows smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          New-Item -ItemType Directory -Force -Path ../ci-diagnostics | Out-Null
+          npx electron . --smoke-test 2>&1 | Tee-Object -FilePath ../ci-diagnostics/windows-smoke.txt
+          exit $LASTEXITCODE
+      - name: Restore production Windows main after smoke
+        if: always()
+        shell: pwsh
+        working-directory: windows
+        run: |
+          if (Test-Path "$env:RUNNER_TEMP\zeroplay-main-2.2.cjs") {
+            Copy-Item "$env:RUNNER_TEMP\zeroplay-main-2.2.cjs" main.cjs -Force
+          }
+          node --check main.cjs
+      - name: Commit Windows smoke diagnostics on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          if (!(Test-Path ci-diagnostics/windows-smoke.txt)) { exit 0 }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ci-diagnostics/windows-smoke.txt
+          git commit -m '[2.2 diagnostics] Capture Windows smoke failure'
+          if ($LASTEXITCODE -ne 0) { exit 0 }
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance
       - name: Package development build
         working-directory: windows
         run: npm run build
