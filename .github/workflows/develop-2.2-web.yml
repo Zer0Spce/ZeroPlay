@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/develop-2.2-web.yml'
       - 'scripts/apply-2.2-web.cjs'
+      - 'scripts/apply-embedwave-beta.cjs'
+      - 'web/public/playback-sources.js'
       - 'web/public/zero22.js'
       - 'web/public/zero22.css'
       - 'web/test/web-surface.test.cjs'
@@ -28,12 +30,15 @@ jobs:
         with:
           node-version: '22'
       - name: Apply deterministic website 2.2 patch
-        run: node scripts/apply-2.2-web.cjs
+        run: |
+          node scripts/apply-2.2-web.cjs
+          node scripts/apply-embedwave-beta.cjs
       - name: Validate generated JavaScript
         run: |
           git diff --check
           node --check web/public/browser.js
           node --check web/public/app.js
+          node --check web/public/playback-sources.js
           node --check web/public/zero22.js
           node --check web/public/infinite-scroll.js
           node --check web/lib/catalog.cjs
@@ -50,12 +55,16 @@ jobs:
           const fs=require('node:fs');
           const html=fs.readFileSync('web/public/index.html','utf8');
           const js=fs.readFileSync('web/public/zero22.js','utf8');
+          const browser=fs.readFileSync('web/public/browser.js','utf8');
+          const sources=fs.readFileSync('web/public/playback-sources.js','utf8');
           const scroll=fs.readFileSync('web/public/infinite-scroll.js','utf8');
           if(!html.includes('zero22.js')||!html.includes('zero22.css'))throw Error('2.2 web assets are not loaded');
           if(/Live TV|Live Sports|PPV/.test(html))throw Error('Website-only live sections must stay removed');
           for(const feature of ['Because you watched','Hidden gems','Episode calendar','search/person','profile-switch','zero22CatalogRequest'])if(!js.includes(feature))throw Error('Missing web 2.2 feature: '+feature);
           if(!scroll.includes('zero22CatalogRequest'))throw Error('Filtered infinite scroll hook missing');
-          console.log('2.2 website boundaries verified');
+          if(!html.includes('https://embedwave.cc')||!html.includes('Embedwave (BETA)'))throw Error('Embedwave website shell integration missing');
+          if(!browser.includes("['vidstuck','embedwave']")||!sources.includes("id:'embedwave'"))throw Error('Embedwave website playback integration missing');
+          console.log('2.2 website boundaries and Embedwave source verified');
           NODE
       - name: Validate website build
         run: node web/scripts/build.cjs
@@ -63,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ZeroPlay-2.2-Web-development
-          path: web/dist
+          path: web/public
           if-no-files-found: error
       - name: Commit generated web source only after checks pass
         run: |
@@ -74,6 +83,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add web/lib/catalog.cjs web/public/browser.js web/public/index.html web/public/infinite-scroll.js
-          git commit -m '[2.2 generated] Apply website discovery and performance features'
+          git add web/lib/catalog.cjs web/public/browser.js web/public/app.js web/public/index.html web/public/infinite-scroll.js
+          git commit -m '[2.2 generated] Apply website discovery performance and Embedwave features'
           git push origin HEAD:feature/2.2-navigation-discovery-performance
