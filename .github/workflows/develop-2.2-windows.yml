@@ -1,0 +1,208 @@
+name: ZeroPlay 2.2 Windows Development
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/develop-2.2-windows.yml'
+      - 'scripts/apply-2.2-windows.cjs'
+      - 'scripts/apply-2.2-windows-ui.cjs'
+      - 'scripts/fix-2.2-windows-ui-patcher.cjs'
+      - 'scripts/fix-2.2-windows-regression-tests.cjs'
+      - 'scripts/apply-embedwave-beta.cjs'
+      - 'windows/playback-sources.cjs'
+      - 'windows/assets/player-22.js'
+      - 'windows/test/playback-sources.test.cjs'
+      - 'windows/scripts/ui-check.cjs'
+      - 'windows/scripts/experience-check.cjs'
+      - 'windows/scripts/layout-check.cjs'
+      - 'windows/scripts/media-check.cjs'
+      - 'windows/ui/layouts.js'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeroplay-2-2-windows-development
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/2.2-navigation-discovery-performance
+          fetch-depth: 0
+      - name: Keep repository line endings identical to committed source
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Apply deterministic 2.2 Windows patches
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($script in @('scripts/apply-2.2-windows.cjs','scripts/fix-2.2-windows-ui-patcher.cjs','scripts/apply-2.2-windows-ui.cjs','scripts/apply-embedwave-beta.cjs')) {
+            node $script
+            if ($LASTEXITCODE -ne 0) { throw "Windows 2.2 patch failed: $script" }
+          }
+      - name: Validate generated JavaScript
+        shell: pwsh
+        run: |
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'git diff validation failed' }
+          foreach ($path in @('windows/main.cjs','windows/core.cjs','windows/preload.cjs','windows/player-tools.cjs','windows/playback-sources.cjs','windows/ui/app.js','windows/ui/player-tools.js','windows/ui/layouts.js')) {
+            node --check $path
+            if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax validation failed: $path" }
+          }
+          git diff --stat
+      - name: Verify Embedwave source
+        shell: pwsh
+        run: |
+          $source = Get-Content windows/playback-sources.cjs -Raw
+          $main = Get-Content windows/main.cjs -Raw
+          $ui = Get-Content windows/ui/app.js -Raw
+          if (!$source.Contains("id:'embedwave'") -or !$source.Contains('embedwave.cc')) { throw 'Embedwave URL builder missing' }
+          if (!$main.Contains('embedwave.cc') -or !$main.Contains('autoSourceRecovery')) { throw 'Embedwave recovery/trust integration missing' }
+          if (!$ui.Contains('Embedwave (BETA)')) { throw 'Embedwave source picker missing' }
+          Write-Host 'Embedwave Windows integration verified.'
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Windows unit tests
+        working-directory: windows
+        run: npm test
+      - name: Desktop interface regressions
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          npm install --prefix ../ui-test-deps --no-audit --no-fund jsdom@24.1.3
+          if ($LASTEXITCODE -ne 0) { throw 'Could not install UI regression dependencies' }
+          $env:NODE_PATH = "${{ github.workspace }}\ui-test-deps\node_modules"
+          foreach ($script in @('scripts/ui-check.cjs','scripts/experience-check.cjs','scripts/layout-check.cjs','scripts/live-compat-check.cjs','scripts/player-exit-check.cjs')) {
+            node $script
+            if ($LASTEXITCODE -ne 0) { throw "Desktop regression failed: $script" }
+          }
+          npx electron scripts/media-check.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop regression failed: scripts/media-check.cjs' }
+          node scripts/tmdb-check.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop regression failed: scripts/tmdb-check.cjs' }
+      - name: Verify player guard
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $env:NODE_PATH = "${{ github.workspace }}\ui-test-deps\node_modules"
+          $env:ZERO_GUARD_PATH = "assets/player-guard.js"
+          node ../tests/player-guard.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Player guard regression failed' }
+      - name: Configure bundled development keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Instrument Windows smoke test temporarily
+        shell: pwsh
+        working-directory: windows
+        run: |
+          Copy-Item main.cjs "$env:RUNNER_TEMP\zeroplay-main-2.2.cjs" -Force
+          $main = Get-Content main.cjs -Raw
+          $replacements = @(
+            @("if(smoke){try{await main.webContents.executeJavaScript", "if(smoke){const smokeWatchdog=setTimeout(()=>{console.error('[smoke] watchdog: smoke exceeded 7 minutes');app.exit(124);},420000);smokeWatchdog.unref();try{console.log('[smoke] stage: initial-ui');await main.webContents.executeJavaScript"),
+            @("for(const layout of ['youtube','google','flix','classic'])", "console.log('[smoke] stage: layouts');for(const layout of ['youtube','google','flix','classic'])"),
+            @("for(const [section,name] of [['Categories','categories'],['Live Sports','sports']])", "console.log('[smoke] stage: navigation');for(const [section,name] of [['Categories','categories'],['Live Sports','sports']])"),
+            @("await openPlayer({id:299534,type:'movie',title:'Fullscreen test'}", "console.log('[smoke] stage: movie-fullscreen');await openPlayer({id:299534,type:'movie',title:'Fullscreen test'}"),
+            @("const fixture=await require('./scripts/live-playback-fixture.cjs').createFixture();", "console.log('[smoke] stage: media-fixtures');const fixture=await require('./scripts/live-playback-fixture.cjs').createFixture();"),
+            @("const sportsData={success:true,streams:", "console.log('[smoke] stage: sports-fixtures');const sportsData={success:true,streams:")
+          )
+          foreach ($pair in $replacements) {
+            if (!$main.Contains($pair[0])) { throw "Smoke instrumentation marker missing: $($pair[0])" }
+            $main = $main.Replace($pair[0], $pair[1])
+          }
+          Set-Content -Path main.cjs -Value $main -NoNewline
+          node --check main.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Instrumented smoke source is invalid' }
+      - name: Windows smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          New-Item -ItemType Directory -Force -Path ../ci-diagnostics | Out-Null
+          npx electron . --smoke-test 2>&1 | Tee-Object -FilePath ../ci-diagnostics/windows-smoke.txt
+          if ($LASTEXITCODE -ne 0) { throw "Windows smoke test failed with exit code $LASTEXITCODE" }
+      - name: Restore production Windows main after smoke
+        if: always()
+        shell: pwsh
+        working-directory: windows
+        run: |
+          if (Test-Path "$env:RUNNER_TEMP\zeroplay-main-2.2.cjs") {
+            Copy-Item "$env:RUNNER_TEMP\zeroplay-main-2.2.cjs" main.cjs -Force
+          }
+          node --check main.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Restored Windows main is invalid' }
+      - name: Commit Windows smoke diagnostics on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          if (!(Test-Path ci-diagnostics/windows-smoke.txt)) { exit 0 }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ci-diagnostics/windows-smoke.txt
+          git commit -m '[2.2 diagnostics] Capture Windows smoke failure'
+          if ($LASTEXITCODE -ne 0) { exit 0 }
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance
+      - name: Package development build
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows development packaging failed' }
+      - name: Verify packaged 2.2 assets
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $asar = 'dist/win-unpacked/resources/app.asar'
+          if (!(Test-Path $asar)) { throw "Packaged app.asar missing: $asar" }
+          $listing = npx --yes @electron/asar list $asar
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect packaged app.asar' }
+          $joined = ($listing -join "`n").Replace('\','/')
+          foreach ($required in @('/assets/player-22.js','/ui/player-tools.html','/ui/player-tools.js')) {
+            if (!$joined.Contains($required)) { throw "2.2 packaged asset missing from app.asar: $required" }
+          }
+          Write-Host '2.2 player assets verified inside packaged app.asar.'
+      - name: Upload Windows 2.2 development artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-Windows-development
+          path: |
+            windows/dist/ZeroPlay-*.zip
+            windows/dist/desktop-preview.png
+          if-no-files-found: error
+      - name: Commit generated Windows source only after checks pass
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add windows/core.cjs windows/main.cjs windows/preload.cjs windows/player-tools.cjs windows/ui/app.js windows/ui/style.css windows/ui/player-tools.html windows/ui/player-tools.js windows/ui/layouts.js
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'No Windows generated changes to commit.'
+            git reset --hard HEAD
+            exit 0
+          }
+          git commit -m '[2.2 generated] Apply Windows discovery player performance and Embedwave features'
+          git reset --hard HEAD
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance

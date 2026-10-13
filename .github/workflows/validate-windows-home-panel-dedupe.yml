@@ -1,0 +1,55 @@
+name: Validate Windows Homepage Panel Dedupe
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/validate-windows-home-panel-dedupe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Duplicate-panel regression and syntax
+        shell: pwsh
+        run: |
+          node --test tests/windows-home-panel-order.test.cjs tests/source-selection-regression.test.cjs tests/auto-source-recovery-default.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Regression tests failed' }
+          node --check windows/main.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows main syntax failed' }
+          node --check windows/ui/app.js
+          if ($LASTEXITCODE -ne 0) { throw 'Windows UI syntax failed' }
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Windows unit tests
+        working-directory: windows
+        run: npm test
+      - name: Configure bundled development keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Windows Electron smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npx electron . --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "Windows smoke test failed with exit code $LASTEXITCODE" }

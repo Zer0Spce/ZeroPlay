@@ -31,6 +31,7 @@ async function run(){
   assert.match(w.document.getElementById('volume').style.getPropertyValue('box-shadow'),/101\s*,\s*230\s*,\s*204/,'Focused player control needs a clean teal glow');
   let clicks=0;w.document.getElementById('volume').onclick=()=>clicks++;
   w.__zeroTvNavigate('ok');assert.equal(clicks,1,'OK should activate only the highlighted control');
+  assert.equal(w.__zeroTvCanFocus(),true,'Smart navigation should detect usable provider controls');
   dom.window.close();
 
   dom=page('<video></video><div class="plyr__controls" style="opacity:0;visibility:hidden;display:none" data-y="650" data-w="1024" data-h="70"><button id="play" aria-label="Play" data-x="100" data-y="660">Play</button><button id="volume" aria-label="Volume" data-x="300" data-y="660">Volume</button></div>');
@@ -82,13 +83,16 @@ async function run(){
   assert.doesNotMatch(activity,/querySelectorAll\('iframe'\).*zerostreams-tv-nav/s,'Native Android must not guess the largest provider iframe');
   assert.doesNotMatch(activity,/mouse-back\.js/,'The obsolete competing Back/input script must not be injected');
   assert.match(activity,/__zeroTvBackRequest/,'Back must keep using the clean staged controller');
-  assert.doesNotMatch(activity,/putBoolean\("playerMouse",true\)/,'Opening a movie must not overwrite the Settings-selected mode');
-  assert.doesNotMatch(mouse,/KEYCODE_MENU/,'Mouse/D-pad switching must remain Settings-only');
-  assert.match(mouse,/getBoolean\("playerMouse",true\)/,'Mouse remains the default if no preference exists');
+  assert.match(activity,/playerNavigation/,'Player must expose the Smart / Focus / Mouse navigation setting');
+  assert.match(activity,/KEYCODE_MENU/,'Menu should open ZeroPlay quick player controls without changing the provider page');
+  assert.doesNotMatch(activity,/putBoolean\("playerMouse",true\)/,'Opening a movie must not force mouse mode');
+  assert.doesNotMatch(mouse,/KEYCODE_MENU/,'The mouse itself must not own the Menu key');
+  assert.match(mouse,/getBoolean\("playerMouse",false\)/,'Smart mode should be the safe default when no explicit mouse preference exists');
+  assert.match(mouse,/cursorAssist/,'Cursor Assist must remain available in mouse fallback mode');
 
   console.log('Android TV D-pad navigation remains intact');
-  console.log('Hidden controls wake through native hover plus JS reinforcement');
+  console.log('Smart navigation detects usable provider controls and can fall back to mouse mode');
   console.log('Slim focus ring and staged Back checks passed');
-  console.log('Mouse mode implementation remains untouched');
+  console.log('Cursor Assist and quick player controls are covered');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

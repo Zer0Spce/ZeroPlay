@@ -1,3 +1,3 @@
 package com.zerostreams.app;
 import org.junit.Test;import static org.junit.Assert.*;import java.util.*;
-public class HomePanelsTest {@Test public void existingPanelsStayOnAndCategoriesAreOptIn(){Set<String> enabled=HomePanels.defaults();assertEquals(11,enabled.size());assertTrue(enabled.containsAll(Arrays.asList("featured","continue","watchlist","providers","popular","series")));assertFalse(enabled.contains("anime"));assertFalse(enabled.contains("action"));assertEquals(16,HomePanels.genre("anime"));}}
+public class HomePanelsTest {@Test public void coreAndNewPersonalizedPanelsStayOnAndCategoriesAreOptIn(){Set<String> enabled=HomePanels.defaults();assertEquals(16,enabled.size());assertTrue(enabled.containsAll(Arrays.asList("featured","continue","upnext","because","watchlist","tonight","hidden","providers","popular","series","airing")));assertFalse(enabled.contains("anime"));assertFalse(enabled.contains("action"));assertEquals(16,HomePanels.genre("anime"));}}

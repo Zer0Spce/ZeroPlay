@@ -1,0 +1,236 @@
+name: ZeroPlay 2.2 Final Validation
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/validate-2.2.yml'
+      - 'windows/scripts/live-playback-fixture.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zeroplay-2-2-final-validation-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  web:
+    name: Web exact-HEAD validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source-selection precedence
+        run: node --test tests/source-selection-regression.test.cjs
+      - name: Validate committed website JavaScript
+        run: |
+          git diff --exit-code
+          node --check web/public/browser.js
+          node --check web/public/app.js
+          node --check web/public/playback-sources.js
+          node --check web/public/zero22.js
+          node --check web/public/infinite-scroll.js
+          node --check web/lib/catalog.cjs
+      - name: Website unit tests
+        run: node --test web/test/*.test.cjs
+      - name: Website UI regressions
+        run: |
+          npm install --prefix /tmp/zero-web-tests --no-audit --no-fund jsdom@24.1.3
+          NODE_PATH=/tmp/zero-web-tests/node_modules node web/scripts/ui-check.cjs
+      - name: Verify website 2.2 boundaries and Embedwave
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const html=fs.readFileSync('web/public/index.html','utf8');
+          const js=fs.readFileSync('web/public/zero22.js','utf8');
+          const browser=fs.readFileSync('web/public/browser.js','utf8');
+          const sources=fs.readFileSync('web/public/playback-sources.js','utf8');
+          const scroll=fs.readFileSync('web/public/infinite-scroll.js','utf8');
+          if(/Live TV|Live Sports|PPV/.test(html))throw Error('Website-only live sections must stay removed');
+          for(const feature of ['Because you watched','Hidden gems','Episode calendar','search/person','profile-switch','zero22CatalogRequest'])if(!js.includes(feature))throw Error('Missing 2.2 web feature: '+feature);
+          if(!scroll.includes('zero22CatalogRequest'))throw Error('Filtered infinite scroll hook missing');
+          if(!html.includes('https://embedwave.cc')||!html.includes('Embedwave (BETA)'))throw Error('Embedwave website shell integration missing');
+          if(!browser.includes("['vidstuck','embedwave']")||!sources.includes("id:'embedwave'"))throw Error('Embedwave website playback integration missing');
+          console.log('Exact-HEAD website boundaries and Embedwave verified');
+          NODE
+      - name: Validate website build
+        run: node web/scripts/build.cjs
+      - name: Upload final website artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-final-Web-${{ github.sha }}
+          path: web/public
+          if-no-files-found: error
+
+  android:
+    name: Android + TV exact-HEAD validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify committed source is clean
+        run: git diff --exit-code
+      - name: Verify core Java rules
+        run: |
+          mkdir -p /tmp/zero-rule-tests
+          javac -d /tmp/zero-rule-tests app/src/main/java/com/zerostreams/app/AdBlockRules.java app/src/main/java/com/zerostreams/app/TitleSearch.java app/src/main/java/com/zerostreams/app/ProgressRules.java tests/PlayerRulesTest.java tests/ProgressRulesTest.java
+          java -cp /tmp/zero-rule-tests com.zerostreams.app.PlayerRulesTest
+          java -cp /tmp/zero-rule-tests com.zerostreams.app.ProgressRulesTest
+      - name: Verify player guard and TV navigation
+        env:
+          NODE_PATH: /tmp/zero-qr-tests/node_modules
+          ZERO_GUARD_PATH: app/src/main/assets/player-guard.js
+        run: |
+          npm install --prefix /tmp/zero-qr-tests --no-audit --no-fund jsdom@24.1.3
+          node tests/player-guard.test.cjs
+          node tests/tv-navigation.test.cjs
+      - name: Verify Embedwave Android integration
+        run: |
+          grep -F '"embedwave"' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -F 'https://embedwave.cc' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -F 'Embedwave (BETA)' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+      - name: Android and TV unit tests
+        run: gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest
+      - name: Build Android and TV debug APKs
+        run: gradle :app:assembleMobileDebug :app:assembleTvDebug
+      - name: Lint Android variants
+        run: gradle --continue :app:lintMobileDebug :app:lintTvDebug
+      - name: Upload final Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-final-Android-${{ github.sha }}
+          path: app/build/outputs/apk/*/debug/*.apk
+          if-no-files-found: error
+
+  windows:
+    name: Windows exact-HEAD validation
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+          git diff --exit-code
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Validate committed Windows JavaScript
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($path in @('windows/main.cjs','windows/core.cjs','windows/preload.cjs','windows/player-tools.cjs','windows/playback-sources.cjs','windows/ui/app.js','windows/ui/player-tools.js','windows/ui/layouts.js')) {
+            node --check $path
+            if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax validation failed: $path" }
+          }
+      - name: Verify Embedwave Windows integration
+        shell: pwsh
+        run: |
+          $source=Get-Content windows/playback-sources.cjs -Raw
+          $main=Get-Content windows/main.cjs -Raw
+          $ui=Get-Content windows/ui/app.js -Raw
+          if (!$source.Contains("id:'embedwave'") -or !$source.Contains('embedwave.cc')) { throw 'Embedwave URL builder missing' }
+          if (!$main.Contains('embedwave.cc') -or !$main.Contains('autoSourceRecovery')) { throw 'Embedwave recovery/trust integration missing' }
+          if (!$ui.Contains('Embedwave (BETA)')) { throw 'Embedwave source picker missing' }
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Windows unit tests
+        working-directory: windows
+        run: npm test
+      - name: Prepare 2.2 regression fixtures
+        shell: pwsh
+        run: |
+          node scripts/fix-2.2-windows-regression-tests.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Could not prepare 2.2 Windows regression fixtures' }
+          git diff --check -- windows/scripts/ui-check.cjs windows/scripts/experience-check.cjs
+          if ($LASTEXITCODE -ne 0) { throw '2.2 regression fixture diff is invalid' }
+      - name: Desktop interface regressions
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          npm install --prefix ../ui-test-deps --no-audit --no-fund jsdom@24.1.3
+          if ($LASTEXITCODE -ne 0) { throw 'Could not install UI regression dependencies' }
+          $env:NODE_PATH = "${{ github.workspace }}\ui-test-deps\node_modules"
+          foreach ($script in @('scripts/ui-check.cjs','scripts/experience-check.cjs','scripts/layout-check.cjs','scripts/live-compat-check.cjs','scripts/player-exit-check.cjs')) {
+            node $script
+            if ($LASTEXITCODE -ne 0) { throw "Desktop regression failed: $script" }
+          }
+          npx electron scripts/media-check.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop regression failed: scripts/media-check.cjs' }
+          node scripts/tmdb-check.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop regression failed: scripts/tmdb-check.cjs' }
+      - name: Verify player guard
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $env:NODE_PATH = "${{ github.workspace }}\ui-test-deps\node_modules"
+          $env:ZERO_GUARD_PATH = 'assets/player-guard.js'
+          node ../tests/player-guard.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Player guard regression failed' }
+      - name: Configure bundled development keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Windows smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npx electron . --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "Windows smoke test failed with exit code $LASTEXITCODE" }
+      - name: Package Windows development build
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows development packaging failed' }
+      - name: Verify packaged 2.2 assets
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $asar='dist/win-unpacked/resources/app.asar'
+          if (!(Test-Path $asar)) { throw "Packaged app.asar missing: $asar" }
+          $listing=npx --yes @electron/asar list $asar
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect packaged app.asar' }
+          $joined=($listing -join "`n").Replace('\','/')
+          foreach ($required in @('/assets/player-22.js','/ui/player-tools.html','/ui/player-tools.js')) {
+            if (!$joined.Contains($required)) { throw "2.2 packaged asset missing from app.asar: $required" }
+          }
+      - name: Upload final Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-final-Windows-${{ github.sha }}
+          path: |
+            windows/dist/ZeroPlay-*.zip
+            windows/dist/desktop-preview.png
+          if-no-files-found: error

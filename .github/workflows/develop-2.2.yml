@@ -1,0 +1,112 @@
+name: ZeroPlay 2.2 Development
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/develop-2.2.yml'
+      - 'scripts/apply-2.2-android-core.cjs'
+      - 'scripts/fix-2.2-android-generated.cjs'
+      - 'scripts/fix-2.2-android-compile.cjs'
+      - 'scripts/apply-embedwave-beta.cjs'
+      - 'app/src/main/java/com/zerostreams/app/CatalogDiskCache.java'
+      - 'app/src/main/java/com/zerostreams/app/Zero22.java'
+      - 'app/src/main/java/com/zerostreams/app/PlaybackHealth.java'
+      - 'app/src/main/java/com/zerostreams/app/PlaybackSources.java'
+      - 'app/src/main/java/com/zerostreams/app/HomePanels.java'
+      - 'app/src/main/java/com/zerostreams/app/TvMouse.java'
+      - 'app/src/test/java/com/zerostreams/app/HomePanelsTest.java'
+      - 'app/src/test/java/com/zerostreams/app/PlaybackSourcesTest.java'
+      - 'app/src/main/assets/player-22.js'
+      - 'tests/PlayerRulesTest.java'
+      - 'tests/tv-navigation.test.cjs'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeroplay-2-2-development
+  cancel-in-progress: true
+jobs:
+  android-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/2.2-navigation-discovery-performance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply deterministic 2.2 Android patch
+        run: |
+          node scripts/apply-2.2-android-core.cjs
+          node scripts/fix-2.2-android-generated.cjs
+          node scripts/fix-2.2-android-compile.cjs
+          node scripts/apply-embedwave-beta.cjs
+      - name: Show generated diff
+        run: git diff --check && git diff --stat
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify core Java rules
+        run: |
+          mkdir -p /tmp/zero-rule-tests
+          javac -d /tmp/zero-rule-tests app/src/main/java/com/zerostreams/app/AdBlockRules.java app/src/main/java/com/zerostreams/app/TitleSearch.java app/src/main/java/com/zerostreams/app/ProgressRules.java tests/PlayerRulesTest.java tests/ProgressRulesTest.java
+          java -cp /tmp/zero-rule-tests com.zerostreams.app.PlayerRulesTest
+          java -cp /tmp/zero-rule-tests com.zerostreams.app.ProgressRulesTest
+      - name: Verify player guard and TV navigation
+        env:
+          NODE_PATH: /tmp/zero-qr-tests/node_modules
+          ZERO_GUARD_PATH: app/src/main/assets/player-guard.js
+        run: |
+          npm install --prefix /tmp/zero-qr-tests --no-audit --no-fund jsdom@24.1.3
+          node tests/player-guard.test.cjs
+          node tests/tv-navigation.test.cjs
+      - name: Verify Embedwave source builder
+        run: |
+          grep -F '"embedwave"' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -F 'https://embedwave.cc' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -F 'Embedwave (BETA)' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+      - name: Android unit tests
+        run: gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest
+      - name: Build Android and Android TV debug APKs
+        run: gradle :app:assembleMobileDebug :app:assembleTvDebug
+      - name: Lint Android variants
+        run: gradle --continue :app:lintMobileDebug :app:lintTvDebug
+      - name: Upload development APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2-android-development
+          path: app/build/outputs/apk/*/debug/*.apk
+          if-no-files-found: error
+      - name: Commit generated source only after checks pass
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/zerostreams/app/ContentApi.java \
+                  app/src/main/java/com/zerostreams/app/MainActivity.java \
+                  app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java \
+                  app/src/main/assets/tv-player-input.js
+          if git diff --cached --quiet; then
+            echo 'No Android generated changes to commit.'
+            git reset --hard HEAD
+            exit 0
+          fi
+          git commit -m '[2.2 generated] Apply Android discovery navigation performance and Embedwave features'
+          git reset --hard HEAD
+          git fetch origin feature/2.2-navigation-discovery-performance
+          git rebase origin/feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance

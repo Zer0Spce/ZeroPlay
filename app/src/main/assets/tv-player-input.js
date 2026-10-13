@@ -276,6 +276,7 @@
     }
   }
   window.__zeroTvNavigate = routeNavigation;
+  window.__zeroTvCanFocus = () => candidates().length >= 2 || all(CONTROL_BARS).some(node => visible(node));
 
   function askFrame(frame) {
     return new Promise(resolve => {

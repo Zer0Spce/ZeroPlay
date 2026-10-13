@@ -27,10 +27,10 @@
   }
   function canAppendCatalog(){return typeof category!=='undefined'&&typeof page!=='undefined'&&(category==='Movies'||category==='Series');}
   async function appendCatalogPage(grid,pager){
-    const section=category,nextPage=page+1,type=section==='Series'?'tv':'movie',path=section==='Series'?'/tv/popular':'/movie/popular';
+    const section=category,nextPage=page+1,request=window.zero22CatalogRequest?window.zero22CatalogRequest(section,nextPage):null,type=request?.type||(section==='Series'?'tv':'movie'),path=request?.path||(section==='Series'?'/tv/popular':'/movie/popular'),requestParams=request?.params||{page:nextPage};
     scrollIntentUntil=0;loading=true;loadContext=contextKey();savedPaging=pager.cloneNode(true);pager.hidden=false;pager.removeAttribute('aria-hidden');pager.id='infinite-loader';pager.setAttribute('role','status');pager.textContent='Loading more titles…';
     try{
-      const data=await api(path,{page:nextPage});
+      const data=await api(path,requestParams);
       if(section!==category||loadContext!==contextKey()){reset();return;}
       const existing=new Set([...grid.querySelectorAll('[data-detail],[data-web-open]')].map(node=>node.dataset.detail||node.dataset.webOpen));
       let html='';

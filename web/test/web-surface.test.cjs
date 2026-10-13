@@ -2,11 +2,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'../..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('website is labeled as ZeroPlay 2.1.2 Web',()=>{
+test('website is labeled as ZeroPlay 2.2 Web',()=>{
   const html=read('web/public/index.html');
   const browser=read('web/public/browser.js');
-  assert.match(html,/ZeroPlay 2\.1\.2/);
-  assert.match(browser,/version:'2\.1\.2 Web'/);
+  assert.match(html,/ZeroPlay 2\.2/);
+  assert.match(browser,/version:'2\.2 Web'/);
 });
 
 test('website does not expose Live TV, PPV or Live Sports',()=>{
@@ -26,7 +26,9 @@ test('website movies and series append more cards below the current grid',()=>{
   assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
   assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
   assert.match(infinite,/async function appendCatalogPage/);
-  assert.match(infinite,/const data=await api\(path,\{page:nextPage\}\)/);
+  assert.match(infinite,/zero22CatalogRequest\?window\.zero22CatalogRequest\(section,nextPage\):null/);
+  assert.match(infinite,/requestParams=request\?\.params\|\|\{page:nextPage\}/);
+  assert.match(infinite,/const data=await api\(path,requestParams\)/);
   assert.match(infinite,/grid\.insertAdjacentHTML\('beforeend',html\)/);
   assert.match(infinite,/page=nextPage/);
   assert.match(infinite,/grid\.children\.length\+' titles loaded'/);

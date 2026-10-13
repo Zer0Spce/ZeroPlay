@@ -57,7 +57,7 @@ final class ContentApi {
             String date=raw.optString(media.equals("tv")?"first_air_date":"release_date"),poster=raw.optString("poster_path"),backdrop=raw.optString("backdrop_path");int year=0;try{if(date.length()>=4)year=Integer.parseInt(date.substring(0,4));}catch(NumberFormatException ignored){}
             JSONObject item=new JSONObject().put("id","tmdb-"+type+"-"+id).put("title",name).put("type",type).put("year",year).put("description",raw.optString("overview")).put("popularity",raw.optDouble("popularity",0)).put("rating",raw.optDouble("vote_average",0))
                 .put("poster",poster.matches("/[A-Za-z0-9_.-]+")?"https://image.tmdb.org/t/p/w500"+poster:"")
-                .put("backdrop",backdrop.matches("/[A-Za-z0-9_.-]+")?"https://image.tmdb.org/t/p/w1280"+backdrop:"").put("releaseDate",date).put("genreIds",raw.optJSONArray("genre_ids")).put("onlineSearch",search);
+                .put("backdrop",backdrop.matches("/[A-Za-z0-9_.-]+")?"https://image.tmdb.org/t/p/w1280"+backdrop:"").put("releaseDate",date).put("genreIds",raw.optJSONArray("genre_ids")).put("voteCount",raw.optInt("vote_count",0)).put("originalLanguage",raw.optString("original_language","")).put("originCountry",raw.optJSONArray("origin_country")).put("onlineSearch",search);
             rows.add(new Catalog.Item(item));
         }return rows;
     }
@@ -119,6 +119,15 @@ final class ContentApi {
         String today=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date());
         JSONObject raw=DiscoveryApi.randomMovie((path,q)->tmdb(path,key,q),random,today,recent);return tmdbRows(new JSONArray().put(raw),"movie",false).get(0);
     }
+    static JSONObject discoverPage(String key,String type,int page,int genre,int yearMin,int yearMax,double rating,String language,int runtimeMax,String country) throws Exception {
+        if(!type.equals("movie")&&!type.equals("tv")||page<1||page>500)throw new IOException("Invalid discovery request");StringBuilder extra=new StringBuilder("&include_adult=false&sort_by=popularity.desc&page=").append(page).append("&vote_count.gte=25");
+        if(genre>0)extra.append("&with_genres=").append(genre);if(yearMin>0)extra.append(type.equals("tv")?"&first_air_date.gte=":"&primary_release_date.gte=").append(yearMin).append("-01-01");if(yearMax>0)extra.append(type.equals("tv")?"&first_air_date.lte=":"&primary_release_date.lte=").append(yearMax).append("-12-31");if(rating>0)extra.append("&vote_average.gte=").append(String.format(Locale.ROOT,"%.1f",rating));if(language!=null&&language.matches("[a-z]{2}"))extra.append("&with_original_language=").append(language);if(runtimeMax>0)extra.append("&with_runtime.lte=").append(runtimeMax);if(country!=null&&country.matches("[A-Z]{2}"))extra.append("&with_origin_country=").append(country);return tmdb("/discover/"+type,key,extra.toString());
+    }
+    static JSONArray searchPeople(String query,String key) throws Exception {JSONArray rows=tmdb("/search/person",key,"&query="+URLEncoder.encode(query.trim(),"UTF-8")+"&include_adult=false&page=1").optJSONArray("results");return rows==null?new JSONArray():rows;}
+    static JSONObject personDetails(int personId,String key) throws Exception {if(personId<=0)throw new IOException("Invalid person ID");return tmdb("/person/"+personId,key,"&append_to_response=combined_credits");}
+    static JSONObject collection(int collectionId,String key) throws Exception {if(collectionId<=0)throw new IOException("Invalid collection ID");return tmdb("/collection/"+collectionId,key,"");}
+    static List<Catalog.Item> airingToday(String key) throws Exception {return tmdbRows(tmdb("/tv/airing_today",key,"&page=1").getJSONArray("results"),"tv",false);}
+    static JSONObject moodData(String key,String type,int genre,int runtimeMax,double rating,int page) throws Exception {return discoverPage(key,type,page,genre,0,0,rating,"",runtimeMax,"");}
     static JSONArray movieSources(String tmdb,String type,int season,int episode) throws JSONException {
         JSONArray result=new JSONArray();if(!tmdb.matches("[1-9][0-9]*"))return result;
         for(int i=0;i<PlaybackSources.IDS.length;i++)if(PlaybackSources.IDS[i].equals("rawcast"))result.put(new JSONObject().put("label",PlaybackSources.NAMES[i]).put("provider","rawcast").put("type",type).put("tmdb",tmdb).put("season",season).put("episode",episode));else result.put(new JSONObject().put("label",PlaybackSources.NAMES[i]).put("url",PlaybackSources.url(tmdb,type,season,episode,PlaybackSources.IDS[i])).put("embed",true));

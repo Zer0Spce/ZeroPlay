@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('zero',{
   state:()=>ipcRenderer.invoke('state'),
   change:(action,value)=>ipcRenderer.invoke('change',action,value),
   play:(item,episode,source)=>ipcRenderer.invoke('play',item,episode,source),
+  playerMini:()=>ipcRenderer.invoke('player-mini'),
+  playerControl:action=>ipcRenderer.invoke('player-control',action),
+  playerDiagnostics:()=>ipcRenderer.invoke('player-diagnostics'),
   external:url=>ipcRenderer.invoke('external',url),
   checkForUpdates:()=>ipcRenderer.invoke('update-check'),
   onRefresh:callback=>{const handler=()=>callback();ipcRenderer.on('refresh',handler);return()=>ipcRenderer.removeListener('refresh',handler);}
