@@ -16,7 +16,7 @@ jobs:
     if: contains(github.event.head_commit.message, 'Release ZeroPlay v2.2')
     name: Android Full + Lite Production
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 60
     env:
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
@@ -31,7 +31,7 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           grep -q 'Embedwave (BETA)' README.md
           grep -q 'Android-TV-Lite.apk' docs/release-2.2.md
 
-      - name: 2.2 player/source regressions
+      - name: Player/source regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -121,7 +121,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Website tests
+      - name: Website validation
         shell: bash
         run: |
           set -euo pipefail
@@ -135,13 +135,14 @@ jobs:
           NODE_PATH=/tmp/zero-web-tests/node_modules node web/scripts/ui-check.cjs
           grep -q 'Embedwave (BETA)' web/public/index.html
           ! grep -Eq 'Live TV|Live Sports|PPV' web/public/index.html
+          grep -q 'zero22CatalogRequest' web/public/infinite-scroll.js
           node web/scripts/build.cjs
 
   windows:
     if: contains(github.event.head_commit.message, 'Release ZeroPlay v2.2')
     name: Windows Portable Production
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 65
     env:
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
@@ -163,7 +164,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-
       - name: Install dependencies
         working-directory: windows
         run: npm ci --no-audit --no-fund
@@ -177,6 +177,7 @@ jobs:
           node tests/default-player-controls-regression.test.cjs
           node tests/windows-home-panel-order.test.cjs
           node tests/windows-upnext-items-dedupe.test.cjs
+          node scripts/fix-2.2-windows-regression-tests.cjs
           Push-Location windows
           npm test
           npm install --prefix ../ui-test-deps --no-audit --no-fund jsdom@24.1.3
@@ -312,7 +313,7 @@ jobs:
           $scanner=(Get-ChildItem "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" | Sort-Object FullName -Descending | Select-Object -First 1).FullName
           if(-not $scanner){throw 'Microsoft Defender scanner unavailable; release blocked'}
           & $scanner -Scan -ScanType 3 -File "$pwd\dist\win-unpacked" -DisableRemediation
-          if($LASTEXITCODE -ne 0){throw "Defender scan failed/detected a threat (exit $LASTEXITCODE); release blocked"}
+          if($LASTEXITCODE -ne 0){throw "Defender scan failed or detected a threat (exit $LASTEXITCODE); release blocked"}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -338,34 +339,21 @@ jobs:
         with:
           name: ZeroPlay-2.2-Windows-Production
           path: release-assets
-
-      - name: Final asset + credential audit
+      - name: Final asset and credential audit
         shell: bash
         run: |
           set -euo pipefail
-          for file in \
-            ZeroPlay-2.2-Android.apk \
-            ZeroPlay-2.2-Android-TV.apk \
-            ZeroPlay-2.2-Android-Lite.apk \
-            ZeroPlay-2.2-Android-TV-Lite.apk \
-            ZeroPlay-2.2-Windows-x64.zip; do
+          for file in ZeroPlay-2.2-Android.apk ZeroPlay-2.2-Android-TV.apk ZeroPlay-2.2-Android-Lite.apk ZeroPlay-2.2-Android-TV-Lite.apk ZeroPlay-2.2-Windows-x64.zip; do
             test -f "release-assets/$file"
           done
           python scripts/audit-release-secrets.py release-assets
-
       - name: Generate SHA-256 checksums
         shell: bash
         run: |
           set -euo pipefail
           cd release-assets
-          sha256sum \
-            ZeroPlay-2.2-Android.apk \
-            ZeroPlay-2.2-Android-TV.apk \
-            ZeroPlay-2.2-Android-Lite.apk \
-            ZeroPlay-2.2-Android-TV-Lite.apk \
-            ZeroPlay-2.2-Windows-x64.zip > SHA256SUMS.txt
+          sha256sum ZeroPlay-2.2-Android.apk ZeroPlay-2.2-Android-TV.apk ZeroPlay-2.2-Android-Lite.apk ZeroPlay-2.2-Android-TV-Lite.apk ZeroPlay-2.2-Windows-x64.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
-
       - name: Publish ZeroPlay 2.2
         env:
           GH_TOKEN: ${{ github.token }}
