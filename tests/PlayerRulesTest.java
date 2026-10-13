@@ -3,7 +3,7 @@ package com.zerostreams.app;
 public class PlayerRulesTest {
     static void check(boolean result){if(!result)throw new AssertionError();}
     public static void main(String[] args){
-        check(AdBlockRules.RULESET_VERSION.startsWith("2.0-known-good"));
+        check(AdBlockRules.RULESET_VERSION.startsWith("2.1.2-hotfix"));
         check(AdBlockRules.blocks("ads.doubleclick.net"));
         check(AdBlockRules.blocks("unswung.gurlleviter.cyou"));
         check(AdBlockRules.blocks("GURLLEVITER.CYOU."));
