@@ -164,6 +164,13 @@ jobs:
       - name: Windows unit tests
         working-directory: windows
         run: npm test
+      - name: Prepare 2.2 regression fixtures
+        shell: pwsh
+        run: |
+          node scripts/fix-2.2-windows-regression-tests.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Could not prepare 2.2 Windows regression fixtures' }
+          git diff --check -- windows/scripts/ui-check.cjs windows/scripts/experience-check.cjs
+          if ($LASTEXITCODE -ne 0) { throw '2.2 regression fixture diff is invalid' }
       - name: Desktop interface regressions
         shell: pwsh
         working-directory: windows
