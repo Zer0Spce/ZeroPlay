@@ -1,4 +1,4 @@
-name: Remove ZeroPlay Player Overlay
+name: Refine ZeroPlay Player Overlay Removal
 on:
   push:
     branches:
@@ -22,18 +22,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Remove custom playback overlays
+      - name: Keep provider controls native without breaking sports controls
         run: node scripts/fix-2.2-source-selection.cjs
-      - name: Verify provider-default player controls
+      - name: Verify player overlay scope
         run: |
           node --test tests/default-player-controls-regression.test.cjs
           node --check windows/player-host.cjs
+          node --check windows/main.cjs
           git diff --check
-      - name: Commit overlay removal
+      - name: Commit refined overlay removal
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add windows/player-host.cjs app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java tests/default-player-controls-regression.test.cjs
+          git add windows/player-host.cjs windows/main.cjs app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java tests/default-player-controls-regression.test.cjs
           git diff --cached --exit-code && exit 0
-          git commit -m 'Keep provider default player controls'
+          git commit -m 'Scope native player controls to embedded playback'
           git push origin HEAD:feature/2.2-navigation-discovery-performance
