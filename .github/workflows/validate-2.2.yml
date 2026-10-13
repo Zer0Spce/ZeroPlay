@@ -5,6 +5,7 @@ on:
       - feature/2.2-navigation-discovery-performance
     paths:
       - '.github/workflows/validate-2.2.yml'
+      - 'windows/scripts/live-playback-fixture.cjs'
   workflow_dispatch:
 permissions:
   contents: read
