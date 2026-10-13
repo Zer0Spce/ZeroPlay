@@ -1,0 +1,48 @@
+name: Fix Windows Homepage Panel Duplicates
+on:
+  push:
+    branches:
+      - feature/2.2-navigation-discovery-performance
+    paths:
+      - '.github/workflows/fix-windows-home-panel-duplicates.yml'
+      - 'scripts/fix-windows-home-panel-duplicates.cjs'
+      - 'tests/windows-home-panel-order.test.cjs'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeroplay-2-2-home-panel-dedupe
+  cancel-in-progress: false
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/2.2-navigation-discovery-performance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply Windows homepage dedupe fix
+        run: node scripts/fix-windows-home-panel-duplicates.cjs
+      - name: Verify duplicate-panel regression
+        run: |
+          node --test tests/windows-home-panel-order.test.cjs tests/source-selection-regression.test.cjs tests/auto-source-recovery-default.test.cjs
+          node --check windows/main.cjs
+          node --check windows/ui/app.js
+          git diff --check
+      - name: Commit homepage dedupe fix
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add windows/main.cjs windows/ui/app.js
+          if git diff --cached --quiet; then
+            echo 'Homepage panel dedupe already applied.'
+            exit 0
+          fi
+          git commit -m 'Fix duplicate Windows homepage panels'
+          git pull --rebase origin feature/2.2-navigation-discovery-performance
+          git push origin HEAD:feature/2.2-navigation-discovery-performance
