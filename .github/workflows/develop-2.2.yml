@@ -12,6 +12,7 @@ on:
       - 'app/src/main/java/com/zerostreams/app/HomePanels.java'
       - 'app/src/main/java/com/zerostreams/app/TvMouse.java'
       - 'app/src/main/assets/player-22.js'
+      - 'tests/PlayerRulesTest.java'
   workflow_dispatch:
 permissions:
   contents: write
