@@ -214,13 +214,13 @@ public class PresentationMainActivity extends CategoryMainActivity {
         sectionLabel(section,"TOP 10 TODAY IN "+regionName(region));
         HorizontalScrollView rail=new HorizontalScrollView(this);rail.setHorizontalScrollBarEnabled(false);rail.setClipToPadding(false);
         LinearLayout cards=new LinearLayout(this);cards.setGravity(Gravity.BOTTOM);
-        for(int i=0;i<Math.min(10,rows.size());i++){Catalog.Item item=rows.get(i);View tile=rankedPoster(item,i+1,token);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(BuildConfig.TV?dp(245):dp(176),BuildConfig.TV?dp(290):dp(220));p.setMargins(0,0,dp(BuildConfig.TV?18:12),0);cards.addView(tile,p);}
+        for(int i=0;i<Math.min(10,rows.size());i++){Catalog.Item item=rows.get(i);View tile=rankedPoster(item,i+1,token);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(BuildConfig.TV?dp(284):dp(176),BuildConfig.TV?dp(290):dp(220));p.setMargins(0,0,dp(BuildConfig.TV?18:12),0);cards.addView(tile,p);}
         rail.addView(cards);section.addView(rail,new LinearLayout.LayoutParams(-1,-2));return section;
     }
 
     private View rankedPoster(Catalog.Item item,int rank,int token){
         FrameLayout tile=new FrameLayout(this);tile.setFocusable(true);tile.setClickable(true);tile.setContentDescription("Number "+rank+", "+item.title);tile.setBackground(shape(Color.TRANSPARENT,0));tile.setOnClickListener(v->details(item));tile.setOnFocusChangeListener((v,f)->{v.setBackground(shape(Color.TRANSPARENT,f?ACCENT:0));if(getSharedPreferences("zero",MODE_PRIVATE).getBoolean("uiAnimations",true))v.animate().scaleX(f?1.035f:1f).scaleY(f?1.035f:1f).setDuration(130).start();});
-        int rankWidth=BuildConfig.TV?100:70,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?84:58;
+        int rankWidth=BuildConfig.TV?178:70,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?116:58;
         RankView number=new RankView(this,String.valueOf(rank));FrameLayout.LayoutParams np=new FrameLayout.LayoutParams(dp(rankWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);tile.addView(number,np);
         ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);poster.setImageResource(R.drawable.ic_zero);poster.setBackground(shape(SURFACE,0));poster.setClipToOutline(true);FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(dp(posterWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);pp.leftMargin=dp(overlap);tile.addView(poster,pp);if(!item.poster.isEmpty()){String quickPoster=item.poster.replace("/w1280/","/w342/").replace("/w780/","/w342/").replace("/w500/","/w342/");poster.setTag(quickPoster);fetchPicture(quickPoster,poster,token);}return tile;
     }
@@ -230,9 +230,9 @@ public class PresentationMainActivity extends CategoryMainActivity {
     }
 
     private static final class RankView extends View {
-        private final Paint stroke=new Paint(Paint.ANTI_ALIAS_FLAG);private final String rank;
-        RankView(android.content.Context context,String rank){super(context);this.rank=rank;stroke.setStyle(Paint.Style.STROKE);stroke.setStrokeJoin(Paint.Join.ROUND);stroke.setTypeface(Typeface.create("sans-serif-black",Typeface.BOLD));stroke.setColor(Color.argb(205,225,230,232));stroke.setTextAlign(Paint.Align.LEFT);}
-        @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float density=getResources().getDisplayMetrics().density;stroke.setStrokeWidth(Math.max(1.5f*density,2f));float preferred=getHeight()*(BuildConfig.TV?(rank.length()>1?.50f:.66f):(rank.length()>1?.56f:.72f));stroke.setTextSize(preferred);float available=Math.max(1f,getWidth()-2f*density),measured=stroke.measureText(rank);if(measured>available)stroke.setTextSize(preferred*(available/measured));Paint.FontMetrics fm=stroke.getFontMetrics();float baseline=getHeight()-Math.max(0,-fm.descent*.18f);canvas.drawText(rank,0,baseline,stroke);}
+        private final Paint fill=new Paint(Paint.ANTI_ALIAS_FLAG),stroke=new Paint(Paint.ANTI_ALIAS_FLAG);private final String rank;
+        RankView(android.content.Context context,String rank){super(context);this.rank=rank;Typeface face=Typeface.create("sans-serif-condensed",Typeface.BOLD);for(Paint paint:new Paint[]{fill,stroke}){paint.setTypeface(face);paint.setTextAlign(Paint.Align.RIGHT);}fill.setStyle(Paint.Style.FILL);fill.setColor(Color.argb(238,16,18,24));stroke.setStyle(Paint.Style.STROKE);stroke.setStrokeJoin(Paint.Join.ROUND);stroke.setColor(Color.argb(235,235,238,240));}
+        @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float density=getResources().getDisplayMetrics().density;float preferred=getHeight()*(BuildConfig.TV?.66f:(rank.length()>1?.56f:.72f));fill.setTextSize(preferred);stroke.setTextSize(preferred);stroke.setStrokeWidth(Math.max(1.35f*density,2f));float available=Math.max(1f,getWidth()-4f*density),measured=fill.measureText(rank);if(measured>available){float size=preferred*(available/measured);fill.setTextSize(size);stroke.setTextSize(size);}Paint.FontMetrics fm=fill.getFontMetrics();float baseline=getHeight()-Math.max(0,-fm.descent*.18f),x=getWidth()-2f*density;canvas.drawText(rank,x,baseline,fill);canvas.drawText(rank,x,baseline,stroke);}
     }
 
     private void compactFlixRightPanel(){
