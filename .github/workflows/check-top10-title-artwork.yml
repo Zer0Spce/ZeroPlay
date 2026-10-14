@@ -13,16 +13,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply cross-platform history and episode-memory fixes
         run: python scripts/fix-continue-resume-preview.py
+      - name: Apply homepage curation and TV rank fixes
+        run: python scripts/fix-home-curation-and-tv-ranks.py
       - name: Check patch quality
         run: git diff --check
+      - name: Verify curated rows and uniform TV ranks
+        shell: bash
+        run: |
+          grep -F 'private static double curationNoise(Catalog.Item item,long bucket)' app/src/main/java/com/zerostreams/app/Zero22.java
+          grep -F 'int rankWidth=BuildConfig.TV?178:70' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F 'Typeface face=Typeface.create("sans-serif-condensed",Typeface.BOLD)' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F 'function zeroCurationMovies()' windows/ui/app.js
+          grep -F 'curatedMovies=zeroCurationMovies(),hidden=zeroHiddenGems(curatedMovies),tonight=zeroTonight(curatedMovies)' windows/ui/app.js
+          grep -F 'function zeroCurationMovies()' web/public/zero22.js
+          grep -F 'curatedMovies=zeroCurationMovies(),hidden=zeroHiddenGems(curatedMovies),tonight=zeroTonight(curatedMovies)' web/public/zero22.js
       - name: Persist preview source fixes
         shell: bash
         run: |
-          if ! git diff --quiet -- app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java windows/core.cjs web/public/browser.js; then
+          if ! git diff --quiet -- app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java app/src/main/java/com/zerostreams/app/Zero22.java windows/core.cjs windows/ui/app.js web/public/browser.js web/public/zero22.js; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java windows/core.cjs web/public/browser.js
-            git commit -m "Preview: persist cross-platform playback and Top 10 fixes"
+            git add app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java app/src/main/java/com/zerostreams/app/Zero22.java windows/core.cjs windows/ui/app.js web/public/browser.js web/public/zero22.js
+            git commit -m "Preview: curate home picks and unify Android TV Top 10 ranks"
             git push origin HEAD:ui/top10-title-artwork
           fi
 
@@ -36,7 +48,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply preview source fixes to this build
-        run: python scripts/fix-continue-resume-preview.py
+        run: |
+          python scripts/fix-continue-resume-preview.py
+          python scripts/fix-home-curation-and-tv-ranks.py
       - name: Verify Android mobile and TV episode memory
         shell: bash
         run: |
@@ -44,8 +58,9 @@ jobs:
           grep -F 'rememberedEpisode=season==prefs.getInt("resumeSeason:"+item.id,-1)?prefs.getInt("resumeEpisode:"+item.id,0):0' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -F 'setSingleChoiceItems(labels,preferredSeason' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -F 'setSingleChoiceItems(labels,preferredEpisode' app/src/main/java/com/zerostreams/app/MainActivity.java
-          grep -F 'rankWidth=BuildConfig.TV?100:70' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
-          grep -F 'overlap=BuildConfig.TV?84:58' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F 'rankWidth=BuildConfig.TV?178:70' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F 'overlap=BuildConfig.TV?116:58' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F 'sans-serif-condensed' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -84,7 +99,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply preview source fixes to this build
         working-directory: .
-        run: python scripts/fix-continue-resume-preview.py
+        run: |
+          python scripts/fix-continue-resume-preview.py
+          python scripts/fix-home-curation-and-tv-ranks.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -112,7 +129,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply preview source fixes to this build
-        run: python scripts/fix-continue-resume-preview.py
+        run: |
+          python scripts/fix-continue-resume-preview.py
+          python scripts/fix-home-curation-and-tv-ranks.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
