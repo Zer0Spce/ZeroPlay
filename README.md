@@ -1,12 +1,12 @@
 <p align="center"><img src="docs/screenshots/2.2/zeroplay-logo.svg" alt="ZeroPlay — white Zero and mint-gradient Play" width="100%"></p>
 
-# 🎬 ZeroPlay 2.2
+# 🎬 ZeroPlay 2.2.1
 
 ### Movies. Series. Anime. Live TV. Sports. Your own space to watch.
 
-ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2** adds **Hybrid TV controls**, local profiles, deeper discovery, persistent catalog caching and updated **Lite editions**.
+ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2.1** keeps the 2.2 foundation and adds **Top 10 Today**, official featured-title artwork, stronger Continue Watching / episode resume behavior, smarter Home curation and player/web polish.
 
-**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2 release notes](docs/release-2.2.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
+**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2.1 release notes](docs/release-2.2.1.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
 
 > [!IMPORTANT]
 > **Windows 2.0–2.0.3 users: update manually once.** Download the current Windows ZIP, extract it into a fresh folder and launch `ZeroPlay.exe`. Those old versions contain the broken updater. Versions 2.1 and newer include the repaired in-app update flow.
@@ -15,18 +15,20 @@ ZeroPlay brings TMDB discovery, a local library, multiple playback sources and c
 
 | Edition | Download | What you get |
 | --- | --- | --- |
-| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android.apk) | Full phone/tablet presentation and native player core. |
-| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
-| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
-| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
-| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/ZeroPlay-2.2-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
-| ✅ Checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2/SHA256SUMS.txt) | Verify the published files. |
+| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android.apk) | Full phone/tablet presentation and native player core. |
+| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
+| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
+| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
+| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
+| ✅ Checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/SHA256SUMS.txt) | Verify the published files. |
 
 Android requires Android 6.0 or newer. Full and Lite apps have separate package IDs and can be installed independently. Signed production updates retain the established signing identity for each package.
 
-## ⭐ What’s new in 2.2
+## ⭐ What’s new in 2.2.1
 
-**Hybrid TV controls · Embedwave (BETA) · Local profiles · Up Next · Because You Watched · Hidden Gems · Performance Mode · Persistent catalog caching · Updated Lite editions**
+**Top 10 Today · Official carousel title artwork · Last season/episode resume · More reliable Continue Watching · Smarter Tonight’s Picks · Smarter Hidden Gems · Website trailer previews · Deep-link close fixes · VidSrc subtitle-menu close fix · Top 10 Home toggle**
+
+> **Top 10 Today** is enabled by default on Android, Android TV and Windows and can be disabled from Homepage panels / Home customization. **Coming Soon is hidden by default.**
 
 [![Actual released Windows 2.2 homepage](docs/screenshots/2.2/windows-home.png)](docs/screenshots/2.2/windows-home.png)
 
@@ -44,8 +46,8 @@ Android requires Android 6.0 or newer. Full and Lite apps have separate package 
 - **Sorting:** featured, popular, top rated, newest, oldest and alphabetical orders where available.
 - **Surprise Me:** discover a released random movie beyond the currently visible homepage; Surprise Me Again on surprise-opened titles.
 - **Because You Watched:** recommendations informed by local viewing history.
-- **Hidden Gems:** discovery with popularity/rating/vote thresholds.
-- **Tonight’s Picks:** shorter and highly rated choices for watching now.
+- **Hidden Gems:** well-rated, lower-popularity discovery that deliberately leans away from the newest mainstream releases and rotates over time.
+- **Tonight’s Picks:** a rotating quality-focused mix for watching now rather than another newest-release shelf.
 - **Mood discovery:** funny, scary, action, romance, family, mind-bending, highly rated and shorter watches.
 - **TV discovery:** airing today, recent/returning shows and upcoming episode-calendar helpers where exposed.
 - **Franchise/collection discovery:** connected movie collections and related titles when TMDB supplies those relationships.
@@ -57,7 +59,7 @@ Android requires Android 6.0 or newer. Full and Lite apps have separate package 
 - Clickable cast and filmography using the selected person’s exact TMDB ID.
 - Optional **Rotten Tomatoes** ratings through OMDb when configured.
 - **Watchlist**, **Plan to Watch**, custom collections, watch history and saved search history.
-- **Continue Watching** with supported provider progress and season/episode context.
+- **Continue Watching** registers when playback starts and retains season/episode context; reopening a series restores the last season/episode you actually played.
 - **Up Next** using saved series progress; Windows deduplicates shows by TMDB series ID.
 - Episode watched / in-progress indicators, season and episode selection and next-episode calculation.
 - **Autoplay next episode** setting and episode utility-navigation support.
@@ -103,10 +105,10 @@ Android requires Android 6.0 or newer. Full and Lite apps have separate package 
 - Fresh full-app defaults: **Windows → Clean**, **Android phone/tablet → Modern**, **Android TV → Native / Original**. Saved choices are retained.
 - **17 themes:** Zero Dark, Zero Light, Ocean, Orchid, Sunset, Midnight Blue, Ember Glow, Forest Moss, Rose Noir, Amethyst, Cyber Mint, Cobalt Sky, Golden Hour, Coral Night, Aurora, Slate Ice and Mocha.
 - Theme-aware branding, light/dark choices, artwork atmosphere and optional animations.
-- Homepage panel toggles, saved panel ordering and category shelves.
+- Homepage panel toggles, saved panel ordering and category shelves, including an optional **Top 10 Today** rail; **Coming Soon is off by default**.
 - Carousel sources: **This Week Top Picks, Watchlist, Recommended Movies, Popular Movies, Now Playing, Continue Watching**.
 - Carousel capped at **10 cards**, with **15-second** rotation and transitions respecting animation settings.
-- Focus information, configurable preview delay, focus trailers and homepage trailers linked to the displayed title.
+- Focus information, configurable preview delay, focus trailers and homepage trailers linked to the displayed title; official TMDB title-logo artwork is used in the hero when available.
 - Compact navigation/sidebar behavior, responsive card presentation and visible TV focus states.
 
 ### ⚡ Performance and Lite editions
@@ -146,6 +148,8 @@ Android requires Android 6.0 or newer. Full and Lite apps have separate package 
 - Movies/Series discovery, filters, profiles/person discovery, recommendations and episode-calendar helpers.
 - VidStuck and **Embedwave (BETA)** source selection.
 - Continuous pagination with retry, deduplication, end-of-results handling and improved tab/scroll restoration.
+- Single-bar website navigation plus muted hero trailer autoplay previews with an audio toggle and artwork fallback.
+- Shared/deep movie and series links close cleanly instead of immediately reopening their detail dialog.
 - Shareable title/catalog/search routes and browser Back/Forward support.
 - Rich metadata, movie franchise rows, browser-local library and homepage section toggles.
 - Hover quick actions and keyboard navigation: `/` focuses Search; arrow keys navigate cards; `W` toggles the focused title’s watchlist state.
@@ -457,6 +461,28 @@ Features with provider events, local media or interface-specific controls depend
 ## 🔧 Fixes and improvements
 
 The lists below distinguish the **current 2.2 changes** from earlier fixes that built the current experience. Earlier release notes are historical records; a removed experimental feature is not a current feature. [Full release-by-release archive](docs/changelog.md).
+
+### 2.2.1 — Home, resume and player polish
+
+1. Added **Top 10 Today** on Android, Android TV and Windows, with regional labeling, real portrait posters and large rank numerals.
+2. Added horizontal Top 10 navigation/scrolling and a **Homepage panels** toggle so the shelf can be disabled.
+3. Hid **Coming Soon** by default while retaining it as an opt-in panel.
+4. Added official TMDB title-logo artwork to featured carousels when available, with plain-title fallback.
+5. Added muted website hero trailer autoplay with sound toggle and fallback artwork.
+6. Fixed website deep/shared title links reopening immediately after the detail dialog was closed.
+7. Fixed website trailer metadata requests being rejected by the API allowlist.
+8. Improved Continue Watching so playback start is recorded immediately instead of waiting on provider progress callbacks.
+9. Restored the last played **season and episode** when reopening a series on Android, Android TV, Windows and Web.
+10. Reworked **Tonight’s Picks** and **Hidden Gems** so they no longer behave like duplicate newest-movie shelves.
+11. Prioritized Android/TV Top 10 poster loading and reduced poster request size for a much faster Home appearance.
+12. Fixed Android TV rank drawing, clipping, `10` sizing and poster overlap; ranks are now solid, bold and condensed in front of the poster edge.
+13. Fixed Windows Top 10 cards not opening details.
+14. Removed Top 10 poster letterboxing and preserved proper vertical artwork presentation.
+15. Made the Android/TV carousel **Watch now** focus treatment consistent with the ZeroPlay accent UI.
+16. Added a provider-safe close fallback for the VidSrc subtitle/options overlay on Android/TV and Windows.
+17. Preserved the existing 2.2 source-selection, Hybrid controls, updater, ad-filtering, Lite and offline-playback foundations.
+
+[Full 2.2.1 release notes](docs/release-2.2.1.md).
 
 ### 2.2 — navigation, discovery, personalization and performance
 
