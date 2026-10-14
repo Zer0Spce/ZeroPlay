@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 
+// Regression contract: only TV launchers opt into the delayed IME handoff.
 const tv=fs.readFileSync('app/src/tv/AndroidManifest.xml','utf8');
 const liteTv=fs.readFileSync('app/src/liteTv/AndroidManifest.xml','utf8');
 const mobile=fs.readFileSync('app/src/mobile/AndroidManifest.xml','utf8');
