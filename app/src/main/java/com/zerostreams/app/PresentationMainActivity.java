@@ -220,7 +220,7 @@ public class PresentationMainActivity extends CategoryMainActivity {
 
     private View rankedPoster(Catalog.Item item,int rank,int token){
         FrameLayout tile=new FrameLayout(this);tile.setFocusable(true);tile.setClickable(true);tile.setContentDescription("Number "+rank+", "+item.title);tile.setBackground(shape(Color.TRANSPARENT,0));tile.setOnClickListener(v->details(item));tile.setOnFocusChangeListener((v,f)->{v.setBackground(shape(Color.TRANSPARENT,f?ACCENT:0));if(getSharedPreferences("zero",MODE_PRIVATE).getBoolean("uiAnimations",true))v.animate().scaleX(f?1.035f:1f).scaleY(f?1.035f:1f).setDuration(130).start();});
-        int rankWidth=BuildConfig.TV?112:80,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?64:46;
+        int rankWidth=BuildConfig.TV?100:70,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?84:58;
         RankView number=new RankView(this,String.valueOf(rank));FrameLayout.LayoutParams np=new FrameLayout.LayoutParams(dp(rankWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);tile.addView(number,np);
         ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);poster.setImageResource(R.drawable.ic_zero);poster.setBackground(shape(SURFACE,0));poster.setClipToOutline(true);FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(dp(posterWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);pp.leftMargin=dp(overlap);tile.addView(poster,pp);if(!item.poster.isEmpty())picture(item.poster,poster,token);return tile;
     }
