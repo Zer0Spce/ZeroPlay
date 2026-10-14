@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "app/src/main/java/com/zerostreams/app/MainActivity.java"
 HISTORY = ROOT / "app/src/main/java/com/zerostreams/app/HistoryStore.java"
+PRESENTATION = ROOT / "app/src/main/java/com/zerostreams/app/PresentationMainActivity.java"
 WINDOWS_CORE = ROOT / "windows/core.cjs"
 WEB_BROWSER = ROOT / "web/public/browser.js"
 
@@ -63,6 +64,17 @@ main = replace_once(
 )
 MAIN.write_text(main, encoding="utf-8")
 
+# Android mobile + TV Top 10: reserve a narrow side gutter for the rank and let only
+# a small part of the outline overlap the poster edge. The poster itself stays full 2:3.
+presentation = PRESENTATION.read_text(encoding="utf-8")
+presentation = replace_once(
+    presentation,
+    '        int rankWidth=BuildConfig.TV?112:80,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?64:46;',
+    '        int rankWidth=BuildConfig.TV?100:70,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?84:58;',
+    "Android Top 10 side rank placement",
+)
+PRESENTATION.write_text(presentation, encoding="utf-8")
+
 # Windows: the details selector and player already consume state.positions for the
 # last season/episode. Mark playback as started immediately so Continue Watching is
 # reliable even when an embed provider never reports progress.
@@ -86,4 +98,4 @@ web = replace_once(
 )
 WEB_BROWSER.write_text(web, encoding="utf-8")
 
-print("Preview Continue Watching + last season/episode fixes are ready for Android, Android TV, Windows and Web.")
+print("Preview Continue Watching, episode memory, and Top 10 side-rank fixes are ready for Android, Android TV, Windows and Web.")
