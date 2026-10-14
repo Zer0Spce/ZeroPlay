@@ -29,7 +29,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,6 +68,7 @@ jobs:
       - name: Windows hotfix version regressions
         working-directory: windows
         run: |
+          npm ci --no-audit --no-fund
           node --check updater.cjs
           node --check version-manager.cjs
           node --test test/updater.test.cjs
