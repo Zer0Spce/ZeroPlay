@@ -40,7 +40,8 @@ jobs:
       - name: Search keyboard and TV navigation regressions
         run: |
           node --test tests/android-tv-search-ime.test.cjs
-          node tests/tv-navigation.test.cjs
+          npm install --prefix /tmp/zero-tv-tests --no-audit --no-fund jsdom@24.1.3
+          NODE_PATH=/tmp/zero-tv-tests/node_modules node tests/tv-navigation.test.cjs
       - name: Android TV unit tests
         run: gradle :app:testTvDebugUnitTest :app:testLiteTvDebugUnitTest
       - name: Build full and Lite TV APKs
