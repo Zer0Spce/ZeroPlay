@@ -24,4 +24,20 @@ test('Windows home loads official title art and ranked posters',()=>{
   assert.match(css,/-webkit-text-stroke/);
   assert.match(css,/zero-hero-title-art/);
   assert.match(css,/zero-top10-rank/);
+  assert.match(css,/aspect-ratio:2\/3/);
+  assert.match(css,/\.zero-top10-poster\{[\s\S]*inset:0;[\s\S]*width:100%;[\s\S]*height:100%/);
+  assert.match(css,/\.zero-top10-poster img\{[\s\S]*object-fit:cover/);
+});
+
+test('VidSrc subtitle overlay can close on desktop and Android players',()=>{
+  const desktop=read('assets/player-22.js');
+  const android=fs.readFileSync(path.resolve(root,'../app/src/main/assets/player-22.js'),'utf8');
+  for(const source of [desktop,android]){
+    assert.match(source,/function subtitlePanel\(\)/);
+    assert.match(source,/search by language/);
+    assert.match(source,/function dismissSubtitlePanel/);
+    assert.match(source,/__zeroDismissSubtitlePanel/);
+    assert.match(source,/__zeroDismissMenus/);
+    assert.match(source,/zeroplaySubtitleHidden/);
+  }
 });
