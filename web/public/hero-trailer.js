@@ -44,7 +44,7 @@
     const videos=Array.isArray(data?.videos?.results)?data.videos.results:Array.isArray(data?.results)?data.results:[];
     return videos
       .filter(video=>video?.site==='YouTube'&&/^[A-Za-z\d_-]{6,20}$/.test(video.key||'')&&['Trailer','Teaser'].includes(video.type))
-      .sort((a,b)=>Number(b.official)-Number(a.official)||Number(a.type==='Trailer')-Number(b.type==='Trailer'))[0]?.key||'';
+      .sort((a,b)=>Number(b.official)-Number(a.official)||Number(b.type==='Trailer')-Number(a.type==='Trailer'))[0]?.key||'';
   }
 
   async function fetchTrailer(item){
@@ -161,4 +161,6 @@
     if(!currentFrame)return;
     command(document.hidden?'pauseVideo':'playVideo');
   });
+
+  window.setTimeout(loadHeroTrailer,700);
 })();
