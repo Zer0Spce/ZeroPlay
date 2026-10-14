@@ -62,6 +62,12 @@ main = replace_once(
     'status.setText("TMDB season service unavailable");int savedSeason=prefs.getInt("resumeSeason:"+item.id,1),savedEpisode=prefs.getInt("resumeEpisode:"+item.id,1);if(savedSeason<0)savedSeason=1;if(savedEpisode<1)savedEpisode=1;try{chooseStreams(item,ContentApi.movieSources(id,"tv",savedSeason,savedEpisode),item.id+":s"+savedSeason+"e"+savedEpisode);}catch(JSONException ignored){}',
     "Android remembered episode fallback",
 )
+main = replace_once(
+    main,
+    'Button play=button("Watch now",()->watch(item));play.setTextColor(BG);play.setBackground(shape(ACCENT,0));actions.addView(play);',
+    'Button play=button("Watch now",()->watch(item));play.setTextColor(BG);play.setBackground(shape(ACCENT,0));play.setOnFocusChangeListener((v,focused)->{int fill=focused?(lightTheme?Color.rgb(6,80,67):Color.rgb(153,255,230)):ACCENT;v.setBackground(shape(fill,focused?INK:0));play.setTextColor(lightTheme?Color.WHITE:BG);if(prefs.getBoolean("uiAnimations",true))v.animate().scaleX(focused?1.015f:1f).scaleY(focused?1.015f:1f).setDuration(120).start();});actions.addView(play);',
+    "Android carousel Watch now accent styling",
+)
 MAIN.write_text(main, encoding="utf-8")
 
 # Android mobile + TV Top 10: reserve a narrow side gutter for the rank and let only
@@ -110,4 +116,4 @@ web = replace_once(
 )
 WEB_BROWSER.write_text(web, encoding="utf-8")
 
-print("Preview Continue Watching, episode memory, fast Top 10 posters, and TV rank fitting are ready for Android, Android TV, Windows and Web.")
+print("Preview Continue Watching, episode memory, fast Top 10 posters, TV rank fitting, and carousel button styling are ready for Android, Android TV, Windows and Web.")
