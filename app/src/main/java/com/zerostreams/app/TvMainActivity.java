@@ -1,9 +1,5 @@
 package com.zerostreams.app;
 
-/** Full Android TV launcher with a TV-specific Search keyboard handoff. */
+/** Full Android TV launcher. Search uses the standard Android TV system IME. */
 public class TvMainActivity extends PresentationMainActivity {
-    @Override void focusSearch(){
-        super.focusSearch();
-        TvSearchIme.show(this);
-    }
 }
