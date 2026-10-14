@@ -27,3 +27,5 @@ The release contains:
 - SHA-256 checksums
 
 Windows and Web are not rebuilt or republished by this hotfix.
+
+The Android QR dependency required by the existing player/ad detector is included in the production build.
