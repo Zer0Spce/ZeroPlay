@@ -4,24 +4,20 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Toast;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * Android TV Search IME bridge.
  *
  * ZeroPlay never renders a keyboard here. The app hands text entry back to
- * Android's own input-method system. Some TV firmware selects a remote-control
- * surface as the default IME; Android does not permit normal apps to silently
- * replace that secure setting, so 2.2.1.4 offers Android's own IME chooser once
- * when a remote-like input method is detected.
+ * Android's own input-method system. Because some TV firmware exposes a remote
+ * control panel as its selected IME under unpredictable vendor package names,
+ * 2.2.1.4 shows Android's own IME picker once after updating. The user selects
+ * the real Android TV keyboard/Gboard, and later searches use that system IME.
  */
 final class TvSystemIme {
     private static final Handler MAIN=new Handler(Looper.getMainLooper());
@@ -51,12 +47,12 @@ final class TvSystemIme {
         InputMethodManager imm=(InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
         if(imm==null)return;
 
-        // Undo the legacy immediate IME request from the shared Search path so
-        // vendor TV firmware cannot leave a remote-control panel stuck onscreen.
+        // Dismiss whatever the shared Search path opened first. This prevents a
+        // vendor remote-control surface from remaining stuck behind the picker.
         if(field.getWindowToken()!=null)imm.hideSoftInputFromWindow(field.getWindowToken(),0);
 
         boolean pickerSeen=activity.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getBoolean(PICKER_SEEN,false);
-        if(!pickerSeen&&looksLikeRemoteIme(activity,imm)){
+        if(!pickerSeen){
             activity.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit().putBoolean(PICKER_SEEN,true).apply();
             Toast.makeText(activity,"Choose your Android TV keyboard",Toast.LENGTH_LONG).show();
             MAIN.postDelayed(imm::showInputMethodPicker,120);
@@ -68,27 +64,6 @@ final class TvSystemIme {
             field.requestFocus();
             imm.showSoftInput(field,InputMethodManager.SHOW_IMPLICIT);
         },180);
-    }
-
-    private static boolean looksLikeRemoteIme(Activity activity,InputMethodManager imm){
-        String current=Settings.Secure.getString(activity.getContentResolver(),Settings.Secure.DEFAULT_INPUT_METHOD);
-        String normalized=current==null?"":current.toLowerCase(Locale.ROOT);
-        if(remoteWord(normalized))return true;
-        try{
-            List<InputMethodInfo> enabled=imm.getEnabledInputMethodList();
-            for(InputMethodInfo info:enabled){
-                if(current!=null&&!current.isEmpty()&&!current.equals(info.getId()))continue;
-                String packageName=info.getPackageName()==null?"":info.getPackageName().toLowerCase(Locale.ROOT);
-                CharSequence label=info.loadLabel(activity.getPackageManager());
-                String labelText=label==null?"":label.toString().toLowerCase(Locale.ROOT);
-                return remoteWord(packageName)||remoteWord(labelText);
-            }
-        }catch(Throwable ignored){}
-        return false;
-    }
-
-    private static boolean remoteWord(String value){
-        return value.contains("remote")||value.contains("virtualremote")||value.contains("tvcontrol")||value.contains("remotecontrol");
     }
 
     private static EditText findSearchField(View view){
