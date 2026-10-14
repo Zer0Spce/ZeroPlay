@@ -54,9 +54,8 @@
 .zero-top10-rail::-webkit-scrollbar{display:none}
 .zero-top10-card{
   position:relative;
-  flex:0 0 clamp(176px,13vw,228px);
-  aspect-ratio:2/3;
-  height:auto;
+  flex:0 0 clamp(212px,15.5vw,274px);
+  height:clamp(264px,20vw,342px);
   padding:0;
   border:0;
   border-radius:10px;
@@ -68,28 +67,34 @@
 }
 .zero-top10-rank{
   position:absolute;
-  left:2px;
+  left:-4px;
   bottom:2%;
   z-index:3;
   display:block;
-  min-width:40%;
   font-family:Arial Black,Impact,sans-serif;
-  font-size:clamp(112px,9vw,168px);
+  font-size:clamp(104px,8vw,148px);
   font-weight:900;
   line-height:.84;
-  letter-spacing:-.1em;
+  letter-spacing:-.12em;
   color:rgba(12,15,17,.18);
   -webkit-text-stroke:2px rgba(232,236,238,.92);
   text-shadow:0 4px 18px rgba(0,0,0,.58);
   pointer-events:none;
   user-select:none;
+  white-space:nowrap;
+}
+.zero-top10-card:nth-child(10) .zero-top10-rank{
+  font-size:clamp(86px,6.7vw,122px);
+  letter-spacing:-.18em;
 }
 .zero-top10-poster{
   position:absolute;
   z-index:1;
-  inset:0;
-  width:100%;
+  right:0;
+  bottom:0;
+  width:auto;
   height:100%;
+  aspect-ratio:2/3;
   border-radius:8px;
   overflow:hidden;
   background:transparent!important;
@@ -114,10 +119,11 @@
 .zero-top10-card:focus-visible{outline:none}
 
 :root[data-layout="flix"] .zero-top10{margin-top:-2px}
-:root[data-layout="flix"] .zero-top10-card{flex-basis:clamp(170px,12.5vw,220px)}
+:root[data-layout="flix"] .zero-top10-card{flex-basis:clamp(206px,15vw,266px)}
 
 @media(max-width:1050px){
   .zero-hero-title-art{width:min(390px,54vw);max-height:112px}
-  .zero-top10-card{flex-basis:176px;aspect-ratio:2/3;height:auto}
-  .zero-top10-rank{font-size:118px}
+  .zero-top10-card{flex-basis:212px;height:264px}
+  .zero-top10-rank{font-size:108px}
+  .zero-top10-card:nth-child(10) .zero-top10-rank{font-size:90px}
 }
