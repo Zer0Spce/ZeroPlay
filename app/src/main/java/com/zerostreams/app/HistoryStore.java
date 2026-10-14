@@ -21,6 +21,9 @@ final class HistoryStore {
         try{JSONObject row=new JSONObject().put("key",key).put("parent",item.id).put("item",item.raw).put("at",System.currentTimeMillis()).put("state","Started");
             long position=prefs.getLong("position:"+key,0),duration=prefs.getLong("duration:"+key,0);
             if(duration>0&&ProgressRules.percent(position,duration)>=95){position=0;prefs.edit().putLong("position:"+key,0).apply();}
+            SharedPreferences.Editor startEdit=prefs.edit().putString("saved:"+item.id,item.raw.toString()).putLong("watchedAt:"+item.id,System.currentTimeMillis());
+            if(!item.type.equals("series")&&position<=0)startEdit.putLong("position:"+item.id,1).putInt("percent:"+item.id,0);
+            startEdit.apply();
             row.put("timestamp",position/1000d).put("duration",duration/1000d);
             java.util.regex.Matcher episode=java.util.regex.Pattern.compile(":s([0-9]+)e([0-9]+)$").matcher(key);
             if(item.type.equals("series")&&episode.find()){
