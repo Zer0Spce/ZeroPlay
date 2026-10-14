@@ -6,9 +6,8 @@ ZeroPlay 2.2.1.4 is an **Android-only** hotfix for Android TV / Google TV Search
 
 - Removes the custom ZeroPlay keyboard completely.
 - Uses only Android's standard input-method framework for Search.
-- Detects TV firmware that has a remote-control surface selected as the current input method.
-- When that happens, ZeroPlay opens **Android's own keyboard/input-method chooser once** so the user can select the real Android TV keyboard / Gboard.
-- After a normal keyboard is selected, Search opens it through the standard Android IME path.
+- On the first Search after updating, ZeroPlay opens **Android's own keyboard/input-method chooser once** so you can explicitly select the real Android TV keyboard / Gboard instead of a vendor remote-control panel.
+- After you select the normal keyboard, later searches open it through the standard Android IME path.
 - The Search field remains a normal text editor with `IME_ACTION_SEARCH`.
 - No ZeroPlay-rendered QWERTY layout, remote panel, or custom key UI is used.
 - Applied to Android TV and Android TV Lite. Android phone/tablet builds keep their existing keyboard behavior.
@@ -28,5 +27,3 @@ The release contains:
 - SHA-256 checksums
 
 Windows and Web are not rebuilt or republished by this hotfix.
-
-Production candidate finalized for the 2.2.1.4 Android-only release.
