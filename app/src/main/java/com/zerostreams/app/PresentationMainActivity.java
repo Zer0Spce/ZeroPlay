@@ -1,14 +1,21 @@
 package com.zerostreams.app;
 
-import android.graphics.Rect;
+import android.graphics.*;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.text.*;
 import android.view.*;
 import android.widget.*;
 import java.util.*;
+import java.util.concurrent.*;
+import org.json.*;
 
 /** Final card presentation layer shared by Android phone, tablet and TV. */
 public class PresentationMainActivity extends CategoryMainActivity {
+    private final ExecutorService presentationIo=Executors.newFixedThreadPool(2);
+    private final Map<String,String> heroLogoCache=new ConcurrentHashMap<>();
+    private final Set<String> heroLogoLoading=ConcurrentHashMap.newKeySet();
+    private final Map<String,List<Catalog.Item>> topTodayCache=new ConcurrentHashMap<>();
+    private final Set<String> topTodayLoading=ConcurrentHashMap.newKeySet();
 
     @Override public void onCreate(Bundle state){
         android.content.SharedPreferences prefs=getSharedPreferences("zero",MODE_PRIVATE);
@@ -18,6 +25,11 @@ public class PresentationMainActivity extends CategoryMainActivity {
         if(!prefs.contains("liveConverge")){editor.putBoolean("liveConverge",true);changed=true;}
         if(changed)editor.commit();
         super.onCreate(state);
+    }
+
+    @Override protected void onDestroy(){
+        presentationIo.shutdownNow();
+        super.onDestroy();
     }
 
     /** 2.0.1: Modern UI calls the landing page Home and exposes Categories on TV. */
@@ -94,9 +106,133 @@ public class PresentationMainActivity extends CategoryMainActivity {
         }catch(Exception ignored){return null;}
     }
 
+    /** Keep the Top 10 row directly beneath the featured hero on phone and TV. */
+    @Override void renderHome22(List<Catalog.Item> rows,int token){
+        super.renderHome22(rows,token);
+        LinearLayout host=contentHost();if(host==null)return;
+        String region=getSharedPreferences("zero",MODE_PRIVATE).getString("providerRegion","PH");
+        List<Catalog.Item> cached=topTodayCache.get(region);
+        List<Catalog.Item> visible=cached==null?topFallback(rows):cached;
+        if(!visible.isEmpty())insertTopTen(host,visible,token,region);
+        if(cached==null)loadTopToday(region,host,token);
+    }
+
     @Override void carousel(List<Catalog.Item> all,int token){
         super.carousel(all,token);
+        attachHeroTitleArtwork(all,token);
         if(flixLayout()&&BuildConfig.TV){View root=getWindow().getDecorView();root.post(this::compactFlixRightPanel);root.postDelayed(this::compactFlixRightPanel,350);}
+    }
+
+    private void attachHeroTitleArtwork(List<Catalog.Item> all,int token){
+        LinearLayout host=contentHost();if(host==null)return;
+        FrameLayout hero=findHero(host);if(hero==null)return;
+        List<Catalog.Item> picks=carouselSourceItems(all);if(picks.isEmpty())return;
+        Set<String> names=new HashSet<>();for(Catalog.Item item:picks)names.add(item.title);
+        TextView title=findLargestMatchingTitle(hero,names,null);if(title==null||!(title.getParent() instanceof LinearLayout))return;
+        LinearLayout parent=(LinearLayout)title.getParent();
+        ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_START);logo.setAdjustViewBounds(true);logo.setVisibility(View.GONE);logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        int index=parent.indexOfChild(title);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(BuildConfig.TV?112:82));
+        parent.addView(logo,Math.max(0,index),lp);
+        Runnable refresh=()->showHeroArtwork(String.valueOf(title.getText()),picks,logo,title,token);
+        title.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){}public void afterTextChanged(Editable e){refresh.run();}});
+        refresh.run();
+    }
+
+    private TextView findLargestMatchingTitle(View view,Set<String> names,TextView best){
+        if(view instanceof TextView&&names.contains(String.valueOf(((TextView)view).getText()))){TextView candidate=(TextView)view;if(best==null||candidate.getTextSize()>best.getTextSize())best=candidate;}
+        if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)best=findLargestMatchingTitle(group.getChildAt(i),names,best);}
+        return best;
+    }
+
+    private void showHeroArtwork(String name,List<Catalog.Item> picks,ImageView logo,TextView textTitle,int token){
+        Catalog.Item item=null;for(Catalog.Item candidate:picks)if(candidate.title.equals(name)){item=candidate;break;}
+        if(item==null){logo.setVisibility(View.GONE);textTitle.setVisibility(View.VISIBLE);return;}
+        final Catalog.Item selected=item;String cached=heroLogoCache.get(item.id);
+        if(cached!=null){applyHeroLogo(selected,cached,logo,textTitle,token);return;}
+        logo.setVisibility(View.GONE);textTitle.setVisibility(View.VISIBLE);
+        if(!item.id.matches("tmdb-(movie|series)-[0-9]+")||!heroLogoLoading.add(item.id))return;
+        presentationIo.execute(()->{
+            String address="";
+            try{
+                String media=selected.type.equals("series")?"tv":"movie",id=selected.id.substring(selected.id.lastIndexOf('-')+1);
+                JSONObject data=ContentApi.tmdb("/"+media+"/"+id,tmdbKey(),"&append_to_response=images&include_image_language=en,null");
+                address=bestLogo(data.optJSONObject("images"));
+            }catch(Exception ignored){}
+            heroLogoCache.put(selected.id,address);heroLogoLoading.remove(selected.id);final String ready=address;
+            runOnUiThread(()->{if(!isDestroyed()&&selected.title.equals(String.valueOf(textTitle.getText())))applyHeroLogo(selected,ready,logo,textTitle,token);});
+        });
+    }
+
+    private String bestLogo(JSONObject images){
+        JSONArray logos=images==null?null:images.optJSONArray("logos");if(logos==null)return "";JSONObject best=null;int bestScore=-1;
+        for(int i=0;i<logos.length();i++){JSONObject row=logos.optJSONObject(i);if(row==null)continue;String path=row.optString("file_path"),language=row.optString("iso_639_1","");if(!path.matches("/[A-Za-z0-9_.-]+"))continue;int score=(language.equals("en")?100:language.isEmpty()||row.isNull("iso_639_1")?60:10)+Math.min(25,row.optInt("vote_count"));if(score>bestScore){best=row;bestScore=score;}}
+        return best==null?"":ContentApi.image(best.optString("file_path"),"w500");
+    }
+
+    private void applyHeroLogo(Catalog.Item item,String address,ImageView logo,TextView textTitle,int token){
+        if(address==null||address.isEmpty()){logo.setVisibility(View.GONE);textTitle.setVisibility(View.VISIBLE);return;}
+        logo.setContentDescription(item.title);logo.setVisibility(View.VISIBLE);textTitle.setVisibility(View.GONE);picture(address,logo,token);
+    }
+
+    private FrameLayout findHero(LinearLayout host){
+        FrameLayout best=null;int bestHeight=0;
+        for(int i=0;i<host.getChildCount();i++)if(host.getChildAt(i) instanceof FrameLayout){View child=host.getChildAt(i);int height=child.getLayoutParams()==null?0:child.getLayoutParams().height;if(height>bestHeight){best=(FrameLayout)child;bestHeight=height;}}
+        return bestHeight>=dp(280)?best:null;
+    }
+
+    private List<Catalog.Item> topFallback(List<Catalog.Item> rows){
+        LinkedHashMap<String,Catalog.Item> ranked=new LinkedHashMap<>();
+        for(Catalog.Item item:rows)if(item.raw.optBoolean("trending")&&!item.poster.isEmpty()){ranked.put(item.id,item);if(ranked.size()>=10)break;}
+        if(ranked.size()<10)for(Catalog.Item item:rows)if((item.type.equals("movie")||item.type.equals("series"))&&!item.poster.isEmpty()){ranked.put(item.id,item);if(ranked.size()>=10)break;}
+        return new ArrayList<>(ranked.values());
+    }
+
+    private void loadTopToday(String region,LinearLayout host,int token){
+        if(tmdbKey().isEmpty()||!topTodayLoading.add(region))return;
+        presentationIo.execute(()->{
+            List<Catalog.Item> result=new ArrayList<>();
+            try{JSONObject data=ContentApi.tmdb("/trending/all/day",tmdbKey(),"&page=1");for(Catalog.Item item:ContentApi.tmdbRows(data.optJSONArray("results"),"",false))if(!item.poster.isEmpty()){result.add(item);if(result.size()>=10)break;}}catch(Exception ignored){}
+            topTodayLoading.remove(region);if(result.isEmpty())return;topTodayCache.put(region,result);List<Catalog.Item> ready=result;
+            runOnUiThread(()->{if(isDestroyed()||!host.isAttachedToWindow())return;replaceTopTen(host,ready,token,region);});
+        });
+    }
+
+    private void replaceTopTen(LinearLayout host,List<Catalog.Item> rows,int token,String region){
+        View old=host.findViewWithTag("zeroplay-top10");int index=old==null?topTenInsertIndex(host):host.indexOfChild(old);if(old!=null)host.removeView(old);host.addView(topTenSection(rows,token,region),Math.max(0,Math.min(index,host.getChildCount())));
+    }
+
+    private void insertTopTen(LinearLayout host,List<Catalog.Item> rows,int token,String region){
+        if(host.findViewWithTag("zeroplay-top10")!=null)return;int index=topTenInsertIndex(host);host.addView(topTenSection(rows,token,region),Math.max(0,Math.min(index,host.getChildCount())));
+    }
+
+    private int topTenInsertIndex(LinearLayout host){
+        FrameLayout hero=findHero(host);if(hero!=null){int index=host.indexOfChild(hero);return Math.min(host.getChildCount(),index+1);}return Math.min(host.getChildCount(),2);
+    }
+
+    private LinearLayout topTenSection(List<Catalog.Item> rows,int token,String region){
+        LinearLayout section=new LinearLayout(this);section.setOrientation(LinearLayout.VERTICAL);section.setTag("zeroplay-top10");section.setPadding(0,dp(BuildConfig.TV?18:14),0,dp(BuildConfig.TV?22:18));
+        sectionLabel(section,"TOP 10 TODAY IN "+regionName(region));
+        HorizontalScrollView rail=new HorizontalScrollView(this);rail.setHorizontalScrollBarEnabled(false);rail.setClipToPadding(false);
+        LinearLayout cards=new LinearLayout(this);cards.setGravity(Gravity.BOTTOM);
+        for(int i=0;i<Math.min(10,rows.size());i++){Catalog.Item item=rows.get(i);View tile=rankedPoster(item,i+1,token);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(BuildConfig.TV?dp(245):dp(176),BuildConfig.TV?dp(290):dp(220));p.setMargins(0,0,dp(BuildConfig.TV?18:12),0);cards.addView(tile,p);}
+        rail.addView(cards);section.addView(rail,new LinearLayout.LayoutParams(-1,-2));return section;
+    }
+
+    private View rankedPoster(Catalog.Item item,int rank,int token){
+        FrameLayout tile=new FrameLayout(this);tile.setFocusable(true);tile.setClickable(true);tile.setContentDescription("Number "+rank+", "+item.title);tile.setBackground(shape(Color.TRANSPARENT,0));tile.setOnClickListener(v->details(item));tile.setOnFocusChangeListener((v,f)->{v.setBackground(shape(Color.TRANSPARENT,f?ACCENT:0));if(getSharedPreferences("zero",MODE_PRIVATE).getBoolean("uiAnimations",true))v.animate().scaleX(f?1.035f:1f).scaleY(f?1.035f:1f).setDuration(130).start();});
+        int rankWidth=BuildConfig.TV?112:80,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?64:46;
+        RankView number=new RankView(this,String.valueOf(rank));FrameLayout.LayoutParams np=new FrameLayout.LayoutParams(dp(rankWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);tile.addView(number,np);
+        ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);poster.setImageResource(R.drawable.ic_zero);poster.setBackground(shape(SURFACE,0));poster.setClipToOutline(true);FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(dp(posterWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);pp.leftMargin=dp(overlap);tile.addView(poster,pp);if(!item.poster.isEmpty())picture(item.poster,poster,token);return tile;
+    }
+
+    private String regionName(String code){
+        switch(code){case "US":return "UNITED STATES";case "GB":return "UNITED KINGDOM";case "CA":return "CANADA";case "AU":return "AUSTRALIA";case "IN":return "INDIA";case "JP":return "JAPAN";default:return "PHILIPPINES";}
+    }
+
+    private static final class RankView extends View {
+        private final Paint stroke=new Paint(Paint.ANTI_ALIAS_FLAG);private final String rank;
+        RankView(android.content.Context context,String rank){super(context);this.rank=rank;stroke.setStyle(Paint.Style.STROKE);stroke.setStrokeJoin(Paint.Join.ROUND);stroke.setTypeface(Typeface.create("sans-serif-black",Typeface.BOLD));stroke.setColor(Color.argb(205,225,230,232));stroke.setTextAlign(Paint.Align.LEFT);}
+        @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float density=getResources().getDisplayMetrics().density;stroke.setStrokeWidth(Math.max(1.5f*density,2f));stroke.setTextSize(getHeight()*.78f);Paint.FontMetrics fm=stroke.getFontMetrics();float baseline=getHeight()-Math.max(0,-fm.descent*.18f);canvas.drawText(rank,0,baseline,stroke);}
     }
 
     private void compactFlixRightPanel(){
