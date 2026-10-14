@@ -18,11 +18,11 @@ jobs:
       - name: Persist preview source fixes
         shell: bash
         run: |
-          if ! git diff --quiet -- app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java windows/core.cjs web/public/browser.js; then
+          if ! git diff --quiet -- app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java windows/core.cjs web/public/browser.js; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java windows/core.cjs web/public/browser.js
-            git commit -m "Preview: remember last played episode on all platforms"
+            git add app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java windows/core.cjs web/public/browser.js
+            git commit -m "Preview: persist cross-platform playback and Top 10 fixes"
             git push origin HEAD:ui/top10-title-artwork
           fi
 
@@ -44,6 +44,8 @@ jobs:
           grep -F 'rememberedEpisode=season==prefs.getInt("resumeSeason:"+item.id,-1)?prefs.getInt("resumeEpisode:"+item.id,0):0' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -F 'setSingleChoiceItems(labels,preferredSeason' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -F 'setSingleChoiceItems(labels,preferredEpisode' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -F 'rankWidth=BuildConfig.TV?100:70' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F 'overlap=BuildConfig.TV?84:58' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
