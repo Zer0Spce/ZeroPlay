@@ -25,7 +25,9 @@ test('Windows home loads official title art and ranked posters',()=>{
   assert.match(css,/zero-hero-title-art/);
   assert.match(css,/zero-top10-rank/);
   assert.match(css,/aspect-ratio:2\/3/);
-  assert.match(css,/\.zero-top10-poster\{[\s\S]*inset:0;[\s\S]*width:100%;[\s\S]*height:100%/);
+  assert.match(css,/\.zero-top10-card\{[\s\S]*flex:0 0 clamp\(212px,15\.5vw,274px\);[\s\S]*height:clamp\(264px,20vw,342px\)/);
+  assert.match(css,/\.zero-top10-rank\{[\s\S]*left:-4px;[\s\S]*z-index:3/);
+  assert.match(css,/\.zero-top10-poster\{[\s\S]*right:0;[\s\S]*width:auto;[\s\S]*height:100%;[\s\S]*aspect-ratio:2\/3/);
   assert.match(css,/\.zero-top10-poster img\{[\s\S]*object-fit:cover/);
 });
 
