@@ -47,6 +47,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          node scripts/fix-2.2-windows-regression-tests.cjs
           Push-Location windows
           npm test
           if($LASTEXITCODE -ne 0){throw 'Windows npm regressions failed'}
