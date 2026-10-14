@@ -73,6 +73,18 @@ presentation = replace_once(
     '        int rankWidth=BuildConfig.TV?100:70,posterWidth=BuildConfig.TV?160:116,posterHeight=Math.round(posterWidth*1.5f),overlap=BuildConfig.TV?84:58;',
     "Android Top 10 side rank placement",
 )
+presentation = replace_once(
+    presentation,
+    '        ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);poster.setImageResource(R.drawable.ic_zero);poster.setBackground(shape(SURFACE,0));poster.setClipToOutline(true);FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(dp(posterWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);pp.leftMargin=dp(overlap);tile.addView(poster,pp);if(!item.poster.isEmpty())picture(item.poster,poster,token);return tile;',
+    '        ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);poster.setImageResource(R.drawable.ic_zero);poster.setBackground(shape(SURFACE,0));poster.setClipToOutline(true);FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(dp(posterWidth),dp(posterHeight),Gravity.BOTTOM|Gravity.START);pp.leftMargin=dp(overlap);tile.addView(poster,pp);if(!item.poster.isEmpty()){String quickPoster=item.poster.replace("/w1280/","/w342/").replace("/w780/","/w342/").replace("/w500/","/w342/");poster.setTag(quickPoster);fetchPicture(quickPoster,poster,token);}return tile;',
+    "Android Top 10 priority poster loading",
+)
+presentation = replace_once(
+    presentation,
+    '        @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float density=getResources().getDisplayMetrics().density;stroke.setStrokeWidth(Math.max(1.5f*density,2f));stroke.setTextSize(getHeight()*.78f);Paint.FontMetrics fm=stroke.getFontMetrics();float baseline=getHeight()-Math.max(0,-fm.descent*.18f);canvas.drawText(rank,0,baseline,stroke);}',
+    '        @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float density=getResources().getDisplayMetrics().density;stroke.setStrokeWidth(Math.max(1.5f*density,2f));float preferred=getHeight()*(BuildConfig.TV?(rank.length()>1?.50f:.66f):(rank.length()>1?.56f:.72f));stroke.setTextSize(preferred);float available=Math.max(1f,getWidth()-2f*density),measured=stroke.measureText(rank);if(measured>available)stroke.setTextSize(preferred*(available/measured));Paint.FontMetrics fm=stroke.getFontMetrics();float baseline=getHeight()-Math.max(0,-fm.descent*.18f);canvas.drawText(rank,0,baseline,stroke);}',
+    "Android TV Top 10 rank fitting",
+)
 PRESENTATION.write_text(presentation, encoding="utf-8")
 
 # Windows: the details selector and player already consume state.positions for the
@@ -98,4 +110,4 @@ web = replace_once(
 )
 WEB_BROWSER.write_text(web, encoding="utf-8")
 
-print("Preview Continue Watching, episode memory, and Top 10 side-rank fixes are ready for Android, Android TV, Windows and Web.")
+print("Preview Continue Watching, episode memory, fast Top 10 posters, and TV rank fitting are ready for Android, Android TV, Windows and Web.")
