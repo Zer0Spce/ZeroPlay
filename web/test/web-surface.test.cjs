@@ -22,7 +22,7 @@ test('website movies and series append more cards below the current grid',()=>{
   const infinite=read('web/public/infinite-scroll.js');
   const sw=read('web/public/sw.js');
   assert.match(html,/infinite-scroll\.js\?v=20261013c/);
-  assert.match(sw,/zeroplay-web-2\.2-shell-20261014b/);
+  assert.match(sw,/zeroplay-web-2\.2-shell-20261014c/);
   assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
   assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
   assert.match(infinite,/async function appendCatalogPage/);
@@ -38,15 +38,23 @@ test('website movies and series append more cards below the current grid',()=>{
   assert.match(infinite,/if\(y>lastScrollY\+2\)\{armScrollIntent\(\);scheduleCheck\(\);\}/);
 });
 
-test('shared movie and TV links use root-safe assets and ZeroPlay deep routes',()=>{
+test('shared movie and TV links use root-safe assets and a single detail router',()=>{
   const html=read('web/public/index.html');
   const router=read('web/public/web-router.js');
+  const enhancements=read('web/public/web-enhancements.js');
   const css=read('web/public/zsflix-ui.css');
   for(const asset of ['/style.css','/layouts.css','/app.js','/web-router.js','/zsflix-ui.css'])assert.match(html,new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
-  assert.match(router,/\^\\\/\(movie\|tv\)\\\/\\d\+/);
+  assert.match(html,/web-router\.js\?v=20261014c/);
+  assert.match(enhancements,/const initialPath=location\.pathname/);
+  assert.match(enhancements,/applyRoute\(true\)/);
   assert.match(router,/navigator\.share/);
   assert.match(router,/ZeroPlay link copied/);
-  assert.match(router,/history\.pushState/);
+  assert.match(router,/function clearDetailRoute\(\)/);
+  assert.match(router,/history\.replaceState/);
+  assert.match(router,/detail\?\.addEventListener\('close',clearDetailRoute\)/);
+  assert.doesNotMatch(router,/window\.addEventListener\('popstate'/);
+  assert.doesNotMatch(router,/async function loadTitle/);
+  assert.doesNotMatch(router,/history\.pushState/);
   assert.match(css,/--zp-mint:#66f2c3/);
   assert.match(css,/ZSFlix-inspired top navigation/);
 });
