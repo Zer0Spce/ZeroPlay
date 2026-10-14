@@ -16,10 +16,10 @@ test('Progress validates current content, duration and episode boundaries',()=>{
   for(const invalid of [{...data,id:42},{...data,type:'tv'},{...data,timestamp:Infinity},{...data,timestamp:-1},{...data,duration:0},{...data,duration:700000},{...data,timestamp:1300}])assert.equal(core.progress(invalid,movie),null);
   assert.equal(core.progress({...data,type:'tv',season:-1,episode:1},{...movie,type:'tv'}),null);
 });
-test('History retains started episodes, deduplicates and resets completed titles',()=>{
-  const state={history:[],positions:{}};core.record(state,{...movie,type:'tv'},{season:3,episode:5});assert.equal(state.positions['tv:299534'].episode,5);
+test('History retains started episodes, deduplicates and restarts completed titles in Continue Watching',()=>{
+  const state={history:[],positions:{}};core.record(state,{...movie,type:'tv'},{season:3,episode:5});assert.equal(state.positions['tv:299534'].episode,5);assert.equal(state.positions['tv:299534'].timestamp,1);
   core.record(state,movie,{timestamp:100,duration:1200,percent:8});core.record(state,movie);assert.equal(state.positions['movie:299534'].timestamp,100);assert.equal(state.history.length,2);
-  core.record(state,movie,{timestamp:1200,duration:1200,percent:100});core.record(state,movie);assert.equal(state.positions['movie:299534'].timestamp,0);
+  core.record(state,movie,{timestamp:1200,duration:1200,percent:100});core.record(state,movie);assert.equal(state.positions['movie:299534'].timestamp,1);assert.equal(state.positions['movie:299534'].percent,0);
   for(let id=1;id<130;id++)core.record(state,{...movie,id});assert.equal(state.history.length,100);
 });
 test('Remote catalog routes and artwork cannot become arbitrary requests',()=>{
