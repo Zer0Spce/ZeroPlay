@@ -70,10 +70,10 @@ header>.icon{flex:0 0 40px!important;width:40px!important;height:40px!important}
 }
 .hero-trailer iframe{
   position:absolute;
-  width:112%;
-  height:112%;
-  left:-6%;
-  top:-6%;
+  width:118%;
+  height:118%;
+  left:-9%;
+  top:-9%;
   border:0;
   pointer-events:none;
 }
@@ -117,6 +117,18 @@ header>.icon{flex:0 0 40px!important;width:40px!important;height:40px!important}
   backdrop-filter:blur(10px);
 }
 
+/* Use TMDB's official transparent title treatment when one exists. */
+.hero-title-logo{
+  display:block;
+  width:min(430px,72%);
+  max-height:150px;
+  object-fit:contain;
+  object-position:left center;
+  margin:14px 0 16px;
+  filter:drop-shadow(0 7px 20px rgba(0,0,0,.45));
+}
+.hero.has-title-logo .hero-content h2{display:none!important}
+
 @media(max-width:1280px){
   aside{padding-right:470px!important}
   header{width:445px!important;right:18px!important}
@@ -137,6 +149,7 @@ header>.icon{flex:0 0 40px!important;width:40px!important;height:40px!important}
   header>[data-action="refresh"]{display:none!important}
   .tools{right:28px!important;top:30px!important}
   .tools [data-zero22-action="calendar"]{display:none!important}
+  .hero-title-logo{width:min(360px,72%);max-height:125px}
 }
 
 @media(max-width:650px){
@@ -156,6 +169,7 @@ header>.icon{flex:0 0 40px!important;width:40px!important;height:40px!important}
   .tools button{padding:7px 10px!important}
   .hero-audio{right:18px;top:70px;width:36px!important;height:36px!important}
   .hero-trailer-badge{display:none}
+  .hero-title-logo{width:min(300px,82%);max-height:105px;margin:10px 0 13px}
 }
 
 @media(prefers-reduced-motion:reduce){
