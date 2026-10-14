@@ -150,6 +150,8 @@ Android requires Android 6.0 or newer. Full and Lite apps have separate package 
 - Continuous pagination with retry, deduplication, end-of-results handling and improved tab/scroll restoration.
 - Single-bar website navigation plus muted hero trailer autoplay previews with an audio toggle and artwork fallback.
 - Shared/deep movie and series links close cleanly instead of immediately reopening their detail dialog.
+- Single-bar website navigation plus muted hero trailer autoplay previews with an audio toggle and artwork fallback.
+- Shared/deep movie and series links close cleanly instead of immediately reopening their detail dialog.
 - Shareable title/catalog/search routes and browser Back/Forward support.
 - Rich metadata, movie franchise rows, browser-local library and homepage section toggles.
 - Hover quick actions and keyboard navigation: `/` focuses Search; arrow keys navigate cards; `W` toggles the focused title’s watchlist state.
