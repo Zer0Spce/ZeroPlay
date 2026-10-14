@@ -1,6 +1,6 @@
 'use strict';
-const CACHE='zeroplay-web-2.1.2-shell-v5';
-const SHELL=['/','/index.html','/style.css','/layouts.css','/enhancements.css','/playback-sources.js','/web-native.js','/browser.js','/layouts.js','/app.js','/web-fixes.js','/infinite-scroll.js?v=20261013c','/web-enhancements.js','/manifest.json','/assets/icon.png','/assets/tmdb-logo.svg'];
+const CACHE='zeroplay-web-2.2-shell-20261014a';
+const SHELL=['/','/index.html','/style.css','/layouts.css','/enhancements.css','/zero22.css','/zsflix-ui.css?v=20261014a','/playback-sources.js','/web-native.js','/browser.js','/layouts.js','/app.js','/zero22.js','/web-fixes.js','/infinite-scroll.js?v=20261013c','/web-enhancements.js','/web-polish-fixes.js','/web-router.js?v=20261014a','/manifest.json','/assets/icon.png','/assets/tmdb-logo.svg'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('zeroplay-web-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',event=>{
