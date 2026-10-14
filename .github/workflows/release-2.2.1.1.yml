@@ -42,7 +42,6 @@ jobs:
           gradle-version: '8.9'
 
       - name: Verify hotfix source and version
-        shell: bash
         run: |
           set -euo pipefail
           grep -q "versionCode 46" app/build.gradle
@@ -55,7 +54,6 @@ jobs:
           grep -q 'showSoftInput(field,InputMethodManager.SHOW_IMPLICIT)' app/src/main/java/com/zerostreams/app/TvSearchIme.java
 
       - name: Android and TV regressions
-        shell: bash
         run: |
           set -euo pipefail
           node --test tests/android-tv-search-ime.test.cjs
@@ -74,7 +72,6 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        shell: bash
         run: |
           set -euo pipefail
           test -n "$ANDROID_KEYSTORE_BASE64"
@@ -127,7 +124,6 @@ jobs:
         with:
           node-version: '22'
       - name: Validate unchanged website surface
-        shell: bash
         run: |
           set -euo pipefail
           node --check web/public/browser.js
@@ -230,16 +226,20 @@ jobs:
             'scripts/apply-episode-progress-fix.cjs',
             'scripts/apply-windows-episode-completion-fix.cjs',
             'scripts/fix-final-windows-action-tdz.cjs',
-            'scripts/apply-2.1.2-player-adblock.cjs'
+            'scripts/apply-2.1.2-player-adblock.cjs',
+            'scripts/apply-2.2.1.1-version.cjs'
           )){
             node $script
             if($LASTEXITCODE -ne 0){throw "Production stack failed: $script"}
           }
           $pkg=Get-Content package.json -Raw | ConvertFrom-Json
-          $pkg.version='2.2.1.1'
+          $pkg.version='2.2.1-1'
+          $pkg.build.buildVersion='2.2.1.1'
           $pkg.build.win.artifactName='ZeroPlay-2.2.1.1-Windows-x64.${ext}'
           $pkg | ConvertTo-Json -Depth 100 | Set-Content package.json -Encoding utf8
           node --check main.cjs
+          node --check updater.cjs
+          node --check version-manager.cjs
           node --check ui/app.js
           node --check ui/home-visuals.js
 
@@ -263,13 +263,16 @@ jobs:
           $ui=Get-Content ui/app.js -Raw
           $visuals=Get-Content ui/home-visuals.js -Raw
           $sources=Get-Content playback-sources.cjs -Raw
-          if($pkg.version -ne '2.2.1.1'){throw 'Expected Windows version 2.2.1.1'}
+          if($pkg.version -ne '2.2.1-1'){throw 'Expected internal Windows SemVer 2.2.1-1'}
+          if($pkg.build.buildVersion -ne '2.2.1.1'){throw 'Expected Windows buildVersion 2.2.1.1'}
+          if($main -notmatch 'version:versions\.normalizedVersion\(app\.getVersion\(\)\)'){throw 'Normalized 2.2.1.1 display version missing'}
           if($sources -notmatch 'embedwave'){throw 'Embedwave missing'}
           if($main -notmatch 'autoSourceRecovery'){throw '2.2 source recovery logic missing'}
           if($main -notmatch 'MpvOfflinePlayer'){throw 'Production mpv offline player missing'}
           if($main -notmatch 'contents\.session\.webRequest\.onBeforeRequest'){throw 'Production request filtering missing'}
           if($ui -notmatch 'window\.zeroOpenDetails'){throw 'Top 10 detail bridge missing'}
           if($visuals -notmatch 'zeroplay-top10-optout'){throw 'Top 10 Home toggle missing'}
+          node --test test/updater.test.cjs
 
       - name: Electron smoke test
         timeout-minutes: 9
@@ -299,7 +302,12 @@ jobs:
           $pkg=Get-Content "$verify/package.json" -Raw | ConvertFrom-Json
           $main=Get-Content "$verify/main.cjs" -Raw
           $updater=Get-Content "$verify/updater.cjs" -Raw
-          if($pkg.version -ne '2.2.1.1'){throw 'Packaged version mismatch'}
+          $versions=Get-Content "$verify/version-manager.cjs" -Raw
+          if($pkg.version -ne '2.2.1-1'){throw 'Packaged internal version mismatch'}
+          if($pkg.build.buildVersion -ne '2.2.1.1'){throw 'Packaged buildVersion mismatch'}
+          if($main -notmatch 'version:versions\.normalizedVersion\(app\.getVersion\(\)\)'){throw 'Packaged display-version normalization missing'}
+          if($updater -notmatch 'hotfix'){throw 'Packaged updater hotfix version mapping missing'}
+          if($versions -notmatch 'hotfix'){throw 'Packaged version-manager hotfix mapping missing'}
           if($main -notmatch 'MpvOfflinePlayer'){throw 'Packaged mpv offline player missing'}
           if($updater -notmatch 'ZeroPlayUpdater\.exe'){throw 'Packaged updater wiring missing'}
           if($updater -match 'tar\.exe|Expand-Archive|robocopy\.exe'){throw 'Legacy updater replacement logic packaged'}
@@ -345,7 +353,6 @@ jobs:
           path: release-assets
 
       - name: Final asset and credential audit
-        shell: bash
         run: |
           set -euo pipefail
           for file in ZeroPlay-2.2.1.1-Android.apk ZeroPlay-2.2.1.1-Android-TV.apk ZeroPlay-2.2.1.1-Android-Lite.apk ZeroPlay-2.2.1.1-Android-TV-Lite.apk ZeroPlay-2.2.1.1-Windows-x64.zip; do
@@ -354,7 +361,6 @@ jobs:
           python scripts/audit-release-secrets.py release-assets
 
       - name: Generate SHA-256 checksums
-        shell: bash
         run: |
           set -euo pipefail
           cd release-assets
@@ -364,7 +370,6 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -euo pipefail
           if gh release view v2.2.1.1 >/dev/null 2>&1; then
@@ -384,11 +389,10 @@ jobs:
             --latest
 
       - name: Update repository main page and changelog
-        shell: bash
         run: |
           set -euo pipefail
           python scripts/update-2.2.1.1-docs.py
-          git config user.name 'Zer0Spce'
+          git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add README.md docs/changelog.md
           git diff --cached --check
