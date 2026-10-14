@@ -22,7 +22,7 @@ test('website movies and series append more cards below the current grid',()=>{
   const infinite=read('web/public/infinite-scroll.js');
   const sw=read('web/public/sw.js');
   assert.match(html,/infinite-scroll\.js\?v=20261013c/);
-  assert.match(sw,/zeroplay-web-2\.1\.2-shell-v5/);
+  assert.match(sw,/zeroplay-web-2\.2-shell-20261014a/);
   assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
   assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
   assert.match(infinite,/async function appendCatalogPage/);
@@ -36,4 +36,17 @@ test('website movies and series append more cards below the current grid',()=>{
   assert.match(infinite,/function nearBottom\(\)\{return window\.scrollY>0/);
   assert.match(infinite,/function resetTabPosition\(\)/);
   assert.match(infinite,/if\(y>lastScrollY\+2\)\{armScrollIntent\(\);scheduleCheck\(\);\}/);
+});
+
+test('shared movie and TV links use root-safe assets and ZeroPlay deep routes',()=>{
+  const html=read('web/public/index.html');
+  const router=read('web/public/web-router.js');
+  const css=read('web/public/zsflix-ui.css');
+  for(const asset of ['/style.css','/layouts.css','/app.js','/web-router.js','/zsflix-ui.css'])assert.match(html,new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.match(router,/\^\\\/\(movie\|tv\)\\\/\\d\+/);
+  assert.match(router,/navigator\.share/);
+  assert.match(router,/ZeroPlay link copied/);
+  assert.match(router,/history\.pushState/);
+  assert.match(css,/--zp-mint:#66f2c3/);
+  assert.match(css,/ZSFlix-inspired top navigation/);
 });
