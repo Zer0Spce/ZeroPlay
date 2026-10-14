@@ -1,0 +1,223 @@
+name: ZeroPlay 2.2.1 Windows Top 10 Hotfix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release-2.2.1-windows-top10-hotfix.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeroplay-2-2-1-windows-top10-hotfix
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Build and verify Windows 2.2.1 hotfix
+    runs-on: windows-latest
+    timeout-minutes: 65
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+
+      - name: Run Windows regressions including Top 10 click
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location windows
+          npm test
+          if($LASTEXITCODE -ne 0){throw 'Windows npm regressions failed'}
+          npm install --prefix ../ui-test-deps --no-audit --no-fund jsdom@24.1.3
+          $env:NODE_PATH="${{ github.workspace }}\ui-test-deps\node_modules"
+          foreach($script in @('scripts/ui-check.cjs','scripts/experience-check.cjs','scripts/layout-check.cjs','scripts/live-compat-check.cjs','scripts/player-exit-check.cjs')){
+            node $script
+            if($LASTEXITCODE -ne 0){throw "Desktop regression failed: $script"}
+          }
+          npx electron scripts/media-check.cjs
+          if($LASTEXITCODE -ne 0){throw 'Media regression failed'}
+          node scripts/tmdb-check.cjs
+          if($LASTEXITCODE -ne 0){throw 'TMDB regression failed'}
+          $env:ZERO_GUARD_PATH='assets/player-guard.js'
+          node ../tests/player-guard.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'Player guard regression failed'}
+          Pop-Location
+
+      - name: Configure bundled production keys/vendors
+        working-directory: windows
+        run: npm run prepare-config
+
+      - name: Download pinned mpv x64 engine
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          $url='https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261009/mpv-x86_64-20261009-git-36abaa32d0.7z'
+          $expected='9afbe74f4ab885ca512769f8835758eb66b7b8a5ea6d679500588f8e7fec632e'
+          Invoke-WebRequest -Uri $url -OutFile mpv.7z
+          $actual=(Get-FileHash mpv.7z -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($actual -ne $expected){throw "mpv SHA-256 mismatch: $actual"}
+          New-Item -ItemType Directory -Force vendor/mpv | Out-Null
+          7z x mpv.7z -ovendor/mpv -y | Out-Host
+          $mpv=Get-ChildItem vendor/mpv -Filter mpv.exe -Recurse | Select-Object -First 1
+          if(-not $mpv){throw 'mpv.exe missing after extraction'}
+          if($mpv.Directory.FullName -ne (Resolve-Path vendor/mpv).Path){Copy-Item "$($mpv.Directory.FullName)/*" vendor/mpv -Recurse -Force}
+          if(!(Test-Path vendor/mpv/mpv.exe)){throw 'mpv.exe normalization failed'}
+          Remove-Item mpv.7z -Force
+
+      - name: Apply preserved production Windows stack
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($script in @(
+            'scripts/apply-offline-mpv-test.cjs',
+            'scripts/apply-final-windows-polish.cjs',
+            'scripts/apply-episode-progress-fix.cjs',
+            'scripts/apply-windows-episode-completion-fix.cjs',
+            'scripts/fix-final-windows-action-tdz.cjs',
+            'scripts/apply-2.1.2-player-adblock.cjs'
+          )){
+            node $script
+            if($LASTEXITCODE -ne 0){throw "Production stack failed: $script"}
+          }
+          $pkg=Get-Content package.json -Raw | ConvertFrom-Json
+          $pkg.version='2.2.1'
+          $pkg.build.win.artifactName='ZeroPlay-2.2.1-Windows-x64.${ext}'
+          $pkg | ConvertTo-Json -Depth 100 | Set-Content package.json -Encoding utf8
+          node --check main.cjs
+          node --check ui/app.js
+          node --check ui/home-visuals.js
+          node test/home-visuals.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'Top 10 click regression failed after production stack'}
+
+      - name: Build native video host and updater
+        shell: pwsh
+        working-directory: windows
+        run: |
+          dotnet publish mpv-host-helper/MpvVideoHost.csproj -c Release -r win-x64 --self-contained true -o mpv-host-helper/publish
+          Copy-Item mpv-host-helper/publish/MpvVideoHost.exe ./MpvVideoHost.exe -Force
+          dotnet publish updater-helper/ZeroPlayUpdater.csproj -c Release -r win-x64 --self-contained true -o updater-helper/publish
+          Copy-Item updater-helper/publish/ZeroPlayUpdater.exe ./ZeroPlayUpdater.exe -Force
+          if(!(Test-Path MpvVideoHost.exe)){throw 'MpvVideoHost.exe missing'}
+          if(!(Test-Path ZeroPlayUpdater.exe)){throw 'ZeroPlayUpdater.exe missing'}
+
+      - name: Electron smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npx electron . --smoke-test
+          if($LASTEXITCODE -ne 0){throw "Electron smoke test failed: $LASTEXITCODE"}
+
+      - name: Build portable Windows ZIP
+        working-directory: windows
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Verify packaged Top 10 hotfix
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $zip='dist/ZeroPlay-2.2.1-Windows-x64.zip'
+          if(!(Test-Path $zip)){throw 'Windows 2.2.1 portable ZIP was not created'}
+          if(!(Test-Path 'dist/win-unpacked/ZeroPlay.exe')){throw 'ZeroPlay.exe missing'}
+          if(!(Test-Path 'dist/win-unpacked/ZeroPlayUpdater.exe')){throw 'ZeroPlayUpdater.exe missing'}
+          if(!(Test-Path 'dist/win-unpacked/resources/mpv/mpv.exe')){throw 'Bundled mpv.exe missing'}
+          $verify='dist/verify-asar'
+          if(Test-Path $verify){Remove-Item $verify -Recurse -Force}
+          npx --yes @electron/asar extract 'dist/win-unpacked/resources/app.asar' $verify
+          $pkg=Get-Content "$verify/package.json" -Raw | ConvertFrom-Json
+          $visuals=Get-Content "$verify/ui/home-visuals.js" -Raw
+          if($pkg.version -ne '2.2.1'){throw 'Packaged version mismatch'}
+          if($visuals -notmatch "Math\.abs\(distance\)>6"){throw 'Packaged Top 10 drag threshold fix missing'}
+          $down=$visuals.IndexOf("rail.addEventListener('pointerdown'")
+          $move=$visuals.IndexOf("rail.addEventListener('pointermove'")
+          if($down -lt 0 -or $move -le $down){throw 'Packaged Top 10 pointer handlers missing'}
+          if($visuals.Substring($down,$move-$down) -match 'setPointerCapture'){throw 'Packaged Top 10 click is still captured on pointerdown'}
+          if($visuals -notmatch 'zeroOpenDetails'){throw 'Packaged Top 10 detail bridge missing'}
+          Remove-Item $verify -Recurse -Force
+
+      - name: Audit Windows production credentials
+        run: python scripts/audit-release-secrets.py windows/dist/ZeroPlay-2.2.1-Windows-x64.zip windows/dist/win-unpacked
+
+      - name: Microsoft Defender scan
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $scanner=(Get-ChildItem "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          if(-not $scanner){throw 'Microsoft Defender scanner unavailable; release blocked'}
+          & $scanner -Scan -ScanType 3 -File "$pwd\dist\win-unpacked" -DisableRemediation
+          if($LASTEXITCODE -ne 0){throw "Defender scan failed or detected a threat (exit $LASTEXITCODE); release blocked"}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.1-Windows-Top10-Hotfix
+          path: windows/dist/ZeroPlay-2.2.1-Windows-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Refresh v2.2.1 Windows release asset
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ZeroPlay-2.2.1-Windows-Top10-Hotfix
+          path: release-assets
+      - name: Download unchanged Android 2.2.1 release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v2.2.1 >/dev/null
+          gh release download v2.2.1 --dir release-assets --pattern 'ZeroPlay-2.2.1-Android*.apk'
+          for file in ZeroPlay-2.2.1-Android.apk ZeroPlay-2.2.1-Android-TV.apk ZeroPlay-2.2.1-Android-Lite.apk ZeroPlay-2.2.1-Android-TV-Lite.apk ZeroPlay-2.2.1-Windows-x64.zip; do
+            test -f "release-assets/$file"
+          done
+      - name: Audit refreshed 2.2.1 assets
+        run: python scripts/audit-release-secrets.py release-assets
+      - name: Regenerate SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum ZeroPlay-2.2.1-Android.apk ZeroPlay-2.2.1-Android-TV.apk ZeroPlay-2.2.1-Android-Lite.apk ZeroPlay-2.2.1-Android-TV-Lite.apk ZeroPlay-2.2.1-Windows-x64.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Re-publish Windows hotfix as ZeroPlay 2.2.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v2.2.1 \
+            release-assets/ZeroPlay-2.2.1-Windows-x64.zip \
+            release-assets/SHA256SUMS.txt \
+            --clobber
+          echo 'ZeroPlay 2.2.1 Windows asset refreshed successfully.'
