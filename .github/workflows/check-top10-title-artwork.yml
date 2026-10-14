@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply cross-platform history and episode-memory fixes
-        run: python scripts/fix-continue-resume-preview.py
       - name: Apply Android TV Top 10 front-rank polish
         run: python scripts/fix-android-tv-top10-front-ranks.py
       - name: Check patch quality
@@ -33,10 +31,10 @@ jobs:
       - name: Persist preview source fixes
         shell: bash
         run: |
-          if ! git diff --quiet -- app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java app/src/main/java/com/zerostreams/app/Zero22.java windows/core.cjs windows/ui/app.js web/public/browser.js web/public/zero22.js; then
+          if ! git diff --quiet -- app/src/main/java/com/zerostreams/app/PresentationMainActivity.java; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/zerostreams/app/MainActivity.java app/src/main/java/com/zerostreams/app/HistoryStore.java app/src/main/java/com/zerostreams/app/PresentationMainActivity.java app/src/main/java/com/zerostreams/app/Zero22.java windows/core.cjs windows/ui/app.js web/public/browser.js web/public/zero22.js
+            git add app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
             git commit -m "Preview: refine Android TV Top 10 rank overlap"
             git push origin HEAD:ui/top10-title-artwork
           fi
@@ -50,10 +48,8 @@ jobs:
       OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - name: Apply preview source fixes to this build
-        run: |
-          python scripts/fix-continue-resume-preview.py
-          python scripts/fix-android-tv-top10-front-ranks.py
+      - name: Apply Android TV Top 10 front-rank polish
+        run: python scripts/fix-android-tv-top10-front-ranks.py
       - name: Verify Android mobile and TV episode memory
         shell: bash
         run: |
@@ -100,9 +96,6 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
-      - name: Apply preview source fixes to this build
-        working-directory: .
-        run: python scripts/fix-continue-resume-preview.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -129,8 +122,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Apply preview source fixes to this build
-        run: python scripts/fix-continue-resume-preview.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
