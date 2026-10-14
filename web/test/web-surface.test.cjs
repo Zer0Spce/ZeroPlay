@@ -70,7 +70,7 @@ test('homepage hero supports muted autoplay trailers with user sound control',()
   assert.match(trailer,/youtube-nocookie\.com\/embed/);
   assert.match(trailer,/autoplay=1&mute=1/);
   assert.match(trailer,/append_to_response:'videos'/);
-  assert.match(trailer,/data\.heroAudio='1'/);
+  assert.match(trailer,/audio\.dataset\.heroAudio='1'/);
   assert.match(trailer,/TRAILER_MS=28000/);
   assert.match(vercel,/youtube-nocookie\.com/);
   assert.match(netlify,/youtube-nocookie\.com/);
