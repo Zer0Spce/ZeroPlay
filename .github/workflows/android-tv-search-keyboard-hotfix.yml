@@ -1,0 +1,57 @@
+name: Android TV Search Keyboard Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/android-tv-search-keyboard-2.2.1
+    paths:
+      - '.github/workflows/android-tv-search-keyboard-hotfix.yml'
+      - 'app/src/main/java/com/zerostreams/app/TvSearchIme.java'
+      - 'app/src/main/java/com/zerostreams/app/TvMainActivity.java'
+      - 'app/src/main/java/com/zerostreams/app/LiteTvMainActivity.java'
+      - 'app/src/tv/AndroidManifest.xml'
+      - 'app/src/liteTv/AndroidManifest.xml'
+      - 'tests/android-tv-search-ime.test.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Search keyboard and TV navigation regressions
+        run: |
+          node --test tests/android-tv-search-ime.test.cjs
+          node tests/tv-navigation.test.cjs
+      - name: Android TV unit tests
+        run: gradle :app:testTvDebugUnitTest :app:testLiteTvDebugUnitTest
+      - name: Build full and Lite TV APKs
+        run: gradle :app:assembleTvDebug :app:assembleLiteTvDebug
+      - name: Lint full and Lite TV variants
+        run: gradle --continue :app:lintTvDebug :app:lintLiteTvDebug
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.1-TV-Search-Keyboard-Hotfix-${{ github.sha }}
+          path: |
+            app/build/outputs/apk/tv/debug/*.apk
+            app/build/outputs/apk/liteTv/debug/*.apk
+          if-no-files-found: error
