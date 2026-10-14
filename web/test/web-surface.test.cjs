@@ -22,7 +22,7 @@ test('website movies and series append more cards below the current grid',()=>{
   const infinite=read('web/public/infinite-scroll.js');
   const sw=read('web/public/sw.js');
   assert.match(html,/infinite-scroll\.js\?v=20261013c/);
-  assert.match(sw,/zeroplay-web-2\.2-shell-20261014a/);
+  assert.match(sw,/zeroplay-web-2\.2-shell-20261014b/);
   assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
   assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
   assert.match(infinite,/async function appendCatalogPage/);
@@ -49,4 +49,29 @@ test('shared movie and TV links use root-safe assets and ZeroPlay deep routes',(
   assert.match(router,/history\.pushState/);
   assert.match(css,/--zp-mint:#66f2c3/);
   assert.match(css,/ZSFlix-inspired top navigation/);
+});
+
+test('website header is collapsed to one bar',()=>{
+  const html=read('web/public/index.html');
+  const css=read('web/public/singlebar.css');
+  assert.match(html,/singlebar\.css\?v=20261014b/);
+  assert.match(css,/header\{[\s\S]*position:fixed!important;[\s\S]*top:0!important/);
+  assert.match(css,/main\{padding-top:72px!important\}/);
+  assert.match(css,/aside \[data-action="settings"\]\{display:none!important\}/);
+  assert.match(css,/\.tools\{[\s\S]*position:absolute!important/);
+});
+
+test('homepage hero supports muted autoplay trailers with user sound control',()=>{
+  const html=read('web/public/index.html');
+  const trailer=read('web/public/hero-trailer.js');
+  const vercel=read('vercel.json');
+  const netlify=read('netlify.toml');
+  assert.match(html,/hero-trailer\.js\?v=20261014b/);
+  assert.match(trailer,/youtube-nocookie\.com\/embed/);
+  assert.match(trailer,/autoplay=1&mute=1/);
+  assert.match(trailer,/append_to_response:'videos'/);
+  assert.match(trailer,/data\.heroAudio='1'/);
+  assert.match(trailer,/TRAILER_MS=28000/);
+  assert.match(vercel,/youtube-nocookie\.com/);
+  assert.match(netlify,/youtube-nocookie\.com/);
 });
