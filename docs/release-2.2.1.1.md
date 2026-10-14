@@ -1,6 +1,6 @@
 # ZeroPlay 2.2.1.1 — Android TV Search Keyboard Hotfix
 
-ZeroPlay 2.2.1.1 is a focused hotfix built on top of 2.2.1. It fixes the Android TV / Google TV Search experience without changing the established movie, series, Home, player, Windows or website behavior from 2.2.1.
+ZeroPlay 2.2.1.1 is an **Android-only** hotfix built on top of 2.2.1. It fixes the Android TV / Google TV Search experience without changing the established Windows or website releases.
 
 ## 🔧 Android TV search fix
 
@@ -13,17 +13,16 @@ ZeroPlay 2.2.1.1 is a focused hotfix built on top of 2.2.1. It fixes the Android
 
 ## ✅ Preserved 2.2.1 improvements
 
-This hotfix retains everything introduced and fixed in 2.2.1, including Top 10 Today, the Top 10 Home toggle, official featured-title artwork, Continue Watching improvements, saved season/episode resume state, smarter Tonight's Picks and Hidden Gems, Android TV Top 10 rank/poster polish, the VidSrc subtitle-overlay close fix, website trailer previews/deep-link close fixes, and the Windows Top 10 click fix.
+This hotfix retains the Android-side improvements introduced in 2.2.1, including Top 10 Today, the Top 10 Home toggle, official featured-title artwork, Continue Watching improvements, saved season/episode resume state, smarter Tonight's Picks and Hidden Gems, Android TV Top 10 rank/poster polish, and the VidSrc subtitle-overlay close fix.
 
-## 📦 Builds
+## 📦 Android builds
 
-The release contains freshly versioned production builds for:
+The release contains freshly versioned production APKs for:
 
 - Android
 - Android TV / Google TV
 - Android Lite
 - Android TV Lite
-- Windows 10 / 11 x64 portable ZIP
 - SHA-256 checksums
 
-The functional hotfix itself is Android TV-specific; the other packages are rebuilt/versioned as 2.2.1.1 so ZeroPlay's cross-platform updater continues to resolve one complete latest stable release consistently.
+Windows and the website remain on their existing release/version path and are not rebuilt or republished by this Android hotfix.
