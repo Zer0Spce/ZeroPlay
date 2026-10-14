@@ -49,7 +49,6 @@ jobs:
               README.md \
               docs/changelog.md \
               docs/release-2.2.1.md \
-              .github/workflows/release-2.2.1.yml \
               app/src/main/java/com/zerostreams/app/HomePanels.java \
               app/src/main/java/com/zerostreams/app/PresentationMainActivity.java \
               app/src/test/java/com/zerostreams/app/HomePanelsTest.java \
