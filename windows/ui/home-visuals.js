@@ -127,7 +127,7 @@
       if(item.poster){const img=document.createElement('img');img.loading='lazy';img.decoding='async';img.src=item.poster;img.alt=item.title;poster.appendChild(img);}
       const rank=document.createElement('span');rank.className='zero-top10-rank';rank.textContent=String(index+1);
       button.append(poster,rank);
-      button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();if(typeof window.details==='function')window.details(item);});
+      button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();window.zeroOpenDetails?.(item);});
       rail.appendChild(button);
     });
     section.appendChild(rail);return section;
@@ -136,7 +136,9 @@
   async function ensureTop10(){
     if(document.documentElement.dataset.section&&document.documentElement.dataset.section!=='Home')return;
     const hero=document.querySelector('#hero');if(!hero)return;
-    const state=await snapshot(),region=state?.settings?.region||'PH';
+    const state=await snapshot(),region=state?.settings?.region||'PH',panels=state?.settings?.homePanels;
+    const enabled=Array.isArray(panels)&&panels.includes('top10')||((!Array.isArray(panels)||!panels.includes('top10'))&&localStorage.getItem('zeroplay-top10-optout')!=='1');
+    if(!enabled){document.querySelector('.zero-top10')?.remove();return;}
     let items=topCache.get(region);
     if(!items){
       try{const data=await window.zero.api('/trending/all/day');items=(data?.results||[]).map(normalize).filter(item=>item&&item.poster).slice(0,10);topCache.set(region,items);}catch{items=[];}
@@ -175,6 +177,10 @@
     const input=event.target;
     if(input?.matches?.('#home-panels input[value="upcoming"]')){
       if(input.checked)localStorage.setItem('zeroplay-coming-soon-optin','1');else localStorage.removeItem('zeroplay-coming-soon-optin');
+      stateCache=null;schedule();
+    }
+    if(input?.matches?.('#home-panels input[value="top10"]')){
+      if(input.checked)localStorage.removeItem('zeroplay-top10-optout');else localStorage.setItem('zeroplay-top10-optout','1');
       stateCache=null;schedule();
     }
   });

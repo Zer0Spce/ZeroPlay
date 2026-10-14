@@ -109,6 +109,7 @@ public class PresentationMainActivity extends CategoryMainActivity {
     /** Keep the Top 10 row directly beneath the featured hero on phone and TV. */
     @Override void renderHome22(List<Catalog.Item> rows,int token){
         super.renderHome22(rows,token);
+        if(!homePanel("top10"))return;
         LinearLayout host=contentHost();if(host==null)return;
         String region=getSharedPreferences("zero",MODE_PRIVATE).getString("providerRegion","PH");
         List<Catalog.Item> cached=topTodayCache.get(region);

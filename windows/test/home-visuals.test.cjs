@@ -20,6 +20,8 @@ test('Windows home loads official title art and ranked posters',()=>{
   assert.match(js,/append_to_response:'images'/);
   assert.match(js,/\/trending\/all\/day/);
   assert.match(js,/TOP 10 TODAY IN/);
+  assert.match(js,/zeroplay-top10-optout/);
+  assert.match(js,/zeroOpenDetails/);
   assert.match(js,/coming soon/i);
   assert.match(css,/-webkit-text-stroke/);
   assert.match(css,/zero-hero-title-art/);
