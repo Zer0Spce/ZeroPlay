@@ -20,15 +20,15 @@ test('Android TV launchers use the system-only TV Search handoff',()=>{
 
 test('TV Search never renders a ZeroPlay keyboard and delegates to Android IMEs',()=>{
   for(const marker of [
-    'Settings.Secure.DEFAULT_INPUT_METHOD',
-    'getEnabledInputMethodList()',
+    'tvSystemImePicker214',
+    'if(!pickerSeen)',
     'showInputMethodPicker',
     'showSoftInput(field,InputMethodManager.SHOW_IMPLICIT)',
     'setShowSoftInputOnFocus(true)',
     'hideSoftInputFromWindow',
     'Choose your Android TV keyboard'
   ]) assert.ok(bridge.includes(marker),`Missing system IME marker: ${marker}`);
-  assert.doesNotMatch(bridge,/new Dialog\(|new Button\(|QWERTYUIOP|1234567890|showZeroPlayKeyboard/);
+  assert.doesNotMatch(bridge,/new Dialog\(|new Button\(|QWERTYUIOP|1234567890|showZeroPlayKeyboard|DEFAULT_INPUT_METHOD|getEnabledInputMethodList/);
   assert.equal(fs.existsSync('app/src/main/java/com/zerostreams/app/TvSearchIme.java'),false);
 });
 
