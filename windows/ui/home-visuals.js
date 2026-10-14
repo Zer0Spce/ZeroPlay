@@ -67,17 +67,66 @@
     }catch{apply('');}
   }
 
+  function installRailScrolling(rail){
+    rail.tabIndex=-1;
+    rail.addEventListener('wheel',event=>{
+      if(rail.scrollWidth<=rail.clientWidth)return;
+      const amount=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;
+      if(!amount)return;
+      event.preventDefault();
+      rail.scrollBy({left:amount,behavior:'auto'});
+    },{passive:false});
+
+    let pointerId=null,startX=0,startLeft=0,moved=false;
+    rail.addEventListener('pointerdown',event=>{
+      if(event.pointerType!=='mouse'||event.button!==0)return;
+      pointerId=event.pointerId;startX=event.clientX;startLeft=rail.scrollLeft;moved=false;
+      rail.dataset.dragging='1';
+      try{rail.setPointerCapture(pointerId);}catch{}
+    });
+    rail.addEventListener('pointermove',event=>{
+      if(pointerId!==event.pointerId)return;
+      const distance=event.clientX-startX;
+      if(Math.abs(distance)>5)moved=true;
+      if(moved){event.preventDefault();rail.scrollLeft=startLeft-distance;}
+    });
+    const endDrag=event=>{
+      if(pointerId===null||event.pointerId!==pointerId)return;
+      if(moved)rail.dataset.dragged='1';
+      pointerId=null;delete rail.dataset.dragging;
+      try{rail.releasePointerCapture(event.pointerId);}catch{}
+      if(moved)setTimeout(()=>delete rail.dataset.dragged,80);
+    };
+    rail.addEventListener('pointerup',endDrag);rail.addEventListener('pointercancel',endDrag);
+    rail.addEventListener('click',event=>{if(rail.dataset.dragged==='1'){event.preventDefault();event.stopImmediatePropagation();delete rail.dataset.dragged;}},true);
+
+    rail.addEventListener('focusin',event=>{
+      const card=event.target.closest?.('.zero-top10-card');
+      if(card)card.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+    });
+    rail.addEventListener('keydown',event=>{
+      if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+      const cards=[...rail.querySelectorAll('.zero-top10-card')];
+      const current=event.target.closest?.('.zero-top10-card');
+      const index=cards.indexOf(current);
+      if(index<0)return;
+      const next=index+(event.key==='ArrowRight'?1:-1);
+      if(next<0||next>=cards.length)return;
+      event.preventDefault();cards[next].focus();cards[next].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    });
+  }
+
   function top10Section(items,region){
     const section=document.createElement('section');section.className='row-section zero-top10';section.dataset.zeroTop10='1';
     const head=document.createElement('div');head.className='section-head zero-top10-head';
     const h3=document.createElement('h3');h3.textContent=`TOP 10 TODAY IN ${REGION_NAMES[region]||'PHILIPPINES'}`;head.appendChild(h3);section.appendChild(head);
-    const rail=document.createElement('div');rail.className='zero-top10-rail';
+    const rail=document.createElement('div');rail.className='zero-top10-rail';installRailScrolling(rail);
     items.slice(0,10).forEach((item,index)=>{
       const button=document.createElement('button');button.type='button';button.className='zero-top10-card';button.setAttribute('aria-label',`Number ${index+1}, ${item.title}`);
-      const rank=document.createElement('span');rank.className='zero-top10-rank';rank.textContent=String(index+1);
       const poster=document.createElement('span');poster.className='zero-top10-poster';
       if(item.poster){const img=document.createElement('img');img.loading='lazy';img.decoding='async';img.src=item.poster;img.alt=item.title;poster.appendChild(img);}
-      button.append(rank,poster);
+      const rank=document.createElement('span');rank.className='zero-top10-rank';rank.textContent=String(index+1);
+      button.append(poster,rank);
       button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();if(typeof window.details==='function')window.details(item);});
       rail.appendChild(button);
     });
