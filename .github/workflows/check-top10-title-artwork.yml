@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Prepare 2.2.1 release metadata
         run: python scripts/prepare-2.2.1-release.py
+      - name: Keep committed production workflow
+        run: git restore .github/workflows/release-2.2.1.yml
       - name: Apply final 2.2.1 Top 10 controls
         run: python scripts/finalize-2.2.1-top10.py
       - name: Apply Android TV Top 10 front-rank polish
@@ -56,8 +58,10 @@ jobs:
               windows/ui/app.js \
               windows/ui/home-visuals.js \
               windows/test/home-visuals.test.cjs
-            git commit -m "Prepare ZeroPlay 2.2.1 release candidate"
-            git push origin HEAD:ui/top10-title-artwork
+            if ! git diff --cached --quiet; then
+              git commit -m "Prepare ZeroPlay 2.2.1 release candidate"
+              git push origin HEAD:ui/top10-title-artwork
+            fi
           fi
 
   android:
