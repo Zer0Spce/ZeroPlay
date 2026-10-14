@@ -1,0 +1,137 @@
+/* ZeroPlay Web only — compact mobile top bar and search treatment. */
+@media (max-width:650px){
+  /* Keep the mobile header readable instead of squeezing nav, search and icons together. */
+  aside{
+    height:62px!important;
+    padding:0 10px!important;
+    padding-right:96px!important;
+    gap:6px!important;
+    overflow:visible!important;
+  }
+  aside [data-nav="Movies"],
+  aside [data-nav="Series"],
+  aside [data-nav="Search"],
+  aside [data-nav="Library"]{display:none!important}
+  aside [data-nav="Home"]{
+    flex:0 0 38px!important;
+    width:38px!important;
+    height:38px!important;
+    padding:0!important;
+    justify-content:center!important;
+  }
+  aside [data-nav="Home"] span{display:none!important}
+  .brand{margin-right:auto!important}
+
+  main{padding-top:62px!important}
+  header{
+    position:fixed!important;
+    top:0!important;
+    right:8px!important;
+    left:auto!important;
+    width:82px!important;
+    height:62px!important;
+    min-height:62px!important;
+    padding:0!important;
+    gap:6px!important;
+    z-index:42!important;
+    overflow:visible!important;
+  }
+  header>div,
+  header>[data-action="settings"],
+  header>[data-action="refresh"]{display:none!important}
+  header>[data-action="toggle-theme"]{
+    display:grid!important;
+    place-items:center!important;
+    width:36px!important;
+    height:36px!important;
+    flex:0 0 36px!important;
+  }
+
+  /* Search starts as a clean icon-sized control; tapping it expands below the bar. */
+  #search-form{
+    position:relative!important;
+    flex:0 0 40px!important;
+    width:40px!important;
+    min-width:40px!important;
+    height:40px!important;
+    margin:0!important;
+    padding:0!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    border-radius:12px!important;
+    transition:width .18s ease, left .18s ease, right .18s ease, top .18s ease!important;
+  }
+  #search-form>span{
+    position:absolute!important;
+    left:50%!important;
+    top:50%!important;
+    transform:translate(-50%,-50%)!important;
+    z-index:1!important;
+    pointer-events:none!important;
+  }
+  #query{
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    padding:0!important;
+    opacity:.02!important;
+    cursor:text!important;
+  }
+  #search-form button{display:none!important}
+  #search-form:focus-within{
+    position:fixed!important;
+    top:68px!important;
+    left:10px!important;
+    right:10px!important;
+    width:auto!important;
+    min-width:0!important;
+    height:46px!important;
+    padding:4px 10px 4px 38px!important;
+    justify-content:flex-start!important;
+    overflow:visible!important;
+    z-index:70!important;
+    box-shadow:0 16px 42px rgba(0,0,0,.42)!important;
+  }
+  #search-form:focus-within>span{
+    left:18px!important;
+    transform:translateY(-50%)!important;
+  }
+  #search-form:focus-within #query{
+    opacity:1!important;
+    padding:8px 4px!important;
+    font-size:15px!important;
+  }
+  #content{padding-top:12px!important}
+}
+
+/* Numbered Top 10 shelf added to the website homepage. */
+.web-top10-row .cards{gap:18px!important}
+.web-top10-card{
+  flex:0 0 clamp(172px,14vw,220px)!important;
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr)!important;
+  align-items:end!important;
+  gap:0!important;
+  text-align:left!important;
+}
+.web-top10-number{
+  position:relative!important;
+  z-index:2!important;
+  margin-right:-13px!important;
+  margin-bottom:34px!important;
+  font-size:clamp(72px,7vw,104px)!important;
+  line-height:.72!important;
+  font-weight:950!important;
+  letter-spacing:-.09em!important;
+  color:var(--zp-bg,#070a0d)!important;
+  -webkit-text-stroke:2px rgba(255,255,255,.78)!important;
+  text-shadow:0 7px 20px rgba(0,0,0,.46)!important;
+  pointer-events:none!important;
+}
+.web-top10-poster{min-width:0!important}
+.web-top10-poster img,.web-top10-poster .poster-empty{width:100%!important;aspect-ratio:2/3!important;object-fit:cover!important;border-radius:11px!important}
+.web-top10-poster .card-title{display:block!important}
+@media(max-width:650px){
+  .web-top10-card{flex-basis:156px!important;grid-template-columns:48px minmax(0,1fr)!important}
+  .web-top10-number{font-size:68px!important;margin-right:-11px!important;margin-bottom:31px!important}
+}
