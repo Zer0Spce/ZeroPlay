@@ -11,19 +11,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Apply final 2.2.1 Top 10 controls
+        run: python scripts/finalize-2.2.1-top10.py
       - name: Apply Android TV Top 10 front-rank polish
         run: python scripts/fix-android-tv-top10-front-ranks.py
       - name: Check patch quality
         run: git diff --check
-      - name: Verify curated rows and front-layer TV ranks
+      - name: Verify curated rows, Top 10 toggle and Windows card interaction
         shell: bash
         run: |
           grep -F 'private static double curationNoise(Catalog.Item item,long bucket)' app/src/main/java/com/zerostreams/app/Zero22.java
+          grep -F 'if(!homePanel("top10"))return;' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F '"Top 10 today"' app/src/main/java/com/zerostreams/app/HomePanels.java
           grep -F 'int rankWidth=BuildConfig.TV?156:70' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
           grep -F 'overlap=BuildConfig.TV?132:58' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
           grep -F 'tile.addView(poster,pp);tile.addView(number,np)' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
           grep -F 'paint.setTextScaleX(BuildConfig.TV?.88f:1f)' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
           grep -F 'fill.setColor(Color.rgb(238,240,243))' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
+          grep -F "['top10','Top 10 today']" windows/ui/app.js
+          grep -F 'window.zeroOpenDetails=async item' windows/ui/app.js
+          grep -F 'zeroplay-top10-optout' windows/ui/home-visuals.js
+          grep -F 'window.zeroOpenDetails?.(item)' windows/ui/home-visuals.js
           grep -F 'function zeroCurationMovies()' windows/ui/app.js
           grep -F 'curatedMovies=zeroCurationMovies(),hidden=zeroHiddenGems(curatedMovies),tonight=zeroTonight(curatedMovies)' windows/ui/app.js
           grep -F 'function zeroCurationMovies()' web/public/zero22.js
@@ -31,11 +39,18 @@ jobs:
       - name: Persist preview source fixes
         shell: bash
         run: |
-          if ! git diff --quiet -- app/src/main/java/com/zerostreams/app/PresentationMainActivity.java; then
+          if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
-            git commit -m "Preview: refine Android TV Top 10 rank overlap"
+            git add \
+              app/src/main/java/com/zerostreams/app/HomePanels.java \
+              app/src/main/java/com/zerostreams/app/PresentationMainActivity.java \
+              app/src/test/java/com/zerostreams/app/HomePanelsTest.java \
+              windows/main.cjs \
+              windows/ui/app.js \
+              windows/ui/home-visuals.js \
+              windows/test/home-visuals.test.cjs
+            git commit -m "Preview: finalize Top 10 controls for 2.2.1"
             git push origin HEAD:ui/top10-title-artwork
           fi
 
@@ -48,15 +63,18 @@ jobs:
       OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+      - name: Apply final 2.2.1 Top 10 controls
+        run: python scripts/finalize-2.2.1-top10.py
       - name: Apply Android TV Top 10 front-rank polish
         run: python scripts/fix-android-tv-top10-front-ranks.py
-      - name: Verify Android mobile and TV episode memory
+      - name: Verify Android mobile and TV final home state
         shell: bash
         run: |
           grep -F 'rememberedSeason=prefs.getInt("resumeSeason:"+item.id,-1)' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -F 'rememberedEpisode=season==prefs.getInt("resumeSeason:"+item.id,-1)?prefs.getInt("resumeEpisode:"+item.id,0):0' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -F 'setSingleChoiceItems(labels,preferredSeason' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -F 'setSingleChoiceItems(labels,preferredEpisode' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -F 'if(!homePanel("top10"))return;' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
           grep -F 'rankWidth=BuildConfig.TV?156:70' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
           grep -F 'overlap=BuildConfig.TV?132:58' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
           grep -F 'paint.setTextScaleX(BuildConfig.TV?.88f:1f)' app/src/main/java/com/zerostreams/app/PresentationMainActivity.java
@@ -96,6 +114,9 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
+      - name: Apply final 2.2.1 Top 10 controls
+        working-directory: ${{ github.workspace }}
+        run: python scripts/finalize-2.2.1-top10.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
