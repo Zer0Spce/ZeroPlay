@@ -52,10 +52,19 @@ jobs:
           grep -q 'TvSystemIme.open(this)' app/src/main/java/com/zerostreams/app/LiteTvMainActivity.java
           test -f app/src/main/java/com/zerostreams/app/TvSystemIme.java
           test ! -e app/src/main/java/com/zerostreams/app/TvSearchIme.java
+          grep -q 'tvSystemImePicker214' app/src/main/java/com/zerostreams/app/TvSystemIme.java
+          grep -q 'if(!pickerSeen)' app/src/main/java/com/zerostreams/app/TvSystemIme.java
           grep -q 'showInputMethodPicker' app/src/main/java/com/zerostreams/app/TvSystemIme.java
-          grep -q 'Settings.Secure.DEFAULT_INPUT_METHOD' app/src/main/java/com/zerostreams/app/TvSystemIme.java
+          grep -q 'showSoftInput(field,InputMethodManager.SHOW_IMPLICIT)' app/src/main/java/com/zerostreams/app/TvSystemIme.java
           ! grep -q 'new Dialog' app/src/main/java/com/zerostreams/app/TvSystemIme.java
           ! grep -q 'QWERTYUIOP' app/src/main/java/com/zerostreams/app/TvSystemIme.java
+          grep -q "implementation 'com.google.zxing:core:3.5.3'" app/build.gradle
+
+      - name: Refresh Android dependencies
+        run: |
+          set -euo pipefail
+          gradle --refresh-dependencies :app:dependencies --configuration mobileReleaseCompileClasspath >/tmp/zeroplay-dependencies.txt
+          grep -q 'com.google.zxing:core:3.5.3' /tmp/zeroplay-dependencies.txt
 
       - name: Android and TV regressions
         run: |
@@ -131,38 +140,19 @@ jobs:
         with:
           name: ZeroPlay-2.2.1.4-Android-Production
           path: release-assets
-
       - name: Final Android asset and credential audit
         run: |
           set -euo pipefail
-          for file in ZeroPlay-2.2.1.4-Android.apk ZeroPlay-2.2.1.4-Android-TV.apk ZeroPlay-2.2.1.4-Android-Lite.apk ZeroPlay-2.2.1.4-Android-TV-Lite.apk; do
-            test -f "release-assets/$file"
-          done
+          for file in ZeroPlay-2.2.1.4-Android.apk ZeroPlay-2.2.1.4-Android-TV.apk ZeroPlay-2.2.1.4-Android-Lite.apk ZeroPlay-2.2.1.4-Android-TV-Lite.apk; do test -f "release-assets/$file"; done
           python scripts/audit-release-secrets.py release-assets
-
       - name: Generate SHA-256 checksums
         run: |
-          set -euo pipefail
           cd release-assets
           sha256sum ZeroPlay-2.2.1.4-Android.apk ZeroPlay-2.2.1.4-Android-TV.apk ZeroPlay-2.2.1.4-Android-Lite.apk ZeroPlay-2.2.1.4-Android-TV-Lite.apk > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v2.2.1.4 >/dev/null 2>&1; then
-            echo 'v2.2.1.4 already exists; refusing to overwrite an existing production release.'
-            exit 1
-          fi
-          gh release create v2.2.1.4 \
-            release-assets/ZeroPlay-2.2.1.4-Android.apk \
-            release-assets/ZeroPlay-2.2.1.4-Android-TV.apk \
-            release-assets/ZeroPlay-2.2.1.4-Android-Lite.apk \
-            release-assets/ZeroPlay-2.2.1.4-Android-TV-Lite.apk \
-            release-assets/SHA256SUMS.txt \
-            --target "$GITHUB_SHA" \
-            --title 'ZeroPlay 2.2.1.4 — Android TV System Keyboard Hotfix' \
-            --notes-file docs/release-2.2.1.4.md \
-            --latest
+          if gh release view v2.2.1.4 >/dev/null 2>&1; then echo 'v2.2.1.4 already exists'; exit 1; fi
+          gh release create v2.2.1.4 release-assets/ZeroPlay-2.2.1.4-Android.apk release-assets/ZeroPlay-2.2.1.4-Android-TV.apk release-assets/ZeroPlay-2.2.1.4-Android-Lite.apk release-assets/ZeroPlay-2.2.1.4-Android-TV-Lite.apk release-assets/SHA256SUMS.txt --target "$GITHUB_SHA" --title 'ZeroPlay 2.2.1.4 — Android TV System Keyboard Hotfix' --notes-file docs/release-2.2.1.4.md --latest
