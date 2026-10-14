@@ -28,3 +28,5 @@ The release contains:
 - SHA-256 checksums
 
 Windows and Web are not rebuilt or republished by this hotfix.
+
+Production candidate finalized for the 2.2.1.4 Android-only release.
