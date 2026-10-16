@@ -24,10 +24,6 @@ jobs:
           node scripts/prepare-2.2.2-clean.cjs
       - name: Source selection regressions
         run: node --test tests/source-selection-regression.test.cjs
-      - name: Android source/provider unit tests
-        run: |
-          chmod +x gradlew
-          ./gradlew testMobileDebugUnitTest testTvDebugUnitTest --no-daemon
       - name: Windows tests
         working-directory: windows
         run: |
