@@ -1,4 +1,0 @@
-ZeroPlay v2.2.2 production release trigger.
-
-Prepared source: aab0d2a63019e531cd98a14d4b3f01fa9a92eb0c
-Includes VidStuck domain migration, ZXCStream (Beta), and restored global default video source behavior.

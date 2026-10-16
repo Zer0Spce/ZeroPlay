@@ -3,8 +3,7 @@ const fs=require('node:fs'),fsp=require('node:fs/promises'),path=require('node:p
 function rootDir(){if(process.env.ZERO_LAUNCHER_ROOT)return path.resolve(process.env.ZERO_LAUNCHER_ROOT);const exe=path.resolve(process.execPath),parts=exe.split(path.sep),index=parts.lastIndexOf('versions');if(index>0)return parts.slice(0,index).join(path.sep)||path.parse(exe).root;return path.dirname(exe);}
 function pointerPath(){return path.join(rootDir(),'current.json');}
 function readPointer(){try{const value=JSON.parse(fs.readFileSync(pointerPath(),'utf8'));return value&&typeof value==='object'?value:null;}catch{return null;}}
-function versionParts(value){const raw=String(value||'').trim().replace(/^v/i,''),split=raw.split('-',2),parts=split[0].split('.').map(x=>Number(x)||0);if(parts.length===3&&split[1]){const hotfix=split[1].match(/^(?:hotfix[.-]?)?(\d+)$/i);if(hotfix)parts.push(Number(hotfix[1])||0);}return parts;}
-function normalizedVersion(value){const parts=versionParts(value);while(parts.length>1&&parts[parts.length-1]===0)parts.pop();return parts.join('.');}
+function normalizedVersion(value){const parts=String(value||'').trim().replace(/^v/i,'').split('-')[0].split('.').map(x=>Number(x)||0);while(parts.length>1&&parts[parts.length-1]===0)parts.pop();return parts.join('.');}
 function sameVersion(a,b){return normalizedVersion(a)===normalizedVersion(b);}
 function relativeExe(versionDir){return path.relative(rootDir(),path.join(versionDir,'ZeroPlay.exe'));}
 function absoluteSelection(selection){if(!selection?.path)return null;const target=path.resolve(rootDir(),selection.path);if(!target.startsWith(rootDir()+path.sep)&&target!==path.join(rootDir(),'ZeroPlay.exe'))return null;return target;}
@@ -25,4 +24,4 @@ function maybeLaunchCurrent(app){if(!app.isPackaged||process.argv.includes('--sm
   return true;}
 function launchRoot(){const exe=path.join(rootDir(),'ZeroPlay.exe');const child=spawn(exe,[],{cwd:rootDir(),env:{...process.env,ZERO_LAUNCHER_ROOT:rootDir()},detached:true,stdio:'ignore',windowsHide:false});child.unref();return child;}
 async function ensureVersionsDir(){const dir=path.join(rootDir(),'versions');await fsp.mkdir(dir,{recursive:true});return dir;}
-module.exports={rootDir,pointerPath,readPointer,versionParts,normalizedVersion,sameVersion,currentSelection,activate,confirmCurrent,maybeLaunchCurrent,launchRoot,ensureVersionsDir,absoluteSelection};
+module.exports={rootDir,pointerPath,readPointer,normalizedVersion,sameVersion,currentSelection,activate,confirmCurrent,maybeLaunchCurrent,launchRoot,ensureVersionsDir,absoluteSelection};

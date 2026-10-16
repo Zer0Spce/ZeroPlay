@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const overlayIds=['web-player','settings','detail'];
-  const allowedExternalHosts=new Set(['www.youtube.com','www.themoviedb.org','vidstuck.cc','embedwave.cc']);
+  const allowedExternalHosts=new Set(['www.youtube.com','www.themoviedb.org','vidstuck.xyz','embedwave.cc']);
   const allowedPlaybackSources=new Set(['vidstuck','embedwave']);
   let closingFromHistory=false;
 

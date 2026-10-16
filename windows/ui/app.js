@@ -15,7 +15,7 @@ function sortedTitles(items){return [...items].sort((a,b)=>titleSort==='Most pop
 function sortTools(kind,value,options,note=''){return '<label class="sort-tools">Sort <select data-sort="'+kind+'">'+options.map(v=>'<option '+(v===value?'selected':'')+'>'+escape(v)+'</option>').join('')+'</select><small>'+note+'</small></label>';}
 document.addEventListener('change',event=>{const kind=event.target.dataset.sort;if(!kind)return;const value=event.target.value;if(kind==='titles'){titleSort=value;if(category==='Library')renderLibrary();else reorderTitles();}if(kind==='channels'){channelSort=value;renderPlaylist();}if(kind==='sports'){sportsSort=value;renderSports();}});
 function reorderTitles(){const grid=$('#catalog-grid');if(!grid)return;const items=[...loadedKeys].map(id=>titles.get(id)).filter(Boolean);grid.innerHTML=sortedTitles(items).map(item=>card(item)).join('');}
-const sources=[['vidstuck','VidStuck'],['zxcstream','ZXCStream (Beta)'],['embedwave','Embedwave (BETA)'],['vidsrc-sh','VidSrc.sh'],['rawcast','RawCast · Limited quota']];
+const sources=[['vidstuck','VidStuck'],['embedwave','Embedwave (BETA)'],['vidsrc-sh','VidSrc.sh'],['rawcast','RawCast · Limited quota']];
 function sourceOverrides(){try{return JSON.parse(localStorage.getItem('zero-title-sources')||'{}')||{};}catch{return {};}}
 function playbackSourceValid(id){return sources.some(([sourceId])=>sourceId===id);}
 function sourceFor(item){const global=state?.settings?.source;if(!item)return playbackSourceValid(global)?global:'vidstuck';const once=oneTimeSources.get(key(item));if(playbackSourceValid(once))return once;const saved=sourceOverrides()[key(item)];if(playbackSourceValid(saved))return saved;return playbackSourceValid(global)?global:'vidstuck';}

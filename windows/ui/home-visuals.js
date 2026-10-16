@@ -77,36 +77,28 @@
       rail.scrollBy({left:amount,behavior:'auto'});
     },{passive:false});
 
-    // Do not capture the pointer on pointerdown. Chromium/Electron retargets the
-    // resulting click to the rail when the rail owns pointer capture, which made
-    // Top 10 posters look clickable but never open. Capture only after a real drag.
-    let pointerId=null,startX=0,startLeft=0,moved=false,captured=false;
+    let pointerId=null,startX=0,startLeft=0,moved=false;
     rail.addEventListener('pointerdown',event=>{
       if(event.pointerType!=='mouse'||event.button!==0)return;
-      pointerId=event.pointerId;startX=event.clientX;startLeft=rail.scrollLeft;moved=false;captured=false;
+      pointerId=event.pointerId;startX=event.clientX;startLeft=rail.scrollLeft;moved=false;
+      rail.dataset.dragging='1';
+      try{rail.setPointerCapture(pointerId);}catch{}
     });
     rail.addEventListener('pointermove',event=>{
       if(pointerId!==event.pointerId)return;
       const distance=event.clientX-startX;
-      if(!moved&&Math.abs(distance)>6){
-        moved=true;rail.dataset.dragging='1';
-        try{rail.setPointerCapture(pointerId);captured=true;}catch{}
-      }
+      if(Math.abs(distance)>5)moved=true;
       if(moved){event.preventDefault();rail.scrollLeft=startLeft-distance;}
     });
     const endDrag=event=>{
       if(pointerId===null||event.pointerId!==pointerId)return;
       if(moved)rail.dataset.dragged='1';
-      if(captured){try{rail.releasePointerCapture(event.pointerId);}catch{}}
-      pointerId=null;captured=false;delete rail.dataset.dragging;
-      if(moved)setTimeout(()=>delete rail.dataset.dragged,90);
+      pointerId=null;delete rail.dataset.dragging;
+      try{rail.releasePointerCapture(event.pointerId);}catch{}
+      if(moved)setTimeout(()=>delete rail.dataset.dragged,80);
     };
     rail.addEventListener('pointerup',endDrag);rail.addEventListener('pointercancel',endDrag);
-    rail.addEventListener('click',event=>{
-      if(rail.dataset.dragged==='1'){
-        event.preventDefault();event.stopImmediatePropagation();delete rail.dataset.dragged;
-      }
-    },true);
+    rail.addEventListener('click',event=>{if(rail.dataset.dragged==='1'){event.preventDefault();event.stopImmediatePropagation();delete rail.dataset.dragged;}},true);
 
     rail.addEventListener('focusin',event=>{
       const card=event.target.closest?.('.zero-top10-card');
@@ -130,15 +122,12 @@
     const h3=document.createElement('h3');h3.textContent=`TOP 10 TODAY IN ${REGION_NAMES[region]||'PHILIPPINES'}`;head.appendChild(h3);section.appendChild(head);
     const rail=document.createElement('div');rail.className='zero-top10-rail';installRailScrolling(rail);
     items.slice(0,10).forEach((item,index)=>{
-      const button=document.createElement('button');button.type='button';button.className='zero-top10-card';button.dataset.cardKey=refFor(item);button.setAttribute('aria-label',`Number ${index+1}, ${item.title}`);
+      const button=document.createElement('button');button.type='button';button.className='zero-top10-card';button.setAttribute('aria-label',`Number ${index+1}, ${item.title}`);
       const poster=document.createElement('span');poster.className='zero-top10-poster';
       if(item.poster){const img=document.createElement('img');img.loading='lazy';img.decoding='async';img.src=item.poster;img.alt=item.title;poster.appendChild(img);}
       const rank=document.createElement('span');rank.className='zero-top10-rank';rank.textContent=String(index+1);
       button.append(poster,rank);
-      button.addEventListener('click',event=>{
-        event.preventDefault();event.stopPropagation();
-        if(typeof window.zeroOpenDetails==='function')window.zeroOpenDetails(item);
-      });
+      button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();window.zeroOpenDetails?.(item);});
       rail.appendChild(button);
     });
     section.appendChild(rail);return section;

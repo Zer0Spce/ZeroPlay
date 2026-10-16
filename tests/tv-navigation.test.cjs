@@ -5,7 +5,7 @@ const assert=require('node:assert/strict');
 const controller=fs.readFileSync('app/src/main/assets/tv-player-input.js','utf8');
 
 function page(html){
-  const dom=new JSDOM(html,{runScripts:'outside-only',url:'https://vidstuck.cc/embed/movie/299534'});
+  const dom=new JSDOM(html,{runScripts:'outside-only',url:'https://vidstuck.xyz/embed/movie/299534'});
   const w=dom.window;
   w.__zeroTv=true;
   w.HTMLElement.prototype.getBoundingClientRect=function(){

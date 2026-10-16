@@ -33,17 +33,6 @@ test('Windows home loads official title art and ranked posters',()=>{
   assert.match(css,/\.zero-top10-poster img\{[\s\S]*object-fit:cover/);
 });
 
-test('Top 10 poster click is not stolen by horizontal rail pointer capture',()=>{
-  const js=read('ui/home-visuals.js');
-  const down=js.indexOf("rail.addEventListener('pointerdown'");
-  const move=js.indexOf("rail.addEventListener('pointermove'");
-  assert.ok(down>=0&&move>down,'pointer handlers should exist in drag-scroll order');
-  assert.doesNotMatch(js.slice(down,move),/setPointerCapture/,'pointerdown must leave normal card clicks targeted at the poster button');
-  assert.match(js,/Math\.abs\(distance\)>6/,'rail should only enter drag mode after real pointer movement');
-  assert.match(js,/rail\.setPointerCapture\(pointerId\)/,'pointer capture is still used once an actual drag starts');
-  assert.match(js,/typeof window\.zeroOpenDetails==='function'/,'Top 10 card click should open the title details');
-});
-
 test('VidSrc subtitle overlay can close on desktop and Android players',()=>{
   const desktop=read('assets/player-22.js');
   const android=fs.readFileSync(path.resolve(root,'../app/src/main/assets/player-22.js'),'utf8');

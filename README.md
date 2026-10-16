@@ -1,12 +1,12 @@
 <p align="center"><img src="docs/screenshots/2.2/zeroplay-logo.svg" alt="ZeroPlay — white Zero and mint-gradient Play" width="100%"></p>
 
-# 🎬 ZeroPlay 2.2.2
+# 🎬 ZeroPlay 2.2.1
 
 ### Movies. Series. Anime. Live TV. Sports. Your own space to watch.
 
-ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2.2** keeps the polished 2.2.1 experience and refreshes playback sources: VidStuck now uses `vidstuck.cc`, ZXCStream (Beta) is available, and Settings once again controls the default source for all videos.
+ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2.1** keeps the 2.2 foundation and adds **Top 10 Today**, official featured-title artwork, stronger Continue Watching / episode resume behavior, smarter Home curation and player/web polish.
 
-**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2.2 release notes](docs/release-2.2.2.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
+**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2.1 release notes](docs/release-2.2.1.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
 
 > [!IMPORTANT]
 > **Windows 2.0–2.0.3 users: update manually once.** Download the current Windows ZIP, extract it into a fresh folder and launch `ZeroPlay.exe`. Those old versions contain the broken updater. Versions 2.1 and newer include the repaired in-app update flow.
@@ -15,18 +15,18 @@ ZeroPlay brings TMDB discovery, a local library, multiple playback sources and c
 
 | Edition | Download | What you get |
 | --- | --- | --- |
-| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.2/ZeroPlay-2.2.2-Android.apk) | Full phone/tablet presentation and native player core. |
-| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.2/ZeroPlay-2.2.2-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
-| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.2/ZeroPlay-2.2.2-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
-| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.2/ZeroPlay-2.2.2-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
-| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.2/ZeroPlay-2.2.2-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
+| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android.apk) | Full phone/tablet presentation and native player core. |
+| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
+| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
+| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
+| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/ZeroPlay-2.2.1-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
 | ✅ Checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.1/SHA256SUMS.txt) | Verify the published files. |
 
 Android requires Android 6.0 or newer. Full and Lite apps have separate package IDs and can be installed independently. Signed production updates retain the established signing identity for each package.
 
-## ⭐ What’s new in 2.2.2
+## ⭐ What’s new in 2.2.1
 
-**VidStuck → vidstuck.cc · NEW ZXCStream (Beta) · Restored global default video source setting · Provider allowlist/CSP refresh · Existing 2.2.1 player behavior preserved**
+**Top 10 Today · Official carousel title artwork · Last season/episode resume · More reliable Continue Watching · Smarter Tonight’s Picks · Smarter Hidden Gems · Website trailer previews · Deep-link close fixes · VidSrc subtitle-menu close fix · Top 10 Home toggle**
 
 > **Top 10 Today** is enabled by default on Android, Android TV and Windows and can be disabled from Homepage panels / Home customization. **Coming Soon is hidden by default.**
 
@@ -72,7 +72,7 @@ Android requires Android 6.0 or newer. Full and Lite apps have separate package 
 
 ### ▶️ Playback and TV remote controls
 
-- **VidStuck**, **ZXCStream (Beta)**, **Embedwave (BETA)** and **VidSrc.sh** in native apps; optional **RawCast** when enabled and configured. Web offers VidStuck and Embedwave.
+- **VidStuck**, **Embedwave (BETA)** and **VidSrc.sh** in native apps; optional **RawCast** when enabled and configured. Web offers VidStuck and Embedwave.
 - Title-level source selection, saved per-title choices and global preferences.
 - Initial source priority: **one-time title choice → saved title choice → Settings choice → fallback**.
 - Source-health tracking with optional **Automatic Source Recovery**, **OFF by default**.
@@ -146,7 +146,7 @@ Android requires Android 6.0 or newer. Full and Lite apps have separate package 
 ### 🌐 Website-specific features
 
 - Movies/Series discovery, filters, profiles/person discovery, recommendations and episode-calendar helpers.
-- VidStuck, **ZXCStream (Beta)** and **Embedwave (BETA)** source selection.
+- VidStuck and **Embedwave (BETA)** source selection.
 - Continuous pagination with retry, deduplication, end-of-results handling and improved tab/scroll restoration.
 - Single-bar website navigation plus muted hero trailer autoplay previews with an audio toggle and artwork fallback.
 - Shared/deep movie and series links close cleanly instead of immediately reopening their detail dialog.

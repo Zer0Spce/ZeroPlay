@@ -1,1 +1,0 @@
-ZeroPlay v2.2.2 final production release trigger after aligning stale website regression assertions with the current 2.2.1/2.2.2 web implementation.
