@@ -30,6 +30,13 @@ jobs:
           test('Trusted playback domains cannot be extended and progress retains title identity',()=>{assert.equal(sources.trusted('https://vidsrc.sh.attacker.example/'),false);assert.equal(sources.trusted('http://vidsrc.sh/'),false);assert.equal(sources.trusted('https://embedwave.cc/embed/movie/1'),true);assert.equal(sources.trusted('https://zxcstream.cc/player/movie/1'),true);assert.deepEqual(sources.normalize({type:'PLAYER_EVENT',data:{player_info:{tmdb:299534,mediaType:'movie'},player_progress:120,player_duration:7200}}),{id:299534,type:'movie',timestamp:120,duration:7200,season:undefined,episode:undefined});assert.equal(sources.normalize({type:'PLAYER_EVENT',data:{player_info:{imdb:'tt123'}}}),null);});
           test('RawCast requires secure API resolution instead of an embed URL',()=>{assert.ok(sources.sources.find(p=>p.id==='rawcast').name.includes('Limited'));assert.throws(()=>sources.url({id:550,type:'movie'},{},'rawcast'),/secure API/);});
           EOF
+          node <<'NODE'
+          const fs=require('fs');const p='web/test/web-surface.test.cjs';let s=fs.readFileSync(p,'utf8');
+          s=s.replace("test('website is labeled as ZeroPlay 2.2 Web'","test('website is labeled as ZeroPlay 2.2.2 Web'");
+          s=s.replace("assert.match(browser,/version:'2\\.2 Web'/);","assert.match(browser,/version:'2\\.2\\.2 Web'/);");
+          s=s.replace("assert.match(sw,/zeroplay-web-2\\.2-shell-20261014d/);","assert.match(sw,/zeroplay-web-2\\.2\\.2/);");
+          fs.writeFileSync(p,s);
+          NODE
       - name: Source selection regressions
         run: node --test tests/source-selection-regression.test.cjs
       - name: Windows tests
