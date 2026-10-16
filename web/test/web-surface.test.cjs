@@ -46,8 +46,9 @@ test('shared movie and TV details stay closed after dismissal',()=>{
   assert.match(html,/web-router\.js\?v=20261014d/);
   assert.match(router,/clearDetailRoute/);
   assert.match(router,/history\.replaceState/);
-  assert.match(router,/detail\.addEventListener\('close'/);
-  assert.doesNotMatch(router,/window\.addEventListener\('popstate'/);
+  assert.match(router,/detail\?\.addEventListener\('close'/);
+  assert.match(router,/window\.addEventListener\('popstate'/);
+  assert.match(router,/suppressReopen/);
   assert.doesNotMatch(router,/async function loadTitle/);
   assert.doesNotMatch(router,/history\.pushState/);
   assert.match(enhancements,/window\.addEventListener\('popstate'/);
@@ -61,15 +62,16 @@ test('website header is collapsed to one bar',()=>{
   const html=read('web/public/index.html');
   const css=read('web/public/singlebar.css');
   assert.match(html,/singlebar\.css\?v=20261014d/);
-  assert.match(css,/--topbar-h:72px/);
-  assert.match(css,/header>div:first-child\{display:none!important\}/);
+  assert.match(css,/aside\{[\s\S]*height:72px!important/);
+  assert.match(css,/header\{[\s\S]*height:72px!important/);
+  assert.match(css,/header>div\{display:none!important\}/);
 });
 
 test('homepage hero loads trailer previews and official title artwork',()=>{
   const html=read('web/public/index.html');
   const trailer=read('web/public/hero-trailer.js');
   assert.match(html,/hero-trailer\.js\?v=20261014d/);
-  assert.match(trailer,/youtube-nocookie\.com/);
+  assert.match(trailer,/www\.youtube\.com\/embed/);
   assert.match(trailer,/include_image_language/);
   assert.match(trailer,/file_path/);
 });
