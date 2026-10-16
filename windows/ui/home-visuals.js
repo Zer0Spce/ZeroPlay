@@ -81,13 +81,15 @@
     rail.addEventListener('pointerdown',event=>{
       if(event.pointerType!=='mouse'||event.button!==0)return;
       pointerId=event.pointerId;startX=event.clientX;startLeft=rail.scrollLeft;moved=false;
-      rail.dataset.dragging='1';
-      try{rail.setPointerCapture(pointerId);}catch{}
     });
     rail.addEventListener('pointermove',event=>{
       if(pointerId!==event.pointerId)return;
       const distance=event.clientX-startX;
-      if(Math.abs(distance)>5)moved=true;
+      if(!moved&&Math.abs(distance)>5){
+        moved=true;
+        rail.dataset.dragging='1';
+        try{rail.setPointerCapture(pointerId);}catch{}
+      }
       if(moved){event.preventDefault();rail.scrollLeft=startLeft-distance;}
     });
     const endDrag=event=>{
