@@ -22,9 +22,9 @@
     }catch{}
   }
   async function prewarmCompat(){
-    // Keep the 2.2.2 catalog bridge immutable. New 2.3 recommendation data is
-    // translated through routes the existing allowlist already accepts, then
-    // stored under the 2.3 cache key before the enhancement core reads it.
+    // Catalog allowlist frozen: keep the 2.2.2 bridge immutable. New 2.3
+    // recommendation data is translated through routes that bridge already
+    // accepts, then stored under the 2.3 cache key before the core reads it.
     try{
       const state=stateFn?await stateFn():{};
       const positions=Object.values(state?.positions||{}).filter(x=>x&&x.id).sort((a,b)=>(b.at||0)-(a.at||0));
