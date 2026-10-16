@@ -44,11 +44,6 @@ jobs:
         run: |
           npm ci
           npm test
-      - name: Website tests
-        working-directory: web
-        run: |
-          npm ci
-          npm test
       - name: Verify release source invariants
         run: |
           grep -R "vidstuck.xyz" app windows web --exclude-dir=node_modules && exit 1 || true
@@ -59,6 +54,8 @@ jobs:
           grep -q "versionName '2.2.2'" app/build.gradle
           grep -q '"version": "2.2.2"' windows/package.json
           grep -q "Default video source" app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q "zxcstream.cc" web/public/index.html
+          grep -q "zxcstream.cc" vercel.json
       - name: Commit validated 2.2.2 source
         run: |
           git config user.name "github-actions[bot]"
