@@ -19,7 +19,9 @@ jobs:
         with:
           node-version: 22
       - name: Apply clean 2.2.2 source update
-        run: node scripts/prepare-2.2.2-clean.cjs
+        run: |
+          sed -i "/replaceAll('app\/src\/main\/assets\/player-guard.js'/d" scripts/prepare-2.2.2-clean.cjs
+          node scripts/prepare-2.2.2-clean.cjs
       - name: Source selection regressions
         run: node --test tests/source-selection-regression.test.cjs
       - name: Android source/provider unit tests
