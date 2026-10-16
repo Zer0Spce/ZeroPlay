@@ -21,7 +21,7 @@ final class AdBlockRules {
 
     /** Provider/player/CDN hosts protected from future filtering mistakes. */
     private static final String[] PROVIDER_ALLOWLIST={
-        "vidstuck.xyz", "vidsrc.sh",
+        "vidstuck.cc", "zxcstream.cc", "embedwave.cc", "vidsrc.sh",
         "cloudflarestream.com", "videodelivery.net",
         "cloudfront.net", "akamaized.net", "akamaihd.net", "fastly.net",
         "b-cdn.net", "cdn77.org", "googlevideo.com", "r2.dev",

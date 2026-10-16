@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const guard = fs.readFileSync(process.env.ZERO_GUARD_PATH || 'qr-ad-filter.js', 'utf8');
 const creative = '<h2>Confirm you\'re not a robot</h2><canvas width="420" height="420"></canvas><span style="border-radius:50%">21</span>';
 function page(html, tv = false, gain = 1, setup = () => {}) {
-  const dom = new JSDOM(html, {runScripts: 'outside-only', url: 'https://vidstuck.xyz/embed/movie/299534'});
+  const dom = new JSDOM(html, {runScripts: 'outside-only', url: 'https://vidstuck.cc/embed/movie/299534'});
   const w = dom.window;
   w.HTMLElement.prototype.getBoundingClientRect = function () {
     return this.dataset.large ? {width:1024,height:768,bottom:768} : {width:Number(this.getAttribute('width'))||0,height:Number(this.getAttribute('height'))||0,bottom:0};
@@ -36,7 +36,7 @@ async function run() {
   assert.equal(dom.window.document.getElementById('movie').style.display,'');dom.window.close();
   dom=page('<video></video><div id="shadow-host"></div>',false,1,w=>{w.document.getElementById('shadow-host').attachShadow({mode:'open'}).innerHTML='<div id="shadow-ad" data-large="1" style="position:fixed;background:#111"><h2>Confirm you\'re not a robot</h2><canvas width="80" height="80"></canvas><span>20</span><button>×</button></div>';});
   assert.equal(dom.window.document.getElementById('shadow-host').shadowRoot.getElementById('shadow-ad').style.display,'none','Timed shadow creative is inspected');dom.window.close();
-  dom=page('<video id="movie"></video><aside id="banner" class="ad-banner"><a href="https://ads.example/">Advertisement</a></aside><div id="slot" data-ad-slot="123"><img width="300" height="60"></div><div id="popup" class="ad-popup"><button>Close</button>Sponsored offer</div><div id="protected" class="ad-container"><video></video></div><div id="frame" class="ad-container"><iframe src="https://vidstuck.xyz/embed/movie/1"></iframe></div>');
+  dom=page('<video id="movie"></video><aside id="banner" class="ad-banner"><a href="https://ads.example/">Advertisement</a></aside><div id="slot" data-ad-slot="123"><img width="300" height="60"></div><div id="popup" class="ad-popup"><button>Close</button>Sponsored offer</div><div id="protected" class="ad-container"><video></video></div><div id="frame" class="ad-container"><iframe src="https://vidstuck.cc/embed/movie/1"></iframe></div>');
   for(const id of ['banner','slot','popup'])assert.equal(dom.window.document.getElementById(id).style.display,'none',id+' ad is hidden');
   for(const id of ['movie','protected','frame'])assert.equal(dom.window.document.getElementById(id).style.display,'',id+' playback is preserved');dom.window.close();
   dom=page('<div class="ad-overlay" id="verification"><input type="checkbox">Verify</div>');assert.equal(dom.window.document.getElementById('verification').style.display,'');dom.window.close();
@@ -58,7 +58,7 @@ async function run() {
   await Promise.resolve();
   assert.equal(graphs,0,'Non-CORS streams must retain their original audio path');
   dom.window.close();
-  dom = page('<video></video>', false, 2, audioSetup('blob:https://vidstuck.xyz/video'));
+  dom = page('<video></video>', false, 2, audioSetup('blob:https://vidstuck.cc/video'));
   await Promise.resolve();
   assert.equal(graphs,1);
   assert.equal(gainValue,2);
@@ -69,7 +69,7 @@ async function run() {
   dom = page('<div id="check" data-large="1" style="background:white">'+creative+'<iframe src="https://challenges.cloudflare.com/turnstile"></iframe></div>');
   assert.equal(dom.window.document.getElementById('check').style.display, '');
   dom.window.close();
-  dom = page('<iframe id="ad" src="https://unswung.gurlleviter.cyou/ad"></iframe><iframe id="player" src="https://vidstuck.xyz/embed/movie/299534"></iframe>');
+  dom = page('<iframe id="ad" src="https://unswung.gurlleviter.cyou/ad"></iframe><iframe id="player" src="https://vidstuck.cc/embed/movie/299534"></iframe>');
   assert.equal(dom.window.document.getElementById('ad').style.display, 'none');
   assert.equal(dom.window.document.getElementById('player').style.display, '');
   dom.window.close();

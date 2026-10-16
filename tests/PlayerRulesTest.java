@@ -9,8 +9,8 @@ public class PlayerRulesTest {
         check(AdBlockRules.blocks("GURLLEVITER.CYOU."));
         check(!AdBlockRules.blocks("notgurlleviter.cyou"));
         check(!AdBlockRules.blocks("gurlleviter.cyou.example.com"));
-        check(!AdBlockRules.blocks("vidstuck.xyz"));
-        check(!AdBlockRules.blocks("media.vidstuck.xyz"));
+        check(!AdBlockRules.blocks("vidstuck.cc"));
+        check(!AdBlockRules.blocks("media.vidstuck.cc"));
         check(!AdBlockRules.blocks("cdn.cloudflarestream.com"));
         check(!AdBlockRules.blocks("challenges.cloudflare.com"));
         check(AdBlockRules.blocks("POPADS.NET."));
