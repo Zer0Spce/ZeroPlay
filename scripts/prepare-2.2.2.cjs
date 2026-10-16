@@ -17,7 +17,7 @@ for(const base of ['app','windows','web','tests','README.md','docs','vercel.json
 // Android provider registry + ZXCStream embed URL.
 {
   const p='app/src/main/java/com/zerostreams/app/PlaybackSources.java';let s=read(p);
-  repLocal=(from,to)=>{must(s,from,p);s=s.replace(from,to);};
+  const repLocal=(from,to)=>{must(s,from,p);s=s.replace(from,to);};
   repLocal('static final String[] IDS={"vidstuck","embedwave","vidsrc-sh","rawcast"};','static final String[] IDS={"vidstuck","zxcstream","embedwave","vidsrc-sh","rawcast"};');
   repLocal('static final String[] NAMES={"VidStuck","Embedwave (BETA)","VidSrc.sh","RawCast · Limited API quota"};','static final String[] NAMES={"VidStuck","ZXCStream (Beta)","Embedwave (BETA)","VidSrc.sh","RawCast · Limited API quota"};');
   repLocal('static final String[] ORIGINS={"https://vidstuck.cc","https://embedwave.cc","https://vidsrc.sh"};','static final String[] ORIGINS={"https://vidstuck.cc","https://zxcstream.cc","https://embedwave.cc","https://vidsrc.sh"};');
