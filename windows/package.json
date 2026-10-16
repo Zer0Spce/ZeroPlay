@@ -1,6 +1,6 @@
 {
   "name": "zerostreams-windows",
-  "version": "2.2.1-1",
+  "version": "2.2.2",
   "description": "ZeroPlay movies, series, Live TV and Live Sports with enhanced discovery, playback reliability and performance",
   "author": "ZeroPlay",
   "private": true,
@@ -25,7 +25,7 @@
   "build": {
     "appId": "com.zerostreams.windows",
     "productName": "ZeroPlay",
-    "buildVersion": "2.2.1.1",
+    "buildVersion": "2.2.2",
     "directories": {
       "output": "dist"
     },
@@ -39,7 +39,7 @@
       "target": [
         "zip"
       ],
-      "artifactName": "ZeroPlay-2.2.1.1-Windows-x64.${ext}",
+      "artifactName": "ZeroPlay-2.2.2-Windows-x64.${ext}",
       "icon": "assets/icon.ico"
     },
     "asar": true,

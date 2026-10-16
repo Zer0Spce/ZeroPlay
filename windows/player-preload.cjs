@@ -1,5 +1,5 @@
 const {ipcRenderer}=require('electron');
-const origins=new Set(['https://vidstuck.xyz','https://vidsrc.sh']);
+const origins=new Set(['https://vidstuck.cc','https://vidsrc.sh']);
 window.addEventListener('message',event=>{
   if(!origins.has(event.origin))return;
   try{const data=typeof event.data==='string'?JSON.parse(event.data):event.data;
