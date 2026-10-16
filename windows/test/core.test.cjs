@@ -7,7 +7,7 @@ test('VidStuck movie/TV URLs use TMDB IDs and valid resume positions',()=>{
 test('QR ad rules use a versioned allowlist plus exact learned quarantine',()=>{
   assert.match(core.RULESET_VERSION,/^2\.0-known-good/);
   assert.equal(core.blocked('UNSWUNG.gurlleviter.cyou.'),true);assert.equal(core.blocked('gurlleviter.cyou.attacker.example'),false);assert.equal(core.blocked('notdoubleclick.net'),false);
-  assert.equal(core.providerAllowed('vidstuck.xyz'),true);assert.equal(core.providerAllowed('media.vidstuck.xyz'),true);assert.equal(core.providerAllowed('cdn.cloudflarestream.com'),true);assert.equal(core.blocked('cdn.cloudflarestream.com'),false);
+  assert.equal(core.providerAllowed('vidstuck.cc'),true);assert.equal(core.providerAllowed('media.vidstuck.cc'),true);assert.equal(core.providerAllowed('cdn.cloudflarestream.com'),true);assert.equal(core.blocked('cdn.cloudflarestream.com'),false);
   assert.equal(core.adQr('https://unswung.gurlleviter.cyou/ri/123?uuid=01234567-89ab-cdef-0123-456789abcdef'),true);assert.equal(core.adQr('https://challenges.cloudflare.com/check'),false);
   assert.equal(core.learnAdHost('fresh-ad.example','test-confirmed'),true);assert.equal(core.blocked('fresh-ad.example'),true);assert.equal(core.blocked('sub.fresh-ad.example'),false);
 });
