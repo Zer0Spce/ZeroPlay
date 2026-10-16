@@ -24,17 +24,39 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Normalize current Windows source menu
+      - name: Normalize current 2.2.1 source UI for migration
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
+
           p=Path('windows/ui/index.html')
           s=p.read_text()
           old='<option value="vidstuck">VidStuck · Recommended</option><option value="vidsrc-sh">VidSrc.sh</option>'
           new='<option value="vidstuck">VidStuck · Recommended</option><option value="embedwave">Embedwave (BETA)</option><option value="vidsrc-sh">VidSrc.sh</option>'
           if old in s:
-              s=s.replace(old,new,1)
+              p.write_text(s.replace(old,new,1))
+
+          # Current 2.2.1 already passes sourceFor(item) into the player. Preserve
+          # that working behavior; only extend its registry with ZXCStream.
+          p=Path('windows/ui/app.js')
+          s=p.read_text()
+          old="const sources=[['vidstuck','VidStuck'],['embedwave','Embedwave (BETA)'],['vidsrc-sh','VidSrc.sh'],['rawcast','RawCast · Limited quota']];"
+          new="const sources=[['vidstuck','VidStuck'],['zxcstream','ZXCStream (Beta)'],['embedwave','Embedwave (BETA)'],['vidsrc-sh','VidSrc.sh'],['rawcast','RawCast · Limited quota']];"
+          if old in s:
+              p.write_text(s.replace(old,new,1))
+
+          # Remove the obsolete Windows play() rewrite from the migration script.
+          p=Path('scripts/prepare-2.2.2.cjs')
+          s=p.read_text()
+          start=s.find('  const old="async function play(item,ep)')
+          if start >= 0:
+              end=s.find('write(p,s);',start)
+              if end < 0:
+                  raise SystemExit('Could not locate end of obsolete Windows play rewrite')
+              end += len('write(p,s);')
+              replacement="  must(s,\"const source=sourceFor(item);\",p);write(p,s);"
+              s=s[:start]+replacement+s[end:]
               p.write_text(s)
           PY
       - name: Apply 2.2.2 provider and default-source changes
@@ -55,6 +77,8 @@ jobs:
           grep -q 'zxcstream.cc' app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java
           grep -q 'Default video source' app/src/main/java/com/zerostreams/app/MainActivity.java
           grep -q 'ZXCStream (Beta)' windows/ui/index.html
+          grep -q "\['zxcstream','ZXCStream (Beta)'\]" windows/ui/app.js
+          grep -q 'const source=sourceFor(item)' windows/ui/app.js
           grep -q 'zxcstream.cc' web/public/playback-sources.js
           ! grep -R --exclude-dir=.git --exclude='prepare-2.2.2.cjs' -n 'vidstuck.xyz' app windows web vercel.json netlify.toml 2>/dev/null
           git diff --check
