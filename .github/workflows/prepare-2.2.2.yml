@@ -24,6 +24,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Normalize current Windows source menu
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('windows/ui/index.html')
+          s=p.read_text()
+          old='<option value="vidstuck">VidStuck · Recommended</option><option value="vidsrc-sh">VidSrc.sh</option>'
+          new='<option value="vidstuck">VidStuck · Recommended</option><option value="embedwave">Embedwave (BETA)</option><option value="vidsrc-sh">VidSrc.sh</option>'
+          if old in s:
+              s=s.replace(old,new,1)
+              p.write_text(s)
+          PY
       - name: Apply 2.2.2 provider and default-source changes
         run: node scripts/prepare-2.2.2.cjs
       - name: Verify JavaScript and provider wiring
@@ -41,6 +54,7 @@ jobs:
           grep -q 'ZXCStream (Beta)' app/src/main/java/com/zerostreams/app/PlaybackSources.java
           grep -q 'zxcstream.cc' app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java
           grep -q 'Default video source' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'ZXCStream (Beta)' windows/ui/index.html
           grep -q 'zxcstream.cc' web/public/playback-sources.js
           ! grep -R --exclude-dir=.git --exclude='prepare-2.2.2.cjs' -n 'vidstuck.xyz' app windows web vercel.json netlify.toml 2>/dev/null
           git diff --check
