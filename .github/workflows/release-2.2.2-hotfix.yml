@@ -1,0 +1,365 @@
+name: ZeroPlay 2.2.2 Hotfix Re-release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeroplay-2-2-2-hotfix
+  cancel-in-progress: false
+
+jobs:
+  android-mobile:
+    if: contains(github.event.head_commit.message, 'Hotfix ZeroPlay 2.2.2 re-release')
+    name: Android Phone 2.2.2 Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Verify Android 2.2.2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "versionCode 46" app/build.gradle
+          grep -q "versionName '2.2.2'" app/build.gradle
+          grep -q 'ZXCStream (Beta)' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -q 'zxcstream.cc' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -q 'vidstuck.cc' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -R 'vidstuck.xyz' app --exclude-dir=build && exit 1 || true
+
+      - name: Android phone regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/source-selection-regression.test.cjs
+          node tests/auto-source-recovery-default.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+          gradle :app:testMobileReleaseUnitTest
+
+      - name: Build signed Android phone APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleMobileRelease
+          apk=app/build/outputs/apk/mobile/release/app-mobile-release.apk
+          test -f "$apk"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | head -n 1 | grep -q "versionName='2.2.2'"
+          mkdir -p release-assets
+          cp "$apk" release-assets/ZeroPlay-2.2.2-Android.apk
+
+      - name: Lint Android phone release
+        run: gradle :app:lintMobileRelease
+
+      - name: Audit Android production asset
+        run: python scripts/audit-release-secrets.py release-assets/ZeroPlay-2.2.2-Android.apk app/src
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.2-Android-Phone-Hotfix
+          path: release-assets/ZeroPlay-2.2.2-Android.apk
+          if-no-files-found: error
+          compression-level: 0
+
+  windows:
+    if: contains(github.event.head_commit.message, 'Hotfix ZeroPlay 2.2.2 re-release')
+    name: Windows Top 10 Hotfix Production
+    runs-on: windows-latest
+    timeout-minutes: 75
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+
+      - name: Run Windows regressions including Top 10 click hotfix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          node scripts/fix-2.2-windows-regression-tests.cjs
+          if($LASTEXITCODE -ne 0){throw 'Windows 2.2 regression normalizer failed'}
+          node tests/source-selection-regression.test.cjs
+          node tests/auto-source-recovery-default.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+          node tests/windows-home-panel-order.test.cjs
+          node tests/windows-upnext-items-dedupe.test.cjs
+          Push-Location windows
+          npm test
+          if($LASTEXITCODE -ne 0){throw 'Windows unit tests failed'}
+          npm install --prefix ../ui-test-deps --no-audit --no-fund jsdom@24.1.3
+          $env:NODE_PATH="${{ github.workspace }}\ui-test-deps\node_modules"
+          foreach($script in @('scripts/ui-check.cjs','scripts/experience-check.cjs','scripts/layout-check.cjs','scripts/live-compat-check.cjs','scripts/player-exit-check.cjs')){
+            node $script
+            if($LASTEXITCODE -ne 0){throw "Desktop regression failed: $script"}
+          }
+          npx electron scripts/media-check.cjs
+          if($LASTEXITCODE -ne 0){throw 'Media regression failed'}
+          node scripts/tmdb-check.cjs
+          if($LASTEXITCODE -ne 0){throw 'TMDB regression failed'}
+          $env:ZERO_GUARD_PATH='assets/player-guard.js'
+          node ../tests/player-guard.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'Player guard regression failed'}
+          Pop-Location
+
+      - name: Configure bundled production keys/vendors
+        working-directory: windows
+        run: npm run prepare-config
+
+      - name: Download pinned mpv x64 engine
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          $url='https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261009/mpv-x86_64-20261009-git-36abaa32d0.7z'
+          $expected='9afbe74f4ab885ca512769f8835758eb66b7b8a5ea6d679500588f8e7fec632e'
+          Invoke-WebRequest -Uri $url -OutFile mpv.7z
+          $actual=(Get-FileHash mpv.7z -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($actual -ne $expected){throw "mpv SHA-256 mismatch: $actual"}
+          New-Item -ItemType Directory -Force vendor/mpv | Out-Null
+          7z x mpv.7z -ovendor/mpv -y | Out-Host
+          $mpv=Get-ChildItem vendor/mpv -Filter mpv.exe -Recurse | Select-Object -First 1
+          if(-not $mpv){throw 'mpv.exe missing after extraction'}
+          if($mpv.Directory.FullName -ne (Resolve-Path vendor/mpv).Path){Copy-Item "$($mpv.Directory.FullName)/*" vendor/mpv -Recurse -Force}
+          if(!(Test-Path vendor/mpv/mpv.exe)){throw 'mpv.exe normalization failed'}
+          Remove-Item mpv.7z -Force
+
+      - name: Apply preserved production Windows stack
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($script in @('scripts/apply-offline-mpv-test.cjs','scripts/apply-final-windows-polish.cjs','scripts/apply-episode-progress-fix.cjs','scripts/apply-windows-episode-completion-fix.cjs','scripts/fix-final-windows-action-tdz.cjs','scripts/apply-2.1.2-player-adblock.cjs')){
+            node $script
+            if($LASTEXITCODE -ne 0){throw "Production stack failed: $script"}
+          }
+          node --check main.cjs
+          node --check ui/app.js
+          node --check ui/home-visuals.js
+          node --test test/home-visuals.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'Top 10 hotfix regression failed after production transforms'}
+
+      - name: Build native video host and updater
+        shell: pwsh
+        working-directory: windows
+        run: |
+          dotnet publish mpv-host-helper/MpvVideoHost.csproj -c Release -r win-x64 --self-contained true -o mpv-host-helper/publish
+          Copy-Item mpv-host-helper/publish/MpvVideoHost.exe ./MpvVideoHost.exe -Force
+          dotnet publish updater-helper/ZeroPlayUpdater.csproj -c Release -r win-x64 --self-contained true -o updater-helper/publish
+          Copy-Item updater-helper/publish/ZeroPlayUpdater.exe ./ZeroPlayUpdater.exe -Force
+          if(!(Test-Path MpvVideoHost.exe)){throw 'MpvVideoHost.exe missing'}
+          if(!(Test-Path ZeroPlayUpdater.exe)){throw 'ZeroPlayUpdater.exe missing'}
+
+      - name: Electron smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npx electron . --smoke-test
+          if($LASTEXITCODE -ne 0){throw "Electron smoke test failed: $LASTEXITCODE"}
+
+      - name: Build portable Windows ZIP
+        working-directory: windows
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Verify Windows hotfix package
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $zip='dist/ZeroPlay-2.2.2-Windows-x64.zip'
+          if(!(Test-Path $zip)){throw 'Windows 2.2.2 portable ZIP was not created'}
+          if(!(Test-Path 'dist/win-unpacked/ZeroPlay.exe')){throw 'ZeroPlay.exe missing'}
+          if(!(Test-Path 'dist/win-unpacked/ZeroPlayUpdater.exe')){throw 'ZeroPlayUpdater.exe missing'}
+          if(!(Test-Path 'dist/win-unpacked/resources/mpv/mpv.exe')){throw 'Bundled mpv.exe missing'}
+          if(!(Test-Path 'dist/win-unpacked/resources/mpv-host/MpvVideoHost.exe')){throw 'Native mpv host missing'}
+          $verify='dist/verify-asar'
+          if(Test-Path $verify){Remove-Item $verify -Recurse -Force}
+          npx --yes @electron/asar extract 'dist/win-unpacked/resources/app.asar' $verify
+          $pkg=Get-Content "$verify/package.json" -Raw | ConvertFrom-Json
+          $visuals=Get-Content "$verify/ui/home-visuals.js" -Raw
+          if($pkg.version -ne '2.2.2'){throw 'Packaged version mismatch'}
+          $downStart=$visuals.IndexOf("rail.addEventListener('pointerdown'")
+          $moveStart=$visuals.IndexOf("rail.addEventListener('pointermove'")
+          if($downStart -lt 0 -or $moveStart -le $downStart){throw 'Packaged Top 10 pointer handlers missing'}
+          $pointerDown=$visuals.Substring($downStart,$moveStart-$downStart)
+          if($pointerDown -match 'setPointerCapture'){throw 'Packaged Top 10 still captures pointer on mouse-down'}
+          if($visuals -notmatch '!moved&&Math\.abs\(distance\)>5'){throw 'Packaged Top 10 drag threshold fix missing'}
+          Remove-Item $verify -Recurse -Force
+
+      - name: Audit Windows production credentials
+        run: python scripts/audit-release-secrets.py windows/dist/ZeroPlay-2.2.2-Windows-x64.zip windows/dist/win-unpacked
+
+      - name: Microsoft Defender scan
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $scanner=(Get-ChildItem "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          if(-not $scanner){throw 'Microsoft Defender scanner unavailable; release blocked'}
+          & $scanner -Scan -ScanType 3 -File "$pwd\dist\win-unpacked" -DisableRemediation
+          if($LASTEXITCODE -ne 0){throw "Defender scan failed or detected a threat (exit $LASTEXITCODE); release blocked"}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.2-Windows-Hotfix
+          path: windows/dist/ZeroPlay-2.2.2-Windows-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    if: contains(github.event.head_commit.message, 'Hotfix ZeroPlay 2.2.2 re-release')
+    name: Re-publish ZeroPlay 2.2.2
+    needs: [android-mobile, windows]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Preserve existing Android TV/Lite assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release download v2.2.2 --dir release-assets --pattern 'ZeroPlay-2.2.2-Android-TV.apk' --clobber
+          gh release download v2.2.2 --dir release-assets --pattern 'ZeroPlay-2.2.2-Android-Lite.apk' --clobber
+          gh release download v2.2.2 --dir release-assets --pattern 'ZeroPlay-2.2.2-Android-TV-Lite.apk' --clobber
+          test -f release-assets/ZeroPlay-2.2.2-Windows-x64.zip
+          test -f release-assets/ZeroPlay-2.2.2-Android.apk
+
+      - name: Generate complete release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum \
+            ZeroPlay-2.2.2-Windows-x64.zip \
+            ZeroPlay-2.2.2-Android.apk \
+            ZeroPlay-2.2.2-Android-TV.apk \
+            ZeroPlay-2.2.2-Android-Lite.apk \
+            ZeroPlay-2.2.2-Android-TV-Lite.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Move v2.2.2 tag to hotfix commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -f v2.2.2 "$GITHUB_SHA"
+          git push origin refs/tags/v2.2.2 --force
+
+      - name: Replace Windows asset and add Android phone asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v2.2.2 \
+            release-assets/ZeroPlay-2.2.2-Windows-x64.zip \
+            release-assets/ZeroPlay-2.2.2-Android.apk \
+            release-assets/SHA256SUMS.txt \
+            --clobber
+
+      - name: Update 2.2.2 release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          # ZeroPlay 2.2.2 — Playback Source Refresh + Windows Hotfix
+
+          ZeroPlay 2.2.2 has been re-released in place with a Windows-only Top 10 Today click hotfix and the standard Android phone build added to the same release.
+
+          ## Hotfix
+
+          - **Windows:** Top 10 Today cards now open their movie/series details normally on click.
+          - Mouse drag-to-scroll remains supported; pointer capture starts only after a real drag begins, so a normal click is no longer swallowed by the horizontal rail.
+          - **Android:** no Android UI/code hotfix was applied; the standard signed Android phone APK is now published for 2.2.2.
+          - Existing Android TV, Android Lite and Android TV Lite 2.2.2 assets remain available.
+          - Web is unchanged.
+
+          ## 2.2.2 playback-source changes
+
+          - VidStuck uses `vidstuck.cc` on released builds.
+          - ZXCStream (Beta) is available through `zxcstream.cc`.
+          - Global default video source is available in Settings.
+          - VidStuck remains the default/recommended source for new installs, resets and invalid saved source values.
+          - Existing one-title and one-time source choices remain available where supported.
+
+          ## Released builds
+
+          - Windows x64 portable — hotfixed package
+          - Android phone — newly attached
+          - Android TV
+          - Android Lite
+          - Android TV Lite
+          EOF
+          gh release edit v2.2.2 --title 'ZeroPlay 2.2.2 — Playback Source Refresh + Windows Hotfix' --notes-file release-notes.md
+
+      - name: Verify re-release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets="$(gh release view v2.2.2 --json assets --jq '.assets[].name')"
+          for name in \
+            ZeroPlay-2.2.2-Windows-x64.zip \
+            ZeroPlay-2.2.2-Android.apk \
+            ZeroPlay-2.2.2-Android-TV.apk \
+            ZeroPlay-2.2.2-Android-Lite.apk \
+            ZeroPlay-2.2.2-Android-TV-Lite.apk \
+            SHA256SUMS.txt; do
+            grep -Fxq "$name" <<< "$assets" || { echo "Missing release asset: $name"; exit 1; }
+          done
+          gh release view v2.2.2 --json url,name,tagName
