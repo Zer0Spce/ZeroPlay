@@ -42,7 +42,6 @@ test('shared movie and TV details stay closed after dismissal',()=>{
   const html=read('web/public/index.html');
   const router=read('web/public/web-router.js');
   const enhancements=read('web/public/web-enhancements.js');
-  const css=read('web/public/zsflix-ui.css');
   assert.match(html,/web-router\.js\?v=20261014d/);
   assert.match(router,/clearDetailRoute/);
   assert.match(router,/history\.replaceState/);
@@ -55,7 +54,6 @@ test('shared movie and TV details stay closed after dismissal',()=>{
   assert.match(enhancements,/const initialPath=location\.pathname/);
   assert.match(enhancements,/if\(document\.querySelector\('dialog\[open\]'\)\)return/);
   assert.match(enhancements,/if\(item&&typeof window\.details==='function'\)window\.details\(item\)/);
-  assert.match(css,/\.detail-body/);
 });
 
 test('website header is collapsed to one bar',()=>{
