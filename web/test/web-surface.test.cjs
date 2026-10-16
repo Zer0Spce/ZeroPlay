@@ -53,8 +53,8 @@ test('shared movie and TV details stay closed after dismissal',()=>{
   assert.doesNotMatch(router,/history\.pushState/);
   assert.match(enhancements,/window\.addEventListener\('popstate'/);
   assert.match(enhancements,/const initialPath=location\.pathname/);
-  assert.match(enhancements,/routeGeneration/);
-  assert.match(enhancements,/if\(generation!==routeGeneration\|\|location\.pathname!==path\)return/);
+  assert.match(enhancements,/if\(document\.querySelector\('dialog\[open\]'\)\)return/);
+  assert.match(enhancements,/if\(item&&typeof window\.details==='function'\)window\.details\(item\)/);
   assert.match(css,/\.detail-body/);
 });
 
