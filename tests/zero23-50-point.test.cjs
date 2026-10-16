@@ -17,7 +17,7 @@ const expected=[
 test('50-point contract is complete and uniquely named',()=>{
   assert.equal(expected.length,50);
   assert.equal(new Set(expected).size,50);
-  for(const file of ['web/public/zero23.js','windows/ui/zero23.js','app/src/main/java/com/zerostreams/app/Zero23Store.java']){
+  for(const file of ['web/public/zero23-core.js','windows/ui/zero23-core.js','app/src/main/java/com/zerostreams/app/Zero23Store.java']){
     const source=read(file);
     for(const name of expected)assert.ok(source.includes(name),`${file} missing feature: ${name}`);
   }
@@ -30,6 +30,9 @@ test('web and windows load the additive 2.3 layer after their existing app',()=>
   assert.match(webLoader,/zero23\.js/);assert.match(webLoader,/zero23\.css/);assert.match(webLoader,/2\.3 test branch additive loader/i);
   assert.ok(winHtml.indexOf('app.js')<winHtml.indexOf('home-visuals.js'),'Windows 2.3 loader must run after app.js');
   assert.match(winLoader,/zero23\.js/);assert.match(winLoader,/zero23\.css/);assert.match(winLoader,/2\.3 test branch additive loader/i);
+  for(const file of ['web/public/zero23.js','windows/ui/zero23.js']){
+    const compat=read(file);assert.match(compat,/recommendations/);assert.match(compat,/zero23-core\.js/);assert.match(compat,/catalog allowlist frozen/i);
+  }
 });
 
 test('android launchers wrap existing presentation layers instead of player activities',()=>{
@@ -55,8 +58,8 @@ test('2.3 test branch is visibly test-only and retains 2.2.2 package metadata',(
 });
 
 test('2.3 source does not call player launch/change APIs directly',()=>{
-  const web=read('web/public/zero23.js');
-  const win=read('windows/ui/zero23.js');
+  const web=read('web/public/zero23-core.js');
+  const win=read('windows/ui/zero23-core.js');
   const android=read('app/src/main/java/com/zerostreams/app/Zero23HubActivity.java');
   for(const source of [web,win]){
     assert.doesNotMatch(source,/window\.zero\.play\s*\(/);
