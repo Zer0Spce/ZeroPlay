@@ -40,7 +40,7 @@
     }catch{}
   }
 
-  function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>ensure());}
+  function schedule(){if(scheduled)return;scheduled=true;const run=window.requestAnimationFrame||((fn)=>window.setTimeout(fn,0));run(()=>ensure());}
   const content=document.querySelector('#content');
   if(content)new MutationObserver(schedule).observe(content,{childList:true,subtree:true});
   document.addEventListener('click',event=>{if(event.target.closest?.('[data-action="refresh"]')){cached=[];cachedAt=0;setTimeout(schedule,0);}},true);
