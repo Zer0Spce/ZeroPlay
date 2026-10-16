@@ -15,4 +15,4 @@ ZeroPlay 2.2.2 updates the provider layer without changing the established 2.2.1
 
 ## Compatibility
 
-All 2.2.1 discovery, Top 10, Continue Watching, season/episode memory, Home customization and playback features remain in place.
+All 2.2.1 discovery, Top 10, Continue Watching, season/episode memory, Home customization and playback features remain in place. The Settings source selection is the global default for normal movie and episode playback, while VidStuck remains the safe fallback.
