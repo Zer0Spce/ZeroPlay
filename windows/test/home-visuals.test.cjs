@@ -33,6 +33,20 @@ test('Windows home loads official title art and ranked posters',()=>{
   assert.match(css,/\.zero-top10-poster img\{[\s\S]*object-fit:cover/);
 });
 
+test('Windows Top 10 keeps normal clicks free until an actual drag starts',()=>{
+  const js=read('ui/home-visuals.js');
+  const downStart=js.indexOf("rail.addEventListener('pointerdown'");
+  const moveStart=js.indexOf("rail.addEventListener('pointermove'");
+  const endStart=js.indexOf('const endDrag=',moveStart);
+  assert.ok(downStart>=0&&moveStart>downStart&&endStart>moveStart);
+  const pointerDown=js.slice(downStart,moveStart);
+  const pointerMove=js.slice(moveStart,endStart);
+  assert.doesNotMatch(pointerDown,/setPointerCapture/);
+  assert.match(pointerMove,/!moved&&Math\.abs\(distance\)>5/);
+  assert.match(pointerMove,/moved=true;[\s\S]*setPointerCapture\(pointerId\)/);
+  assert.match(js,/button\.addEventListener\('click',[\s\S]*window\.zeroOpenDetails\?\.\(item\)/);
+});
+
 test('VidSrc subtitle overlay can close on desktop and Android players',()=>{
   const desktop=read('assets/player-22.js');
   const android=fs.readFileSync(path.resolve(root,'../app/src/main/assets/player-22.js'),'utf8');
