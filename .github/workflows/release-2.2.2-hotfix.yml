@@ -184,6 +184,11 @@ jobs:
             node $script
             if($LASTEXITCODE -ne 0){throw "Production stack failed: $script"}
           }
+          $pkg=Get-Content package.json -Raw | ConvertFrom-Json
+          $pkg.version='2.2.2'
+          $pkg.build.buildVersion='2.2.2'
+          $pkg.build.win.artifactName='ZeroPlay-2.2.2-Windows-x64.${ext}'
+          $pkg | ConvertTo-Json -Depth 100 | Set-Content package.json -Encoding utf8
           node --check main.cjs
           node --check ui/app.js
           node --check ui/home-visuals.js
@@ -226,6 +231,7 @@ jobs:
           $verify='dist/verify-asar'
           if(Test-Path $verify){Remove-Item $verify -Recurse -Force}
           npx --yes @electron/asar extract 'dist/win-unpacked/resources/app.asar' $verify
+          if($LASTEXITCODE -ne 0){throw 'Unable to extract packaged app.asar for verification'}
           $pkg=Get-Content "$verify/package.json" -Raw | ConvertFrom-Json
           $visuals=Get-Content "$verify/ui/home-visuals.js" -Raw
           if($pkg.version -ne '2.2.2'){throw 'Packaged version mismatch'}
