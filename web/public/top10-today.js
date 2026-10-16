@@ -47,3 +47,10 @@
   window.addEventListener('load',schedule,{once:true});
   schedule();
 })();
+
+// ZeroPlay 2.3 test branch additive loader. Production 2.2.2 pages do not contain these files.
+(() => {
+  if(document.querySelector('[data-zero23-loader]'))return;
+  const style=document.createElement('link');style.rel='stylesheet';style.href='/zero23.css?v=20261016a';style.dataset.zero23Loader='style';document.head.appendChild(style);
+  const script=document.createElement('script');script.src='/zero23.js?v=20261016a';script.dataset.zero23Loader='script';document.body.appendChild(script);
+})();

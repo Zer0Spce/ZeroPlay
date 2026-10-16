@@ -191,3 +191,10 @@
   window.addEventListener('load',schedule,{once:true});
   schedule();
 })();
+
+// ZeroPlay 2.3 test branch additive loader. Existing 2.2.2 player/runtime code is untouched.
+(() => {
+  if(document.querySelector('[data-zero23-loader]'))return;
+  const style=document.createElement('link');style.rel='stylesheet';style.href='zero23.css';style.dataset.zero23Loader='style';document.head.appendChild(style);
+  const script=document.createElement('script');script.src='zero23.js';script.dataset.zero23Loader='script';document.body.appendChild(script);
+})();
