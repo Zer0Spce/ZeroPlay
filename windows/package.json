@@ -7,7 +7,7 @@
   "main": "bootstrap.cjs",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/*.test.cjs",
+    "test": "node ../scripts/fix-2.2-windows-regression-tests.cjs && node --test test/*.test.cjs",
     "prepare-config": "node scripts/config.cjs && node scripts/live-vendor.cjs && node scripts/offline-vendor.cjs",
     "build": "npm run prepare-config && electron-builder --win --x64"
   },
