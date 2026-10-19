@@ -25,7 +25,7 @@ public class BrowserPlayerActivity extends Activity {
     private int tvBackToken;
     private final android.os.Handler tvUi=new android.os.Handler(android.os.Looper.getMainLooper());
     // ZERO22_PLAYER
-    private android.content.SharedPreferences prefs;private LinearLayout quickBar;private Runnable hideQuickBar;private long loadStarted;private boolean failoverTried,nextScheduled;private String currentAddress;private String navigationMode="smart";
+    private android.content.SharedPreferences prefs;private LinearLayout quickBar;private Runnable hideQuickBar;private long loadStarted;private boolean failoverTried,nextScheduled;private String currentAddress;private String navigationMode="smart";private volatile int observedSeason=-1,observedEpisode=-1;
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -282,20 +282,89 @@ public class BrowserPlayerActivity extends Activity {
     private void scheduleLoadTimeout(){tvUi.removeCallbacks(loadTimeout);if(getIntent().getBooleanExtra("reader",false))return;tvUi.postDelayed(loadTimeout,12000);}
     private final Runnable loadTimeout=()->{if(web==null||isFinishing())return;web.evaluateJavascript("(function(){var v=document.querySelector('video');return !!(v&&v.readyState>=2);})()",value->{if(!"true".equals(String.valueOf(value)))handlePlayerFailure("Player timeout");});};
     private void handlePlayerFailure(String reason){PlaybackHealth.failure(prefs,currentProvider());if(prefs.getBoolean("autoSourceRecovery",false)&&!failoverTried){failoverTried=true;if(loadNextSource())return;}Toast.makeText(this,reason+" · use Menu for Retry / Next Source",Toast.LENGTH_LONG).show();}
-    private String alternateUrl(){String parent=getIntent().getStringExtra("parent"),key=getIntent().getStringExtra("key");if(parent==null||!parent.matches("tmdb-(movie|series)-[0-9]+"))return "";String id=parent.substring(parent.lastIndexOf('-')+1),type=parent.startsWith("tmdb-series-")?"tv":"movie";int season=1,episode=1;if(type.equals("tv")&&key!=null){java.util.regex.Matcher m=java.util.regex.Pattern.compile(":s([0-9]+)e([0-9]+)$").matcher(key);if(m.find()){season=Integer.parseInt(m.group(1));episode=Integer.parseInt(m.group(2));}}String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidsrc-sh":"vidstuck";try{return PlaybackSources.url(id,type,season,episode,next);}catch(Exception e){return "";}}
+    private String alternateUrl(){
+        String parent=getIntent().getStringExtra("parent");
+        if(parent==null||!parent.matches("tmdb-(movie|series)-[0-9]+"))return "";
+        String id=parent.substring(parent.lastIndexOf('-')+1),type=parent.startsWith("tmdb-series-")?"tv":"movie";
+        int season=1,episode=1;
+        if(type.equals("tv")){int[] pos=currentEpisodePosition();season=pos[0];episode=pos[1];}
+        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidsrc-sh":"vidstuck";
+        try{return PlaybackSources.url(id,type,season,episode,next);}catch(Exception e){return "";}
+    }
     private boolean loadNextSource(){String next=alternateUrl();if(next.isEmpty())return false;currentAddress=next;loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Trying next source…");web.loadUrl(next);scheduleLoadTimeout();return true;}
     private void runPlayer(String script){if(web!=null)web.evaluateJavascript(script,null);}
     private void buildQuickBar(){}
     private void showQuickBar(){}
     private boolean seriesPlayback(){String parent=getIntent().getStringExtra("parent");return parent!=null&&parent.matches("tmdb-series-[0-9]+");}
     private String seriesId(){String parent=getIntent().getStringExtra("parent");return seriesPlayback()?parent.substring(parent.lastIndexOf('-')+1):"";}
-    private int[] currentEpisodePosition(){try{java.util.regex.Matcher url=java.util.regex.Pattern.compile("/embed/tv/[0-9]+/([0-9]+)/([0-9]+)").matcher(String.valueOf(currentAddress));if(url.find())return new int[]{Integer.parseInt(url.group(1)),Integer.parseInt(url.group(2))};String key=getIntent().getStringExtra("key");java.util.regex.Matcher saved=java.util.regex.Pattern.compile(":s([0-9]+)e([0-9]+)$").matcher(String.valueOf(key));if(saved.find())return new int[]{Integer.parseInt(saved.group(1)),Integer.parseInt(saved.group(2))};}catch(Exception ignored){}return new int[]{1,1};}
-    private void loadEpisode(int season,int episode){if(!seriesPlayback()||season<0||episode<1)return;try{String url=PlaybackSources.url(seriesId(),"tv",season,episode,currentProvider());currentAddress=url;nextScheduled=false;failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Opening S"+season+" E"+episode+"…");web.loadUrl(url);scheduleLoadTimeout();}catch(Exception e){Toast.makeText(this,"Episode unavailable",Toast.LENGTH_SHORT).show();}}
-    private void moveEpisode(int delta){if(!seriesPlayback()||delta==0)return;int[] pos=currentEpisodePosition();new Thread(()->{try{String tmdb=prefs.getString("tmdbKey","").trim();if(tmdb.isEmpty())tmdb=BuildConfig.DEFAULT_TMDB_KEY;int season=pos[0],episode=pos[1];org.json.JSONArray episodes=ContentApi.seasonEpisodes(seriesId(),season,tmdb);if(delta>0){if(episode<episodes.length())episode++;else{org.json.JSONArray next=ContentApi.seasonEpisodes(seriesId(),season+1,tmdb);if(next.length()<1)throw new Exception();season++;episode=next.optJSONObject(0)==null?1:next.optJSONObject(0).optInt("episode_number",1);}}else{if(episode>1)episode--;else if(season>0){org.json.JSONArray previous=ContentApi.seasonEpisodes(seriesId(),season-1,tmdb);if(previous.length()<1)throw new Exception();season--;org.json.JSONObject last=previous.optJSONObject(previous.length()-1);episode=last==null?previous.length():last.optInt("episode_number",previous.length());}else throw new Exception();}int s=season,e=episode;tvUi.post(()->loadEpisode(s,e));}catch(Exception e){tvUi.post(()->Toast.makeText(this,delta>0?"No next episode":"No previous episode",Toast.LENGTH_SHORT).show());}}).start();}
-    private void showEpisodeMenu(){if(!seriesPlayback())return;int[] pos=currentEpisodePosition();new Thread(()->{try{String tmdb=prefs.getString("tmdbKey","").trim();if(tmdb.isEmpty())tmdb=BuildConfig.DEFAULT_TMDB_KEY;org.json.JSONArray episodes=ContentApi.seasonEpisodes(seriesId(),pos[0],tmdb);java.util.ArrayList<String> labels=new java.util.ArrayList<>();labels.add("← Previous episode");labels.add("Next episode →");for(int i=0;i<episodes.length();i++){org.json.JSONObject ep=episodes.optJSONObject(i);if(ep==null)continue;int number=ep.optInt("episode_number",i+1);labels.add((number==pos[1]?"▶ ":"")+"E"+number+" · "+ep.optString("name","Episode "+number));}tvUi.post(()->new android.app.AlertDialog.Builder(this).setTitle("Season "+pos[0]+" episodes").setItems(labels.toArray(new String[0]),(d,n)->{if(n==0)moveEpisode(-1);else if(n==1)moveEpisode(1);else{org.json.JSONObject ep=episodes.optJSONObject(n-2);if(ep!=null)loadEpisode(pos[0],ep.optInt("episode_number",n-1));}}).setNegativeButton("Close",null).show());}catch(Exception e){tvUi.post(()->Toast.makeText(this,"Episodes unavailable",Toast.LENGTH_SHORT).show());}}).start();}
+    private int[] currentEpisodePosition(){
+        if(observedSeason>=0&&observedEpisode>0)return new int[]{observedSeason,observedEpisode};
+        try{
+            java.util.regex.Matcher url=java.util.regex.Pattern.compile("/(?:embed|player)/tv/[0-9]+/([0-9]+)/([0-9]+)").matcher(String.valueOf(currentAddress));
+            if(url.find())return new int[]{Integer.parseInt(url.group(1)),Integer.parseInt(url.group(2))};
+            String key=getIntent().getStringExtra("key");
+            java.util.regex.Matcher saved=java.util.regex.Pattern.compile(":s([0-9]+)e([0-9]+)$").matcher(String.valueOf(key));
+            if(saved.find())return new int[]{Integer.parseInt(saved.group(1)),Integer.parseInt(saved.group(2))};
+        }catch(Exception ignored){}
+        return new int[]{1,1};
+    }
+    private String tmdbKey(){String tmdb=prefs.getString("tmdbKey","").trim();return tmdb.isEmpty()?BuildConfig.DEFAULT_TMDB_KEY:tmdb;}
+    private int[] adjacentEpisodePosition(int season,int episode,int delta,String tmdb) throws Exception{
+        org.json.JSONArray current=ContentApi.seasonEpisodes(seriesId(),season,tmdb);
+        int within=delta>0?EpisodeNavigation.nextEpisode(current,episode):EpisodeNavigation.previousEpisode(current,episode);
+        if(within>0)return new int[]{season,within};
+        org.json.JSONArray seasons=ContentApi.seasons(seriesId(),tmdb);
+        int candidate=delta>0?EpisodeNavigation.nextSeason(seasons,season):EpisodeNavigation.previousSeason(seasons,season);
+        while(candidate>=0){
+            try{
+                org.json.JSONArray rows=ContentApi.seasonEpisodes(seriesId(),candidate,tmdb);
+                int edge=delta>0?EpisodeNavigation.firstEpisode(rows):EpisodeNavigation.lastEpisode(rows);
+                if(edge>0)return new int[]{candidate,edge};
+            }catch(Exception ignored){}
+            candidate=delta>0?EpisodeNavigation.nextSeason(seasons,candidate):EpisodeNavigation.previousSeason(seasons,candidate);
+        }
+        throw new Exception("No adjacent episode");
+    }
+    private void loadEpisode(int season,int episode){
+        if(!seriesPlayback()||season<0||episode<1)return;
+        try{
+            String url=PlaybackSources.url(seriesId(),"tv",season,episode,currentProvider());
+            observedSeason=season;observedEpisode=episode;currentAddress=url;nextScheduled=false;failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();
+            status.setText("Opening S"+season+" E"+episode+"…");web.loadUrl(url);scheduleLoadTimeout();
+        }catch(Exception e){nextScheduled=false;Toast.makeText(this,"Episode unavailable",Toast.LENGTH_SHORT).show();}
+    }
+    private void moveEpisode(int delta){
+        if(!seriesPlayback()||delta==0)return;int[] pos=currentEpisodePosition();
+        new Thread(()->{try{int[] target=adjacentEpisodePosition(pos[0],pos[1],delta,tmdbKey());tvUi.post(()->loadEpisode(target[0],target[1]));}catch(Exception e){tvUi.post(()->Toast.makeText(this,delta>0?"No next episode":"No previous episode",Toast.LENGTH_SHORT).show());}},"ZeroPlay-EpisodeNav").start();
+    }
+    private void showEpisodeMenu(){
+        if(!seriesPlayback())return;int[] pos=currentEpisodePosition();
+        new Thread(()->{try{
+            org.json.JSONArray episodes=ContentApi.seasonEpisodes(seriesId(),pos[0],tmdbKey());java.util.ArrayList<String> labels=new java.util.ArrayList<>();labels.add("← Previous episode");labels.add("Next episode →");java.util.ArrayList<Integer> numbers=new java.util.ArrayList<>();
+            for(int i=0;i<episodes.length();i++){org.json.JSONObject ep=episodes.optJSONObject(i);if(ep==null)continue;int number=EpisodeNavigation.episodeNumber(ep,i+1);if(number<1)continue;numbers.add(number);labels.add((number==pos[1]?"▶ ":"")+"E"+number+" · "+ep.optString("title","Episode "+number));}
+            tvUi.post(()->new android.app.AlertDialog.Builder(this).setTitle("Season "+pos[0]+" episodes").setItems(labels.toArray(new String[0]),(d,n)->{if(n==0)moveEpisode(-1);else if(n==1)moveEpisode(1);else{int index=n-2;if(index>=0&&index<numbers.size())loadEpisode(pos[0],numbers.get(index));}}).setNegativeButton("Close",null).show());
+        }catch(Exception e){tvUi.post(()->Toast.makeText(this,"Episodes unavailable",Toast.LENGTH_SHORT).show());}},"ZeroPlay-EpisodeMenu").start();
+    }
     private void showQuickMenu(){java.util.List<String> items=new java.util.ArrayList<>();items.add("Navigation · Smart / Hybrid");items.add("Navigation · D-pad");items.add("Navigation · Mouse");items.add("Retry player");items.add("Next source");if(seriesPlayback())items.add("Episodes · previous / next / choose");items.add("Skip intro · "+prefs.getInt("skipIntroSeconds",90)+" sec");items.add("Skip recap · "+prefs.getInt("skipRecapSeconds",45)+" sec");items.add("Player diagnostics");items.add("Exit playback");new android.app.AlertDialog.Builder(this).setTitle("ZeroPlay player").setItems(items.toArray(new String[0]),(d,n)->{String picked=items.get(n);if(picked.startsWith("Navigation · Smart"))applyNavigationMode("smart");else if(picked.startsWith("Navigation · D-pad"))applyNavigationMode("focus");else if(picked.startsWith("Navigation · Mouse"))applyNavigationMode("mouse");else if(picked.equals("Retry player")){failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();web.reload();scheduleLoadTimeout();}else if(picked.equals("Next source"))loadNextSource();else if(picked.startsWith("Episodes"))showEpisodeMenu();else if(picked.startsWith("Skip intro"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipIntroSeconds",90)+")");else if(picked.startsWith("Skip recap"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipRecapSeconds",45)+")");else if(picked.equals("Player diagnostics"))showDiagnostics();else confirmExit();}).setNegativeButton("Close",null).show();}
     private void showDiagnostics(){web.evaluateJavascript("JSON.stringify(window.__zeroPlayerDiagnostics?window.__zeroPlayerDiagnostics():{})",value->{String details=String.valueOf(value);new android.app.AlertDialog.Builder(this).setTitle("Player diagnostics").setMessage("Provider: "+currentProvider()+"\nNavigation: "+navigationModeLabel()+"\n"+PlaybackHealth.summary(prefs,currentProvider())+"\n\n"+details).setPositiveButton("Close",null).show();});}
-    private void scheduleNextEpisode(String parent,int season,int episode){if(nextScheduled)return;nextScheduled=true;Toast.makeText(this,"Next episode starts in 10 seconds · press Back/Menu to cancel by leaving playback",Toast.LENGTH_LONG).show();new Thread(()->{try{String id=parent.substring(parent.lastIndexOf('-')+1),tmdb=prefs.getString("tmdbKey","").trim();if(tmdb.isEmpty())tmdb=BuildConfig.DEFAULT_TMDB_KEY;org.json.JSONArray eps=ContentApi.seasonEpisodes(id,season,tmdb);int next=episode+1,nextSeason=season;if(next>eps.length()){nextSeason=season+1;next=1;}String url=PlaybackSources.url(id,"tv",nextSeason,next,currentProvider());String finalUrl=url;tvUi.postDelayed(()->{if(isFinishing()||web==null)return;currentAddress=finalUrl;loadStarted=android.os.SystemClock.elapsedRealtime();web.loadUrl(finalUrl);nextScheduled=false;},10000);}catch(Exception e){nextScheduled=false;}}).start();}
+    private void scheduleNextEpisode(String parent,int season,int episode){
+        if(nextScheduled||!seriesPlayback()||season<0||episode<1)return;
+        nextScheduled=true;
+        final int fromSeason=season,fromEpisode=episode;
+        new Thread(()->{try{
+            int[] target=adjacentEpisodePosition(fromSeason,fromEpisode,1,tmdbKey());
+            tvUi.post(()->{
+                if(isFinishing()||web==null){nextScheduled=false;return;}
+                int[] now=currentEpisodePosition();if(now[0]!=fromSeason||now[1]!=fromEpisode){nextScheduled=false;return;}
+                Toast.makeText(this,"Next episode starts in 10 seconds · press Back/Menu to cancel by leaving playback",Toast.LENGTH_LONG).show();
+                tvUi.postDelayed(()->{
+                    if(isFinishing()||web==null){nextScheduled=false;return;}
+                    int[] still=currentEpisodePosition();if(still[0]!=fromSeason||still[1]!=fromEpisode){nextScheduled=false;return;}
+                    loadEpisode(target[0],target[1]);
+                },10000);
+            });
+        }catch(Exception e){nextScheduled=false;}},"ZeroPlay-AutoplayNext").start();
+    }
     private void installPlayerExitListener(){
         if(!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER))return;
         androidx.webkit.WebViewCompat.addWebMessageListener(web,"ZeroPlayer",new java.util.HashSet<>(java.util.Arrays.asList(PlaybackSources.ORIGINS)),(view,message,origin,mainFrame,reply)->{
@@ -317,7 +386,7 @@ public class BrowserPlayerActivity extends Activity {
             if(now-lastProgressSaved<2500)return;
             try{
                 org.json.JSONObject event=new org.json.JSONObject(data);
-                history.progress(parent,type,event);if(type.equals("tv")&&prefs.getBoolean("autoplayNext",true)&&event.optDouble("duration",0)>30&&event.optDouble("timestamp",0)/event.optDouble("duration",1)>=.985)scheduleNextEpisode(parent,event.optInt("season",1),event.optInt("episode",1));
+                history.progress(parent,type,event);if(type.equals("tv")){int season=event.optInt("season",-1),episode=event.optInt("episode",-1);if(season>=0&&episode>0){observedSeason=season;observedEpisode=episode;if(prefs.getBoolean("autoplayNext",true)&&event.optDouble("duration",0)>30&&event.optDouble("timestamp",0)/event.optDouble("duration",1)>=.985)scheduleNextEpisode(parent,season,episode);}}
                 lastProgressSaved=now;
             }catch(org.json.JSONException ignored){}
         });
