@@ -50,6 +50,18 @@ final class AppUpdater implements Application.ActivityLifecycleCallbacks {
         return out;
     }
     static boolean testRelease(String tag){return String.valueOf(tag).matches("(?i).*(^|[-_.])(test|demo|placeholder)($|[-_.]).*");}
+    static String assetName(String version,boolean tv,boolean lite){
+        if(tv&&lite)return "ZeroPlay-"+version+"-Android-TV-Lite.apk";
+        if(tv)return "ZeroPlay-"+version+"-Android-TV.apk";
+        if(lite)return "ZeroPlay-"+version+"-Android-Lite.apk";
+        return "ZeroPlay-"+version+"-Android.apk";
+    }
+    static String platformName(boolean tv,boolean lite){
+        if(tv&&lite)return "Android TV Lite";
+        if(tv)return "Android TV";
+        if(lite)return "Android Lite";
+        return "Android";
+    }
 
     void check(boolean manual){
         if(checking){if(manual)toast("Already checking for updates…");return;}checking=true;
@@ -72,9 +84,9 @@ final class AppUpdater implements Application.ActivityLifecycleCallbacks {
         if(root==null)throw new IOException("No stable ZeroPlay release is available");
         String tag=root.optString("tag_name","");String version=tag.replaceFirst("^[vV]","");
         JSONArray assets=root.optJSONArray("assets");JSONObject apk=null,sums=null;
-        String expected=BuildConfig.TV?"ZeroPlay-"+version+"-Android-TV.apk":"ZeroPlay-"+version+"-Android.apk";
+        String expected=assetName(version,BuildConfig.TV,BuildConfig.LITE);
         if(assets!=null)for(int i=0;i<assets.length();i++){JSONObject a=assets.getJSONObject(i);String n=a.optString("name","");if(expected.equals(n))apk=a;if("SHA256SUMS.txt".equals(n))sums=a;}
-        if(apk==null)throw new IOException("No "+(BuildConfig.TV?"Android TV":"Android")+" APK in the latest stable release");
+        if(apk==null)throw new IOException("No "+platformName(BuildConfig.TV,BuildConfig.LITE)+" APK in the latest stable release");
         String digest=apk.optString("digest","");
         return new Release(version,tag,root.optString("name",tag),root.optString("body","No changelog was provided."),apk.optString("browser_download_url"),apk.optString("name"),digest,sums==null?null:sums.optString("browser_download_url",null));
     }
