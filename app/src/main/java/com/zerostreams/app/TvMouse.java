@@ -32,6 +32,7 @@ final class TvMouse extends View implements Choreographer.FrameCallback {
         if(left||right||up||down)Choreographer.getInstance().postFrameCallback(this);else{running=false;snapCursor();}
     }
     private void snapCursor(){
+        if(BuildConfig.LITE)return;
         if(!enabled||!activity.getSharedPreferences("zero",Activity.MODE_PRIVATE).getBoolean("cursorAssist",true)||web==null||web.getWidth()<1)return;final float ox=x,oy=y;
         String script="(function(){try{var x="+ox+",y="+oy+",best=null,score=1e9;var nodes=document.querySelectorAll('button,a[href],[role=button],[tabindex]:not([tabindex=\"-1\"])');for(var i=0;i<nodes.length;i++){var r=nodes[i].getBoundingClientRect();if(r.width<4||r.height<4)continue;var cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2,d=Math.hypot(cx-x,cy-y);if(d<90&&d<score){score=d;best={x:cx,y:cy};}}return best?JSON.stringify(best):'';}catch(e){return '';}})();";
         web.evaluateJavascript(script,value->{try{String raw=value==null?"":value;if(raw.startsWith("\"")&&raw.endsWith("\""))raw=raw.substring(1,raw.length()-1).replace("\\\"","\"");if(raw.isEmpty()||raw.equals("null"))return;JSONObject point=new JSONObject(raw);x=Math.max(2,Math.min(web.getWidth()-2,(float)point.optDouble("x",ox)));y=Math.max(2,Math.min(web.getHeight()-2,(float)point.optDouble("y",oy)));wakeNow();}catch(Exception ignored){}});

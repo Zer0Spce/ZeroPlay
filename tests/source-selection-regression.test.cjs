@@ -8,3 +8,17 @@ const web=fs.readFileSync('web/public/browser.js','utf8');
 test('global default source remains VidStuck and user setting is honored',()=>{assert.match(winUi,/const global=state\?\.settings\?\.source/);assert.match(winUi,/return playbackSourceValid\(global\)\?global:'vidstuck'/);assert.match(android,/String selected=selectedPlaybackSource\(\);if\(allowedPlaybackSource\(selected\)\)return selected;return \"vidstuck\";/);assert.match(web,/saved\.settings\.source\|\|'vidstuck'/);});
 test('Android Settings exposes a global default video source',()=>{assert.match(android,/Default video source/);assert.match(android,/putString\(\"playbackSource\",defaultSourceIds/);assert.match(android,/java\.util\.Arrays\.copyOf\(PlaybackSources\.NAMES,4\)/);});
 test('2.2.2 provider domains and ZXCStream are wired across platforms',()=>{for(const p of ['app/src/main/java/com/zerostreams/app/PlaybackSources.java','windows/playback-sources.cjs','web/public/playback-sources.js']){const s=fs.readFileSync(p,'utf8');assert.match(s,/vidstuck\.cc/);assert.match(s,/zxcstream\.cc/);assert.match(s,/ZXCStream \(Beta\)/);assert.doesNotMatch(s,/vidstuck\.xyz/);}assert.match(fs.readFileSync('windows/playback-sources.cjs','utf8'),/\/player\/\$\{suffix\}/);assert.match(fs.readFileSync('web/public/playback-sources.js','utf8'),/\/player\/\$\{suffix\}/);});
+test('Play Next has one owner per platform',()=>{
+  const androidSources=fs.readFileSync('app/src/main/java/com/zerostreams/app/PlaybackSources.java','utf8');
+  const androidPlayer=fs.readFileSync('app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java','utf8');
+  const windowsSources=fs.readFileSync('windows/playback-sources.cjs','utf8');
+  const webSources=fs.readFileSync('web/public/playback-sources.js','utf8');
+  assert.match(androidPlayer,/scheduleNextEpisode\(/);
+  assert.doesNotMatch(androidSources,/autoplayNextEpisode=true/);
+  assert.doesNotMatch(androidSources,/autonext=1/);
+  assert.match(androidSources,/nextEpisode=true/);
+  assert.match(androidSources,/episodeSelector=true/);
+  assert.match(windowsSources,/autoplayNextEpisode/);
+  assert.match(windowsSources,/autonext/);
+  assert.match(webSources,/autoplayNextEpisode/);
+});

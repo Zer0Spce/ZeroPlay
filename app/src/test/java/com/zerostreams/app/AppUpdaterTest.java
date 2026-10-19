@@ -16,4 +16,12 @@ public class AppUpdaterTest {
         assertFalse(AppUpdater.testRelease("v2.0"));
         assertFalse(AppUpdater.testRelease("v2.0.1"));
     }
+    @Test public void routesEveryAndroidVariantToItsOwnReleaseAsset(){
+        String v="2.2.3";
+        assertEquals("ZeroPlay-2.2.3-Android.apk",AppUpdater.assetName(v,false,false));
+        assertEquals("ZeroPlay-2.2.3-Android-TV.apk",AppUpdater.assetName(v,true,false));
+        assertEquals("ZeroPlay-2.2.3-Android-Lite.apk",AppUpdater.assetName(v,false,true));
+        assertEquals("ZeroPlay-2.2.3-Android-TV-Lite.apk",AppUpdater.assetName(v,true,true));
+        assertEquals("Android TV Lite",AppUpdater.platformName(true,true));
+    }
 }
