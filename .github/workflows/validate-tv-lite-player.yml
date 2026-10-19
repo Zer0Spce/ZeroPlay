@@ -1,0 +1,65 @@
+name: Validate TV Lite Player
+
+on:
+  push:
+    branches:
+      - fix/android-tv-lite-2.2.2-regressions
+    paths:
+      - '.github/workflows/validate-tv-lite-player.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: validate-tv-lite-player
+  cancel-in-progress: true
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/android-tv-lite-2.2.2-regressions
+          fetch-depth: 0
+      - name: Apply TV Lite legacy player path
+        run: python3 scripts/fix-tv-lite-player.py
+      - name: Verify player isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          grep -q 'liteTvPlayer=BuildConfig.TV&&BuildConfig.LITE&&!reader' app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java
+          grep -q 'liteTvPlayer?"":v22Output.toString("UTF-8")' app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java
+          grep -q 'if(liteTvPlayer||!tvPlayer' app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java
+          grep -q 'if(BuildConfig.LITE)return;' app/src/main/java/com/zerostreams/app/TvMouse.java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Unit tests — TV variants
+        run: gradle :app:testTvDebugUnitTest :app:testLiteTvDebugUnitTest
+      - name: Compile all Android variants
+        run: gradle :app:assembleMobileDebug :app:assembleTvDebug :app:assembleLiteMobileDebug :app:assembleLiteTvDebug
+      - name: Lint TV player paths
+        run: gradle :app:lintTvDebug :app:lintLiteTvDebug
+      - name: Commit validated TV Lite player fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java app/src/main/java/com/zerostreams/app/TvMouse.java
+          git commit -m 'Restore 2.1-style player path for Android TV Lite [skip ci]'
+          git push origin HEAD:fix/android-tv-lite-2.2.2-regressions
