@@ -1,0 +1,73 @@
+name: Publish ZeroPlay 2.2.3 Recovery
+
+on:
+  workflow_run:
+    workflows: ['ZeroPlay 2.2.3 Production Release']
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    if: github.event.workflow_run.id == 39186504748
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate website source surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          node web/scripts/build.cjs
+          grep -R -q 'zxcstream.cc' web/public
+          grep -R -q 'vidstuck.cc' web/public
+          if grep -R 'vidstuck.xyz' web/public; then exit 1; fi
+      - name: Download verified production artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          gh run download "$RUN_ID" -n ZeroPlay-2.2.3-Android-Final -D release-assets
+          gh run download "$RUN_ID" -n ZeroPlay-2.2.3-Windows-Final -D release-assets
+      - name: Final asset audit and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in ZeroPlay-2.2.3-Android.apk ZeroPlay-2.2.3-Android-TV.apk ZeroPlay-2.2.3-Android-Lite.apk ZeroPlay-2.2.3-Android-TV-Lite.apk ZeroPlay-2.2.3-Windows-x64.zip; do
+            test -f "release-assets/$file"
+          done
+          python scripts/audit-release-secrets.py release-assets
+          cd release-assets
+          sha256sum ZeroPlay-2.2.3-Android.apk ZeroPlay-2.2.3-Android-TV.apk ZeroPlay-2.2.3-Android-Lite.apk ZeroPlay-2.2.3-Android-TV-Lite.apk ZeroPlay-2.2.3-Windows-x64.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Publish ZeroPlay 2.2.3
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v2.2.3 >/dev/null 2>&1; then
+            echo 'v2.2.3 already exists; nothing to do'
+            exit 0
+          fi
+          gh release create v2.2.3 \
+            release-assets/ZeroPlay-2.2.3-Android.apk \
+            release-assets/ZeroPlay-2.2.3-Android-TV.apk \
+            release-assets/ZeroPlay-2.2.3-Android-Lite.apk \
+            release-assets/ZeroPlay-2.2.3-Android-TV-Lite.apk \
+            release-assets/ZeroPlay-2.2.3-Windows-x64.zip \
+            release-assets/SHA256SUMS.txt \
+            --target "$TARGET_SHA" \
+            --title 'ZeroPlay 2.2.3 — Android Playback Hotfix' \
+            --notes-file docs/release-2.2.3.md \
+            --latest
