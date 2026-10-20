@@ -1,0 +1,146 @@
+/* ZeroPlay website-only mobile header fix.
+   Keeps the ZSFlix single-bar desktop layout unchanged and prevents the
+   website navigation/header from colliding on phone-sized viewports. */
+
+@media (max-width: 780px) {
+  /* Row 1: brand + compact primary navigation. */
+  aside {
+    position: fixed !important;
+    inset: 0 0 auto 0 !important;
+    width: 100% !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid var(--zp-border) !important;
+    z-index: 50 !important;
+  }
+
+  .brand {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    margin: 0 auto 0 0 !important;
+  }
+
+  .brand::before,
+  .brand > span::after {
+    font-size: 22px !important;
+  }
+
+  aside button {
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 18px !important;
+  }
+
+  aside button span {
+    display: none !important;
+  }
+
+  /* Search already has a dedicated row on mobile, so do not duplicate it. */
+  aside [data-nav="Search"],
+  aside [data-nav="Library"],
+  aside [data-action="settings"] {
+    display: none !important;
+  }
+
+  /* Row 2: full-width search + theme control. */
+  header {
+    position: fixed !important;
+    top: 64px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    margin: 0 !important;
+    padding: 7px max(10px, env(safe-area-inset-right)) 7px max(10px, env(safe-area-inset-left)) !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: rgba(7,10,13,.96) !important;
+    border-bottom: 1px solid rgba(255,255,255,.06) !important;
+    backdrop-filter: blur(18px) saturate(135%) !important;
+    z-index: 49 !important;
+  }
+
+  header > div {
+    display: none !important;
+  }
+
+  #search-form {
+    order: 0 !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    margin: 0 !important;
+    padding: 4px 8px 4px 12px !important;
+  }
+
+  #query {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 14px !important;
+  }
+
+  #search-form button {
+    display: none !important;
+  }
+
+  header > [data-action="settings"],
+  header > [data-action="refresh"] {
+    display: none !important;
+  }
+
+  header > [data-action="toggle-theme"] {
+    display: grid !important;
+    place-items: center !important;
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    margin: 0 !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding-top: 122px !important;
+  }
+
+  #content {
+    padding-top: 12px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  /* Keep the logo readable instead of crushing it between nav buttons. */
+  aside [data-nav="Movies"],
+  aside [data-nav="Series"] {
+    display: none !important;
+  }
+
+  .brand::before,
+  .brand > span::after {
+    font-size: 21px !important;
+  }
+
+  #query {
+    font-size: 13px !important;
+  }
+}
