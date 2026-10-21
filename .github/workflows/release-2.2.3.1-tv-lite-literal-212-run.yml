@@ -1,5 +1,5 @@
 name: One-shot literal v2.1.2 Android TV Lite
-# trigger: literal-v212-cc-only
+# trigger: exact-original-lite-source-cc-only
 on:
   push:
     paths:
@@ -9,30 +9,58 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact source used for original 2.1.2 Lite APK
+        uses: actions/checkout@v4
         with:
-          ref: v2.1.2
+          ref: f06dc5ca7d767b82b0f73d04dbac9ea25995132b
           fetch-depth: 0
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: false
+
       - uses: gradle/actions/setup-gradle@v4
-      - name: Patch only VidStuck host and prove exactness
+        with:
+          gradle-version: '8.9'
+
+      - name: Verify exact original Lite baseline
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = 'f06dc5ca7d767b82b0f73d04dbac9ea25995132b'
+          grep -q "versionName '2.1.2'" app/build.gradle
+          grep -q 'liteTv' app/build.gradle
+          grep -q "applicationIdSuffix '.lite.tv'" app/build.gradle
+          test -f app/src/liteTv/AndroidManifest.xml
+          test -z "$(git status --porcelain)"
+
+      - name: Change only VidStuck xyz to cc and prove exactness
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='f06dc5ca7d767b82b0f73d04dbac9ea25995132b'
           mapfile -t FILES < <(grep -RIl --exclude-dir=.git 'vidstuck\.xyz' .)
           test ${#FILES[@]} -gt 0
+          printf 'Files containing original VidStuck host:\n'
           printf '%s\n' "${FILES[@]}"
           for f in "${FILES[@]}"; do
             sed -i 's/vidstuck\.xyz/vidstuck.cc/g' "$f"
           done
           ! grep -RIn --exclude-dir=.git 'vidstuck\.xyz' .
+          grep -RIn --exclude-dir=.git 'vidstuck\.cc' .
           for f in "${FILES[@]}"; do
-            git show "v2.1.2:$f" > /tmp/original
+            git show "$BASE:$f" > /tmp/original
             sed 's/vidstuck\.cc/vidstuck.xyz/g' "$f" > /tmp/reverted
             cmp -s /tmp/original /tmp/reverted || { echo "Unexpected non-host change in $f"; exit 1; }
           done
@@ -41,25 +69,42 @@ jobs:
           for f in "${CHANGED[@]}"; do
             printf '%s\n' "${FILES[@]}" | grep -Fxq "$f" || { echo "Unexpected changed file: $f"; exit 1; }
           done
-      - name: Build literal v2.1.2 Android TV Lite
+          echo 'Verified: source differs from original 2.1.2 Lite build only by vidstuck.xyz -> vidstuck.cc.'
+
+      - name: Build signed original 2.1.2 Android TV Lite
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          GITHUB_SHA: f06dc5ca7d767b82b0f73d04dbac9ea25995132b
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x ./gradlew
-          ./gradlew :app:assembleLiteTvRelease --no-daemon
-      - name: Stage as 2.2.3.1 release asset
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK=$(find app/build/outputs/apk -type f -name '*.apk' | grep -Ei 'lite.*tv|tv.*lite' | grep -i release | head -n1)
-          test -n "$APK"
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleLiteTvRelease
+          tv=app/build/outputs/apk/liteTv/release/app-liteTv-release.apk
+          test -f "$tv"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$tv"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$tv" | head -n 1 | grep -q "versionName='2.1.2'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$tv" | head -n 1 | grep -q "name='com.zerostreams.app.lite.tv'"
           mkdir -p dist
-          cp "$APK" dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk
+          cp "$tv" dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk
           sha256sum dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk > dist/SHA256SUMS.txt
-      - name: Replace v2.2.3.1 assets
+          cat dist/SHA256SUMS.txt
+
+      - name: Replace existing 2.2.3.1 Lite asset only
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          gh release upload v2.2.3.1 dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk dist/SHA256SUMS.txt --clobber
+          gh release upload v2.2.3.1 \
+            dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk \
+            dist/SHA256SUMS.txt \
+            --clobber
