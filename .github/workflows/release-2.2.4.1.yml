@@ -190,7 +190,7 @@ jobs:
         working-directory: windows
         run: |
           $pkg=Get-Content package.json -Raw | ConvertFrom-Json
-          if($pkg.version -ne '2.2.4.1'){throw 'Expected Windows version 2.2.4.1'}
+          if($pkg.version -ne '2.2.4-1'){throw 'Expected Electron-compatible Windows package version 2.2.4-1'}
           if($pkg.build.buildVersion -ne '2.2.4.1'){throw 'Expected Windows buildVersion 2.2.4.1'}
           if($pkg.build.win.artifactName -ne 'ZeroPlay-2.2.4.1-Windows-x64.${ext}'){throw 'Wrong Windows artifact name'}
           $guard=Get-Content assets/player-guard.js -Raw
