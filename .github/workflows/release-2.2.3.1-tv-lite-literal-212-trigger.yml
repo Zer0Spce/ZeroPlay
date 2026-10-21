@@ -1,0 +1,10 @@
+name: Trigger Literal v2.1.2 Rebuild
+on:
+  push:
+    paths:
+      - '.github/workflows/release-2.2.3.1-tv-lite-literal-212-trigger.yml'
+jobs:
+  touch:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo trigger
