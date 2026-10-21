@@ -116,10 +116,28 @@ for(const rel of ['app/src/main/assets/player-guard.js','windows/assets/player-g
 patch('windows/package.json',text=>{
   const pkg=JSON.parse(text);
   if(pkg.version!=='2.2.4'||pkg.build?.buildVersion!=='2.2.4')throw new Error('Expected Windows 2.2.4 version markers');
-  pkg.version='2.2.4.1';
+  // package.json must remain valid SemVer for electron-builder. Numeric prerelease
+  // -1 maps to the public four-part hotfix version 2.2.4.1 below.
+  pkg.version='2.2.4-1';
   pkg.build.buildVersion='2.2.4.1';
   if(pkg.build?.win)pkg.build.win.artifactName='ZeroPlay-2.2.4.1-Windows-x64.${ext}';
   return JSON.stringify(pkg,null,2)+'\n';
+});
+
+patch('windows/updater.cjs',text=>{
+  const old="const cleanVersion=value=>String(value||'').trim().replace(/^v/i,'').split('-')[0].split('.').map(x=>Number(x)||0);";
+  const next="const publicVersion=value=>String(value||'').trim().replace(/^v/i,'').replace(/-(\\d+)$/,'.$1');\nconst cleanVersion=value=>publicVersion(value).split('-')[0].split('.').map(x=>Number(x)||0);";
+  if(!text.includes(old))throw new Error('Windows updater version parser marker missing');
+  text=text.replace(old,next);
+  text=text.replace("function releaseView(release){return {current:app.getVersion(),version:","function releaseView(release){return {current:publicVersion(app.getVersion()),version:");
+  return text;
+});
+
+patch('windows/version-manager.cjs',text=>{
+  const old="function normalizedVersion(value){const parts=String(value||'').trim().replace(/^v/i,'').split('-')[0].split('.').map(x=>Number(x)||0);";
+  const next="function normalizedVersion(value){const parts=String(value||'').trim().replace(/^v/i,'').replace(/-(\\d+)$/,'.$1').split('-')[0].split('.').map(x=>Number(x)||0);";
+  if(!text.includes(old))throw new Error('Windows version manager parser marker missing');
+  return text.replace(old,next);
 });
 
 console.log('ZeroPlay 2.2.4.1 audio hotfix applied.');
