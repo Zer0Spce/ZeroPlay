@@ -1,0 +1,125 @@
+name: ZeroPlay 2.2.3.1 Android TV Lite Hotfix
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeroplay-2-2-3-1-tv-lite
+  cancel-in-progress: false
+
+jobs:
+  lite-tv-hotfix:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'Release Android TV Lite hotfix 2.2.3.1'
+    name: Android TV Lite only
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Apply TV Lite-only 2.2.3.1 transform
+        run: python scripts/apply-tv-lite-2.2.3.1-hotfix.py
+
+      - name: Verify hotfix isolation and performance changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -A8 'liteTv {' app/build.gradle | grep -q "versionCode 48"
+          grep -A8 'liteTv {' app/build.gradle | grep -q "versionName '2.2.3.1'"
+          grep -q 'versionCode 47' app/build.gradle
+          grep -q "versionName '2.2.3'" app/build.gradle
+          grep -q 'private static final boolean LITE_TV=BuildConfig.TV&&BuildConfig.LITE' app/src/main/java/com/zerostreams/app/PlayerAdScan.java
+          grep -q 'LITE_TV?640:1280' app/src/main/java/com/zerostreams/app/PlayerAdScan.java
+          grep -q '?2500:12000' app/src/main/java/com/zerostreams/app/PlayerAdScan.java
+          grep -q 'setInterval(scan,5000)' app/src/main/assets/player-guard.js
+          grep -q '}, 1800);' app/src/main/assets/player-guard.js
+          grep -q 'observe(document, {subtree: true, childList: true});' app/src/main/assets/player-guard.js
+          grep -q 'if(BuildConfig.LITE){speed=' app/src/main/java/com/zerostreams/app/TvMouse.java
+          grep -q 'vidstuck.cc' app/src/main/java/com/zerostreams/app/PlaybackSources.java
+          grep -R 'vidstuck.xyz' app --exclude-dir=build && exit 1 || true
+
+      - name: TV Lite regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/tv-lite-player-regression.test.cjs
+          node tests/source-selection-regression.test.cjs
+          ZERO_TEST_BUILD_TYPE=release gradle :app:testLiteTvReleaseUnitTest
+
+      - name: Build signed Android TV Lite APK only
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleLiteTvRelease
+          apk=app/build/outputs/apk/liteTv/release/app-liteTv-release.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | head -n 1 | grep -q "versionCode='48'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | head -n 1 | grep -q "versionName='2.2.3.1'"
+          mkdir -p release-assets
+          cp "$apk" release-assets/ZeroPlay-2.2.3.1-Android-TV-Lite.apk
+          sha256sum release-assets/ZeroPlay-2.2.3.1-Android-TV-Lite.apk | sed 's#release-assets/##' > release-assets/SHA256SUMS.txt
+
+      - name: Lint Android TV Lite only
+        run: gradle :app:lintLiteTvRelease
+
+      - name: Audit hotfix APK
+        run: python scripts/audit-release-secrets.py release-assets app/src
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.3.1-Android-TV-Lite
+          path: release-assets/*
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Publish isolated TV Lite hotfix release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='v2.2.3.1'
+          title='ZeroPlay 2.2.3.1 — Android TV Lite Hotfix'
+          notes='docs/releases/2.2.3.1.md'
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release-assets/ZeroPlay-2.2.3.1-Android-TV-Lite.apk release-assets/SHA256SUMS.txt --clobber
+            gh release edit "$tag" --title "$title" --notes-file "$notes" --prerelease
+          else
+            gh release create "$tag" release-assets/ZeroPlay-2.2.3.1-Android-TV-Lite.apk release-assets/SHA256SUMS.txt --target "$GITHUB_SHA" --title "$title" --notes-file "$notes" --prerelease
+          fi
