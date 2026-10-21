@@ -18,8 +18,9 @@ patch('app/build.gradle',text=>{
 
 function safeGuard(text,label){
   const start=text.indexOf('  if (Number(window.__zeroGain) > 1) {');
-  const end=text.indexOf("  {\n    const bars = '.jw-controlbar",start);
-  if(start<0||end<0)throw new Error(label+' audio boost block markers not found');
+  const bars=text.indexOf("    const bars = '.jw-controlbar",start);
+  const end=bars<0?-1:text.lastIndexOf('  {',bars);
+  if(start<0||bars<0||end<=start)throw new Error(label+' audio boost block markers not found');
   const safeBoost=`  if (Number(window.__zeroGain) > 1) {
     const amount = Math.min(10, Math.max(1, Number(window.__zeroGain) || 1));
     const graphs = new WeakMap();
@@ -116,8 +117,6 @@ for(const rel of ['app/src/main/assets/player-guard.js','windows/assets/player-g
 patch('windows/package.json',text=>{
   const pkg=JSON.parse(text);
   if(pkg.version!=='2.2.4'||pkg.build?.buildVersion!=='2.2.4')throw new Error('Expected Windows 2.2.4 version markers');
-  // package.json must remain valid SemVer for electron-builder. Numeric prerelease
-  // -1 maps to the public four-part hotfix version 2.2.4.1 below.
   pkg.version='2.2.4-1';
   pkg.build.buildVersion='2.2.4.1';
   if(pkg.build?.win)pkg.build.win.artifactName='ZeroPlay-2.2.4.1-Windows-x64.${ext}';
