@@ -1,0 +1,85 @@
+name: ZeroPlay 2.2.3.1 Literal v2.1.2 Android TV Lite
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/release-2.2.3.1-tv-lite-literal-212.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Literal v2.1.2 Android TV Lite + VidStuck cc only
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact v2.1.2 source
+        uses: actions/checkout@v4
+        with:
+          ref: v2.1.2
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Change only retired VidStuck host
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE=$(git status --porcelain)
+          test -z "$BEFORE"
+          grep -RIl --exclude-dir=.git 'vidstuck\.xyz' . | while read -r f; do
+            sed -i 's/vidstuck\.xyz/vidstuck.cc/g' "$f"
+          done
+          ! grep -RIn --exclude-dir=.git 'vidstuck\.xyz' .
+          grep -RIn --exclude-dir=.git 'vidstuck\.cc' .
+
+          # Prove the working tree differs from v2.1.2 only by xyz -> cc.
+          git diff --exit-code -- . ':!**/*' >/dev/null 2>&1 || true
+          git diff -- . > /tmp/actual.diff
+          git diff -- . | sed 's/vidstuck\.cc/vidstuck.xyz/g' > /tmp/reverted.diff
+          test -n "$(git diff --name-only)"
+          while read -r f; do
+            git show "v2.1.2:$f" > /tmp/original
+            cp "$f" /tmp/patched
+            sed -i 's/vidstuck\.cc/vidstuck.xyz/g' /tmp/patched
+            cmp -s /tmp/original /tmp/patched || { echo "Unexpected change in $f"; exit 1; }
+          done < <(git diff --name-only)
+
+      - name: Build exact v2.1.2 Android TV Lite APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:assembleLiteTvRelease --no-daemon
+
+      - name: Locate and stage APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk -type f -name '*.apk' | grep -Ei 'lite.*tv|tv.*lite' | grep -i release | head -n1)
+          test -n "$APK"
+          mkdir -p dist
+          cp "$APK" dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk
+          sha256sum dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk > dist/SHA256SUMS.txt
+
+      - name: Replace existing 2.2.3.1 prerelease assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v2.2.3.1 \
+            dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk \
+            dist/SHA256SUMS.txt \
+            --clobber
