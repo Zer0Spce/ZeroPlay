@@ -16,10 +16,10 @@ patch('app/build.gradle',text=>{
   return text.replace('versionCode 49','versionCode 50').replace("versionName '2.2.4'","versionName '2.2.4.1'");
 });
 
-patch('app/src/main/assets/player-guard.js',text=>{
+function safeGuard(text,label){
   const start=text.indexOf('  if (Number(window.__zeroGain) > 1) {');
   const end=text.indexOf("  {\n    const bars = '.jw-controlbar",start);
-  if(start<0||end<0)throw new Error('Android audio boost block markers not found');
+  if(start<0||end<0)throw new Error(label+' audio boost block markers not found');
   const safeBoost=`  if (Number(window.__zeroGain) > 1) {
     const amount = Math.min(10, Math.max(1, Number(window.__zeroGain) || 1));
     const graphs = new WeakMap();
@@ -42,8 +42,6 @@ patch('app/src/main/assets/player-guard.js',text=>{
         visible = rect.width > 2 && rect.height > 2 && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || 1) > 0;
         if (visible) area = Math.min(100000000, rect.width * rect.height);
       } catch (_) {}
-      // Prefer the visible movie/video element. Audio-only elements remain eligible
-      // only when there is no active visible video in this document.
       return (visible ? 1000000000 : 0) + (element.tagName === 'VIDEO' ? 1000000 : 0) + area;
     }
     function activeMedia() {
@@ -86,8 +84,6 @@ patch('app/src/main/assets/player-guard.js',text=>{
           const gain = context.createGain();
           const limiter = context.createDynamicsCompressor();
           gain.gain.value = amount;
-          // Gentle peak control instead of the previous brick-wall 20:1 limiter.
-          // This avoids the audible pumping / underwater effect on Android TV.
           limiter.threshold.value = -8;
           limiter.knee.value = 16;
           limiter.ratio.value = 4;
@@ -113,6 +109,16 @@ patch('app/src/main/assets/player-guard.js',text=>{
   }
 `;
   return text.slice(0,start)+safeBoost+text.slice(end);
+}
+
+for(const rel of ['app/src/main/assets/player-guard.js','windows/assets/player-guard.js'])patch(rel,text=>safeGuard(text,rel));
+
+patch('windows/package.json',text=>{
+  const pkg=JSON.parse(text);
+  if(pkg.version!=='2.2.4'||pkg.build?.buildVersion!=='2.2.4')throw new Error('Expected Windows 2.2.4 version markers');
+  pkg.version='2.2.4.1';
+  pkg.build.buildVersion='2.2.4.1';
+  return JSON.stringify(pkg,null,2)+'\n';
 });
 
-console.log('ZeroPlay 2.2.4.1 Android audio hotfix applied.');
+console.log('ZeroPlay 2.2.4.1 audio hotfix applied.');
