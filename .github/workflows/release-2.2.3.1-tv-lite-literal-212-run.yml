@@ -1,0 +1,64 @@
+name: One-shot literal v2.1.2 Android TV Lite
+on:
+  push:
+    paths:
+      - '.github/workflows/release-2.2.3.1-tv-lite-literal-212-run.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2.1.2
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Patch only VidStuck host and prove exactness
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < <(grep -RIl --exclude-dir=.git 'vidstuck\.xyz' .)
+          test ${#FILES[@]} -gt 0
+          printf '%s\n' "${FILES[@]}"
+          for f in "${FILES[@]}"; do
+            sed -i 's/vidstuck\.xyz/vidstuck.cc/g' "$f"
+          done
+          ! grep -RIn --exclude-dir=.git 'vidstuck\.xyz' .
+          for f in "${FILES[@]}"; do
+            git show "v2.1.2:$f" > /tmp/original
+            sed 's/vidstuck\.cc/vidstuck.xyz/g' "$f" > /tmp/reverted
+            cmp -s /tmp/original /tmp/reverted || { echo "Unexpected non-host change in $f"; exit 1; }
+          done
+          mapfile -t CHANGED < <(git diff --name-only)
+          test ${#CHANGED[@]} -eq ${#FILES[@]}
+          for f in "${CHANGED[@]}"; do
+            printf '%s\n' "${FILES[@]}" | grep -Fxq "$f" || { echo "Unexpected changed file: $f"; exit 1; }
+          done
+      - name: Build literal v2.1.2 Android TV Lite
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:assembleLiteTvRelease --no-daemon
+      - name: Stage as 2.2.3.1 release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk -type f -name '*.apk' | grep -Ei 'lite.*tv|tv.*lite' | grep -i release | head -n1)
+          test -n "$APK"
+          mkdir -p dist
+          cp "$APK" dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk
+          sha256sum dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk > dist/SHA256SUMS.txt
+      - name: Replace v2.2.3.1 assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v2.2.3.1 dist/ZeroPlay-2.2.3.1-Android-TV-Lite.apk dist/SHA256SUMS.txt --clobber
