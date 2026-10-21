@@ -31,11 +31,16 @@ test('hotfix limiter is gentler and removes brick-wall pumping settings',()=>{
   }
 });
 
-test('2.2.4.1 versions are applied',()=>{
+test('2.2.4.1 versions are applied with Electron-compatible semver',()=>{
   const gradle=read('app/build.gradle');
   assert.match(gradle,/versionCode 50/);
   assert.match(gradle,/versionName '2\.2\.4\.1'/);
   const pkg=JSON.parse(read('windows/package.json'));
-  assert.equal(pkg.version,'2.2.4.1');
+  assert.equal(pkg.version,'2.2.4-1');
   assert.equal(pkg.build.buildVersion,'2.2.4.1');
+  assert.equal(pkg.build.win.artifactName,'ZeroPlay-2.2.4.1-Windows-x64.${ext}');
+  const updater=read('windows/updater.cjs');
+  const versions=read('windows/version-manager.cjs');
+  assert.match(updater,/replace\(\/\-\(\\d\+\)\$\/,'.\$1'\)/);
+  assert.match(versions,/replace\(\/\-\(\\d\+\)\$\/,'.\$1'\)/);
 });
