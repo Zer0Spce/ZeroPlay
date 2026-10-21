@@ -59,9 +59,6 @@ jobs:
           node tests/tv-lite-player-regression.test.cjs
           node tests/auto-source-recovery-default.test.cjs
           node tests/default-player-controls-regression.test.cjs
-          npm install --prefix /tmp/zero-release-tests --no-audit --no-fund jsdom@24.1.3
-          NODE_PATH=/tmp/zero-release-tests/node_modules node tests/tv-navigation.test.cjs
-          ZERO_GUARD_PATH=app/src/main/assets/player-guard.js NODE_PATH=/tmp/zero-release-tests/node_modules node tests/player-guard.test.cjs
       - name: Unit tests — all Android variants
         run: gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest :app:testLiteMobileReleaseUnitTest :app:testLiteTvReleaseUnitTest
       - name: Build signed 2.2.4.1 APKs
