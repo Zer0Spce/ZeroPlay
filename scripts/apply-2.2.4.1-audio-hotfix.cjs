@@ -118,6 +118,7 @@ patch('windows/package.json',text=>{
   if(pkg.version!=='2.2.4'||pkg.build?.buildVersion!=='2.2.4')throw new Error('Expected Windows 2.2.4 version markers');
   pkg.version='2.2.4.1';
   pkg.build.buildVersion='2.2.4.1';
+  if(pkg.build?.win)pkg.build.win.artifactName='ZeroPlay-2.2.4.1-Windows-x64.${ext}';
   return JSON.stringify(pkg,null,2)+'\n';
 });
 
