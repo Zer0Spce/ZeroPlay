@@ -1,4 +1,5 @@
 name: One-shot literal v2.1.2 Android TV Lite
+# trigger: literal-v212-cc-only
 on:
   push:
     paths:
