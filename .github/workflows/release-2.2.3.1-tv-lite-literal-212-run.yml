@@ -1,5 +1,5 @@
 name: One-shot literal v2.1.2 Android TV Lite
-# trigger: exact-original-lite-source-cc-only
+# trigger: exact-original-lite-app-cc-only-v2
 on:
   push:
     paths:
@@ -45,20 +45,20 @@ jobs:
           test -f app/src/liteTv/AndroidManifest.xml
           test -z "$(git status --porcelain)"
 
-      - name: Change only VidStuck xyz to cc and prove exactness
+      - name: Change only Android VidStuck xyz to cc and prove exactness
         shell: bash
         run: |
           set -euo pipefail
           BASE='f06dc5ca7d767b82b0f73d04dbac9ea25995132b'
-          mapfile -t FILES < <(grep -RIl --exclude-dir=.git 'vidstuck\.xyz' .)
+          mapfile -t FILES < <(grep -RIl 'vidstuck\.xyz' app | sed 's#^\./##')
           test ${#FILES[@]} -gt 0
-          printf 'Files containing original VidStuck host:\n'
+          printf 'Android files containing original VidStuck host:\n'
           printf '%s\n' "${FILES[@]}"
           for f in "${FILES[@]}"; do
             sed -i 's/vidstuck\.xyz/vidstuck.cc/g' "$f"
           done
-          ! grep -RIn --exclude-dir=.git 'vidstuck\.xyz' .
-          grep -RIn --exclude-dir=.git 'vidstuck\.cc' .
+          ! grep -RIn 'vidstuck\.xyz' app
+          grep -RIn 'vidstuck\.cc' app
           for f in "${FILES[@]}"; do
             git show "$BASE:$f" > /tmp/original
             sed 's/vidstuck\.cc/vidstuck.xyz/g' "$f" > /tmp/reverted
@@ -69,7 +69,7 @@ jobs:
           for f in "${CHANGED[@]}"; do
             printf '%s\n' "${FILES[@]}" | grep -Fxq "$f" || { echo "Unexpected changed file: $f"; exit 1; }
           done
-          echo 'Verified: source differs from original 2.1.2 Lite build only by vidstuck.xyz -> vidstuck.cc.'
+          echo 'Verified: Android source differs from the exact original 2.1.2 Lite build only by vidstuck.xyz -> vidstuck.cc.'
 
       - name: Build signed original 2.1.2 Android TV Lite
         env:
