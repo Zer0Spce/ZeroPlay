@@ -47,7 +47,7 @@ fs.writeFileSync(mainFile,source);
 const pkg=JSON.parse(fs.readFileSync(packageFile,'utf8'));
 pkg.build=pkg.build||{};
 pkg.build.win=pkg.build.win||{};
-pkg.build.win.artifactName='ZeroPlay-2.1-Windows-Offline-mpv-Test.${ext}';
+// Preserve the release's configured artifactName. This transform only adds the mpv offline resources.
 const extras=(pkg.build.extraResources||[]).filter(row=>!['mpv','mpv-host'].includes(row?.to));
 extras.push({from:'vendor/mpv',to:'mpv',filter:['**/*']});
 extras.push({from:'MpvVideoHost.exe',to:'mpv-host/MpvVideoHost.exe'});
