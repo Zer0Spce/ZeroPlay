@@ -1,0 +1,266 @@
+name: ZeroPlay 2.2.4 Production Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeroplay-2-2-4-release
+  cancel-in-progress: false
+
+jobs:
+  android:
+    if: contains(github.event.head_commit.message, 'Publish ZeroPlay v2.2.4')
+    name: Android Full + Lite 2.2.4
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Apply 2.2.4 real audio boost
+        run: node scripts/apply-2.2.4-volume-boost.cjs
+      - name: Verify Android 2.2.4 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "versionCode 49" app/build.gradle
+          grep -q "versionName '2.2.4'" app/build.gradle
+          grep -q 'Math.min(10, Math.max(1, Number(window.__zeroGain) || 1))' app/src/main/assets/player-guard.js
+          grep -q '10× boost' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'getFloat("audioBoost",1f)' app/src/main/java/com/zerostreams/app/SportsPlayerActivity.java
+          grep -R 'vidstuck.xyz' app --exclude-dir=build && exit 1 || true
+      - name: Player/source/audio regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/audio-boost-2.2.4.test.cjs
+          node tests/source-selection-regression.test.cjs
+          node tests/tv-lite-player-regression.test.cjs
+          node tests/auto-source-recovery-default.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+          npm install --prefix /tmp/zero-release-tests --no-audit --no-fund jsdom@24.1.3
+          NODE_PATH=/tmp/zero-release-tests/node_modules node tests/tv-navigation.test.cjs
+          ZERO_GUARD_PATH=app/src/main/assets/player-guard.js NODE_PATH=/tmp/zero-release-tests/node_modules node tests/player-guard.test.cjs
+      - name: Unit tests — all Android variants
+        run: gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest :app:testLiteMobileReleaseUnitTest :app:testLiteTvReleaseUnitTest
+      - name: Build signed 2.2.4 APKs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleMobileRelease :app:assembleTvRelease :app:assembleLiteMobileRelease :app:assembleLiteTvRelease
+          mobile=app/build/outputs/apk/mobile/release/app-mobile-release.apk
+          tv=app/build/outputs/apk/tv/release/app-tv-release.apk
+          liteMobile=app/build/outputs/apk/liteMobile/release/app-liteMobile-release.apk
+          liteTv=app/build/outputs/apk/liteTv/release/app-liteTv-release.apk
+          for apk in "$mobile" "$tv" "$liteMobile" "$liteTv"; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | head -n 1 | grep -q "versionName='2.2.4'"
+          done
+          mkdir -p release-assets
+          cp "$mobile" release-assets/ZeroPlay-2.2.4-Android.apk
+          cp "$tv" release-assets/ZeroPlay-2.2.4-Android-TV.apk
+          cp "$liteMobile" release-assets/ZeroPlay-2.2.4-Android-Lite.apk
+          cp "$liteTv" release-assets/ZeroPlay-2.2.4-Android-TV-Lite.apk
+      - name: Lint all Android variants
+        run: gradle --continue :app:lintMobileRelease :app:lintTvRelease :app:lintLiteMobileRelease :app:lintLiteTvRelease
+      - name: Audit Android production assets
+        run: python scripts/audit-release-secrets.py release-assets app/src
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.4-Android
+          path: release-assets/*.apk
+          if-no-files-found: error
+          compression-level: 0
+
+  windows:
+    if: contains(github.event.head_commit.message, 'Publish ZeroPlay v2.2.4')
+    name: Windows Portable 2.2.4
+    runs-on: windows-latest
+    timeout-minutes: 80
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve committed line endings
+        shell: pwsh
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Configure bundled production keys/vendors
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Download pinned mpv x64 engine
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          $url='https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261009/mpv-x86_64-20261009-git-36abaa32d0.7z'
+          $expected='9afbe74f4ab885ca512769f8835758eb66b7b8a5ea6d679500588f8e7fec632e'
+          Invoke-WebRequest -Uri $url -OutFile mpv.7z
+          $actual=(Get-FileHash mpv.7z -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($actual -ne $expected){throw "mpv SHA-256 mismatch: $actual"}
+          New-Item -ItemType Directory -Force vendor/mpv | Out-Null
+          7z x mpv.7z -ovendor/mpv -y | Out-Host
+          $mpv=Get-ChildItem vendor/mpv -Filter mpv.exe -Recurse | Select-Object -First 1
+          if(-not $mpv){throw 'mpv.exe missing after extraction'}
+          if($mpv.Directory.FullName -ne (Resolve-Path vendor/mpv).Path){Copy-Item "$($mpv.Directory.FullName)/*" vendor/mpv -Recurse -Force}
+          if(!(Test-Path vendor/mpv/mpv.exe)){throw 'mpv.exe normalization failed'}
+          Remove-Item mpv.7z -Force
+      - name: Apply preserved production Windows stack
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($script in @('scripts/apply-offline-mpv-test.cjs','scripts/apply-final-windows-polish.cjs','scripts/apply-episode-progress-fix.cjs','scripts/apply-windows-episode-completion-fix.cjs','scripts/fix-final-windows-action-tdz.cjs','scripts/apply-2.1.2-player-adblock.cjs')){
+            node $script
+            if($LASTEXITCODE -ne 0){throw "Production stack failed: $script"}
+          }
+          Pop-Location 2>$null
+        continue-on-error: true
+      - name: Apply 2.2.4 real audio boost after production transforms
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          node scripts/apply-2.2.4-volume-boost.cjs
+          if($LASTEXITCODE -ne 0){throw '2.2.4 audio boost patch failed'}
+          node tests/audio-boost-2.2.4.test.cjs
+          if($LASTEXITCODE -ne 0){throw '2.2.4 audio boost regression failed'}
+      - name: Windows source regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          node tests/source-selection-regression.test.cjs
+          node tests/auto-source-recovery-default.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+          Push-Location windows
+          npm test
+          Pop-Location
+      - name: Build native video host and updater
+        shell: pwsh
+        working-directory: windows
+        run: |
+          dotnet publish mpv-host-helper/MpvVideoHost.csproj -c Release -r win-x64 --self-contained true -o mpv-host-helper/publish
+          Copy-Item mpv-host-helper/publish/MpvVideoHost.exe ./MpvVideoHost.exe -Force
+          dotnet publish updater-helper/ZeroPlayUpdater.csproj -c Release -r win-x64 --self-contained true -o updater-helper/publish
+          Copy-Item updater-helper/publish/ZeroPlayUpdater.exe ./ZeroPlayUpdater.exe -Force
+      - name: Verify Windows 2.2.4 source
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $pkg=Get-Content package.json -Raw | ConvertFrom-Json
+          if($pkg.version -ne '2.2.4'){throw 'Expected Windows version 2.2.4'}
+          if($pkg.build.buildVersion -ne '2.2.4'){throw 'Expected Windows buildVersion 2.2.4'}
+          $guard=Get-Content assets/player-guard.js -Raw
+          if($guard -notmatch 'Math\.min\(10, Math\.max\(1, Number\(window\.__zeroGain\) \|\| 1\)\)'){throw '10x gain cap missing'}
+          $html=Get-Content ui/index.html -Raw
+          foreach($level in @('2','3','4','5','10')){if($html -notmatch ('value="'+$level+'">'+$level+'× boost')){throw "Missing ${level}x option"}}
+      - name: Electron smoke test
+        timeout-minutes: 9
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npx electron . --smoke-test
+          if($LASTEXITCODE -ne 0){throw "Electron smoke test failed: $LASTEXITCODE"}
+      - name: Build portable Windows ZIP
+        working-directory: windows
+        run: npx electron-builder --win --x64 --publish never
+      - name: Verify Windows package
+        shell: pwsh
+        working-directory: windows
+        run: |
+          $zip='dist/ZeroPlay-2.2.4-Windows-x64.zip'
+          if(!(Test-Path $zip)){throw 'Windows 2.2.4 portable ZIP was not created'}
+          if(!(Test-Path 'dist/win-unpacked/ZeroPlay.exe')){throw 'ZeroPlay.exe missing'}
+          if(!(Test-Path 'dist/win-unpacked/ZeroPlayUpdater.exe')){throw 'ZeroPlayUpdater.exe missing'}
+          New-Item -ItemType Directory -Force ../release-assets | Out-Null
+          Copy-Item $zip ../release-assets/ZeroPlay-2.2.4-Windows-x64.zip -Force
+      - name: Audit Windows production asset
+        shell: pwsh
+        run: python scripts/audit-release-secrets.py release-assets windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.4-Windows
+          path: release-assets/ZeroPlay-2.2.4-Windows-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    if: contains(github.event.head_commit.message, 'Publish ZeroPlay v2.2.4')
+    name: Publish ZeroPlay 2.2.4
+    runs-on: ubuntu-latest
+    needs: [android, windows]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ZeroPlay-2.2.4-*
+          path: release-assets
+          merge-multiple: true
+      - name: Create checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum ZeroPlay-2.2.4-Android.apk ZeroPlay-2.2.4-Android-TV.apk ZeroPlay-2.2.4-Android-Lite.apk ZeroPlay-2.2.4-Android-TV-Lite.apk ZeroPlay-2.2.4-Windows-x64.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v2.2.4 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then echo 'v2.2.4 already exists; refusing overwrite'; exit 1; fi
+          gh release create v2.2.4 \
+            release-assets/ZeroPlay-2.2.4-Android.apk \
+            release-assets/ZeroPlay-2.2.4-Android-TV.apk \
+            release-assets/ZeroPlay-2.2.4-Android-Lite.apk \
+            release-assets/ZeroPlay-2.2.4-Android-TV-Lite.apk \
+            release-assets/ZeroPlay-2.2.4-Windows-x64.zip \
+            release-assets/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title 'ZeroPlay 2.2.4 — Real Audio Boost' \
+            --notes $'## ZeroPlay 2.2.4\n\n### Real audio boost\n- New boost levels: **2×, 3×, 4×, 5× and 10×** (plus Off).\n- Removed the old hidden **2× hard cap** so higher selections now feed the real Web Audio gain stage.\n- Android Sports embeds now inherit the saved boost instead of being forced to 1×.\n- Windows Live/RawCast playback now applies the saved boost through a real gain node.\n- A dynamics limiter remains after the gain stage to reduce severe clipping at high boost levels.\n\n### Platforms\n- Android\n- Android TV\n- Android Lite\n- Android TV Lite\n- Windows x64 portable\n\nAndroid uses versionCode 49 so it upgrades cleanly over prior 2.2.3 builds and the earlier TV Lite hotfix.'
