@@ -125,12 +125,13 @@ jobs:
           node scripts/apply-2.2.4-volume-boost.cjs
           node scripts/apply-2.2.4.1-audio-hotfix.cjs
           node scripts/apply-custom-livetv-windows-test.cjs
-          node -e "const fs=require('fs');const p='windows/package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Expected 2.2.5-test1 Windows package');j.version='2.2.5';j.build.buildVersion='2.2.5';j.build.win.artifactName='ZeroPlay-2.2.5-Windows-x64.${ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
+          node -e "const fs=require('fs');const p='windows/package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Expected 2.2.5-test1 Windows package');j.version='2.2.5';j.build.buildVersion='2.2.5';j.build.win.artifactName='ZeroPlay-2.2.5-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
       - name: Verify Windows 2.2.5 custom M3U source
         shell: pwsh
         run: |
           $pkg = Get-Content windows/package.json -Raw | ConvertFrom-Json
           if ($pkg.version -ne '2.2.5') { throw 'Windows package version is not 2.2.5' }
+          if ($pkg.build.win.artifactName -ne 'ZeroPlay-2.2.5-Windows-x64.${ext}') { throw 'Windows artifact name is malformed' }
           $main = Get-Content windows/main.cjs -Raw
           $preload = Get-Content windows/preload.cjs -Raw
           $app = Get-Content windows/ui/app.js -Raw
