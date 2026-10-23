@@ -1,0 +1,1 @@
+Release ZeroPlay 2.2.5 stable builds: Android, Android TV, and Windows x64. Lite editions are no longer published.
