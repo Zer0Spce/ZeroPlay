@@ -1,0 +1,100 @@
+name: ZeroPlay Custom Live TV Test Builds
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeroplay-custom-livetv-test
+  cancel-in-progress: true
+
+jobs:
+  android-test-builds:
+    if: contains(github.event.head_commit.message, 'Build custom Live TV test')
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+
+      - name: Apply current 2.2.4.1 stack and test features
+        run: |
+          set -euo pipefail
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-test.cjs
+
+      - name: Verify custom Live TV and Android TV paging patch
+        run: |
+          set -euo pipefail
+          grep -q "versionCode 51" app/build.gradle
+          grep -q "versionName '2.2.5-test1'" app/build.gradle
+          grep -q 'REQUEST_CUSTOM_LIVE_TV_M3U' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'Load M3U from file' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'Load M3U from URL' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'Restore original playlist' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'customLiveTvMode' app/src/main/java/com/zerostreams/app/PlaylistStore.java
+          grep -q 'BuildConfig.TV&&(category.equals("Movies")||category.equals("Series"))' app/src/main/java/com/zerostreams/app/MainActivity.java
+
+      - name: Existing player regressions
+        run: |
+          set -euo pipefail
+          node tests/audio-boost-2.2.4.test.cjs
+          node tests/audio-boost-2.2.4.1.test.cjs
+          node tests/source-selection-regression.test.cjs
+          node tests/tv-lite-player-regression.test.cjs
+          node tests/auto-source-recovery-default.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+
+      - name: Unit tests all Android variants
+        run: gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest :app:testLiteMobileReleaseUnitTest :app:testLiteTvReleaseUnitTest
+
+      - name: Build signed test APKs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleMobileRelease :app:assembleTvRelease :app:assembleLiteMobileRelease :app:assembleLiteTvRelease
+          mkdir -p test-builds
+          cp app/build/outputs/apk/mobile/release/app-mobile-release.apk test-builds/ZeroPlay-2.2.5-test1-Android.apk
+          cp app/build/outputs/apk/tv/release/app-tv-release.apk test-builds/ZeroPlay-2.2.5-test1-Android-TV.apk
+          cp app/build/outputs/apk/liteMobile/release/app-liteMobile-release.apk test-builds/ZeroPlay-2.2.5-test1-Android-Lite.apk
+          cp app/build/outputs/apk/liteTv/release/app-liteTv-release.apk test-builds/ZeroPlay-2.2.5-test1-Android-TV-Lite.apk
+          for apk in test-builds/*.apk; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | head -n 1
+          done
+
+      - name: Lint Android variants
+        run: gradle --continue :app:lintMobileRelease :app:lintTvRelease :app:lintLiteMobileRelease :app:lintLiteTvRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5-test1-Android-builds
+          path: test-builds/*.apk
+          if-no-files-found: error
+          compression-level: 0
