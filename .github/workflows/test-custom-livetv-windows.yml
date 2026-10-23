@@ -1,0 +1,87 @@
+name: ZeroPlay Windows Custom Live TV Test
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'windows-custom-livetv-trigger.txt'
+permissions:
+  contents: read
+concurrency:
+  group: zeroplay-windows-custom-livetv-test
+  cancel-in-progress: true
+jobs:
+  windows-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Apply current 2.2.4.1 stack
+        run: |
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+      - name: Apply Windows custom M3U test feature
+        run: node scripts/apply-custom-livetv-windows-test.cjs
+      - name: Verify custom M3U source wiring
+        shell: pwsh
+        run: |
+          $main = Get-Content windows/main.cjs -Raw
+          $preload = Get-Content windows/preload.cjs -Raw
+          $app = Get-Content windows/ui/app.js -Raw
+          $playlist = Get-Content windows/playlist.cjs -Raw
+          foreach ($needle in @('playlist-file','playlist-url','playlist-restore')) {
+            if (-not $main.Contains($needle)) { throw "main IPC missing: $needle" }
+            if (-not $preload.Contains($needle)) { throw "preload bridge missing: $needle" }
+            if (-not $app.Contains($needle)) { throw "renderer action missing: $needle" }
+          }
+          if (-not $playlist.Contains('setCustomFile') -or -not $playlist.Contains('setCustomUrl') -or -not $playlist.Contains('restoreOriginal')) { throw 'playlist custom source methods missing' }
+          if (-not $app.Contains('Open M3U file') -or -not $app.Contains('Restore original')) { throw 'Live TV custom playlist UI missing' }
+      - name: Custom M3U switching regression test
+        run: node --test tests/windows-custom-livetv.test.cjs
+      - name: Existing Windows tests
+        working-directory: windows
+        run: npm test
+      - name: Configure bundled keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Package portable ZIP
+        working-directory: windows
+        run: npm run build
+      - name: Verify packaged ZIP
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem windows/dist/ZeroPlay-2.2.5-test1-Windows-x64.zip -File | Select-Object -First 1
+          if (-not $zip) { throw 'Windows portable ZIP was not produced.' }
+          Write-Host "Built $($zip.Name) ($($zip.Length) bytes)"
+      - name: Verify Authenticode signature when configured
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CSC_LINK)) {
+            Write-Warning 'WINDOWS_CSC_LINK is not configured; build will be unsigned.'
+            exit 0
+          }
+          $exe = Get-ChildItem windows/dist/win-unpacked -Filter *.exe -File | Select-Object -First 1
+          if (-not $exe) { throw 'Packaged Windows executable not found.' }
+          $signature = Get-AuthenticodeSignature $exe.FullName
+          Write-Host "Signature status: $($signature.Status)"
+          if ($signature.Status -ne 'Valid') { throw "Windows executable signature is not valid: $($signature.Status)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5-test1-Windows-Custom-M3U
+          path: windows/dist/ZeroPlay-2.2.5-test1-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
