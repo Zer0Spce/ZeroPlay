@@ -34,12 +34,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.9' }
 
-      - name: Apply current 2.2.4.1 stack and test features
+      - name: Apply current 2.2.4.1 stack
         run: |
           set -euo pipefail
           node scripts/apply-2.2.4-volume-boost.cjs
           node scripts/apply-2.2.4.1-audio-hotfix.cjs
-          node scripts/apply-custom-livetv-test.cjs
+
+      - name: Verify current 2.2.4.1 audio baseline
+        run: |
+          set -euo pipefail
+          node tests/audio-boost-2.2.4.test.cjs
+          node tests/audio-boost-2.2.4.1.test.cjs
+
+      - name: Apply custom Live TV and TV paging test features
+        run: node scripts/apply-custom-livetv-test.cjs
 
       - name: Verify custom Live TV and Android TV paging patch
         run: |
@@ -56,8 +64,6 @@ jobs:
       - name: Existing player regressions
         run: |
           set -euo pipefail
-          node tests/audio-boost-2.2.4.test.cjs
-          node tests/audio-boost-2.2.4.1.test.cjs
           node tests/source-selection-regression.test.cjs
           node tests/tv-lite-player-regression.test.cjs
           node tests/auto-source-recovery-default.test.cjs
