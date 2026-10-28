@@ -1,0 +1,50 @@
+/* ZeroPlay 2.4 private layout experiments. Original four layout rules remain untouched.
+   Scope to discovery pages only; Live TV, Sports, playback and settings keep baseline. */
+:root:is([data-layout="cinema"],[data-layout="studio"],[data-layout="librarypro"],[data-layout="horizon"]) {color-scheme:dark}
+:root[data-layout="cinema"]{--bg:#05070c;--surface:#121827;--mint:#f5bd64}
+:root[data-layout="cinema"] aside{width:100%;height:72px;bottom:auto;display:flex;flex-direction:row;align-items:center;gap:8px;padding:12px 3vw;background:linear-gradient(180deg,#05070cf5,#05070c88);border:0;z-index:12}
+:root[data-layout="cinema"] aside .brand{margin:0 26px 0 0;font-size:23px}
+:root[data-layout="cinema"] aside .nav-label,:root[data-layout="cinema"] aside .rail-bottom{display:none}
+:root[data-layout="cinema"] aside button{border:0;background:transparent;white-space:nowrap}
+:root[data-layout="cinema"] main{margin-left:0;padding:92px 3.5vw 45px}
+:root[data-layout="cinema"] main>header{padding:0 8px}
+:root[data-layout="cinema"] main:has(#home:not([hidden])) .hero{height:min(68vh,710px);min-height:430px;border-radius:4px;margin:0 -1vw 34px;box-shadow:0 25px 80px #000a}
+:root[data-layout="cinema"] .hero-content{width:58%;padding:5vw}
+:root[data-layout="cinema"] .hero h2{font-size:clamp(46px,5vw,86px);letter-spacing:-.06em}
+:root[data-layout="cinema"] .cards .card{min-width:210px;width:210px;flex-basis:210px;border-radius:5px}
+:root[data-layout="cinema"] .row-section{margin:36px 0}
+:root[data-layout="studio"]{--bg:#e9e8e2;--surface:#fffefa;--ink:#1b2430;--muted:#55606b;--mint:#235f69;color-scheme:light}
+:root[data-layout="studio"] aside{width:245px;background:#f8f7f2;border-right:1px solid #d7d7d0;padding:42px 25px}
+:root[data-layout="studio"] aside .brand{color:#1b2430;font-family:Georgia,serif;letter-spacing:-.06em;font-size:29px}
+:root[data-layout="studio"] aside button{background:transparent;border:0;text-align:left;color:#1b2430}
+:root[data-layout="studio"] main{margin-left:245px;padding:45px 5vw}
+:root[data-layout="studio"] main:has(#home:not([hidden])) .hero{height:490px;border-radius:28px;overflow:hidden}
+:root[data-layout="studio"] .hero-content{width:65%;padding:50px}
+:root[data-layout="studio"] .hero h2{font:700 clamp(40px,4vw,65px) Georgia,serif;letter-spacing:-.045em}
+:root[data-layout="studio"] .row-section{padding:30px;background:#fffefa;border-radius:24px;margin:25px 0;box-shadow:0 12px 35px #2b303012}
+:root[data-layout="studio"] .row-section h3{font:700 29px Georgia,serif}
+:root[data-layout="studio"] .cards .card{min-width:250px;width:250px;flex-basis:250px;border-radius:18px}
+:root[data-layout="librarypro"]{--bg:#0d1420;--surface:#172334;--mint:#75b6ff}
+:root[data-layout="librarypro"] aside{width:278px;padding:24px 18px;background:#101b2a;border-right:1px solid #2d3d52}
+:root[data-layout="librarypro"] aside button{display:flex;align-items:center;gap:12px;text-align:left;border-radius:7px;background:#19283a}
+:root[data-layout="librarypro"] main{margin-left:278px;padding:24px 30px}
+:root[data-layout="librarypro"] main:has(#home:not([hidden])) .hero{height:240px;border-radius:9px}
+:root[data-layout="librarypro"] .hero-content{padding:20px 32px;width:76%}
+:root[data-layout="librarypro"] .hero h2{font-size:29px}
+:root[data-layout="librarypro"] .cards{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));overflow:visible!important;gap:12px}
+:root[data-layout="librarypro"] .cards .card{width:100%!important;min-width:0!important;max-width:none!important;flex:auto!important}
+:root[data-layout="librarypro"] .row-section{border-top:1px solid #314359;padding-top:18px}
+:root[data-layout="librarypro"] .row-section h3{font-size:17px;text-transform:uppercase;letter-spacing:.1em}
+:root[data-layout="horizon"]{--bg:#080f1d;--surface:#17263c;--mint:#68edcf}
+:root[data-layout="horizon"] aside{width:108px;padding:24px 12px;align-items:center;background:#0d1828;gap:13px}
+:root[data-layout="horizon"] aside .brand{font-size:14px;letter-spacing:-.06em;margin:0 0 25px}
+:root[data-layout="horizon"] aside .brand small,:root[data-layout="horizon"] aside .nav-label,:root[data-layout="horizon"] aside button span{display:none}
+:root[data-layout="horizon"] aside button{min-height:62px;min-width:62px;border-radius:20px;display:flex;align-items:center;justify-content:center}
+:root[data-layout="horizon"] main{margin-left:108px;padding:36px 3.4vw}
+:root[data-layout="horizon"] main:has(#home:not([hidden])) .hero{height:490px;border-radius:35px;box-shadow:0 20px 80px #0007}
+:root[data-layout="horizon"] .hero-content{width:62%;padding:54px}
+:root[data-layout="horizon"] .hero h2{font-size:clamp(40px,4vw,65px)}
+:root[data-layout="horizon"] .row-section{background:linear-gradient(120deg,#172a43,#111b2b);padding:24px;border-radius:24px;margin:24px 0}
+:root[data-layout="horizon"] .cards .card{min-width:270px;width:270px;flex-basis:270px;border-radius:24px}
+:root[data-layout="horizon"] .card:focus-visible{outline:4px solid #68edcf;outline-offset:5px;transform:scale(1.035)}
+@media(max-width:1050px){:root[data-layout="cinema"] aside{overflow-x:auto}:root[data-layout="studio"] aside{width:170px}:root[data-layout="studio"] main{margin-left:170px}:root[data-layout="librarypro"] aside{width:185px}:root[data-layout="librarypro"] main{margin-left:185px}}
