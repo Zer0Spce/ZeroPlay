@@ -1,0 +1,25 @@
+name: ZeroPlay 2.3 Discovery Test (No Release)
+on:
+  push:
+    branches:
+      - develop/2.3-ui-discovery-test
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  discovery-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check experimental UI
+        run: node --check web/public/zero23-skins.js
+      - name: Discovery skin regression
+        run: node --test tests/zero23-discovery-skins.test.cjs
+      - name: Existing browser discovery regression
+        run: |
+          for testfile in web/test/*.test.cjs; do
+            if [ -f "$testfile" ]; then node --test "$testfile"; fi
+          done
