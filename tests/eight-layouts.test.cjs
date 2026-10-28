@@ -23,3 +23,9 @@ test('Preview pipeline has no release publisher',()=>{
  assert.match(workflow,/contents: read/);
  assert.doesNotMatch(workflow,/gh release create|softprops\/action-gh-release/);
 });
+
+test('Windows native settings persists all eight UI layout IDs instead of reverting to youtube',()=>{
+ const native=read('windows/main.cjs');
+ const accepted="['youtube','google','flix','classic','cinema','studio','librarypro','horizon'].includes(value.uiLayout)";
+ assert.ok(native.includes(accepted),'native settings whitelist must accept all eight');
+});
