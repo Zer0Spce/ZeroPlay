@@ -112,6 +112,16 @@ final class ContentApi {
         return result;
     }
     static JSONArray genres(String type,String key) throws Exception {return DiscoveryApi.genres((path,q)->tmdb(path,key,q),type);}
+    static JSONObject zero23Shelf(String key,String id) throws Exception {
+        switch(id){
+            case "topSeries":return tmdb("/tv/top_rated",key,"&page=1");
+            case "newSeries":return tmdb("/tv/on_the_air",key,"&page=1");
+            case "kDrama":return tmdb("/discover/tv",key,"&include_adult=false&with_original_language=ko&sort_by=popularity.desc&page=1");
+            case "animePicks":return tmdb("/discover/tv",key,"&include_adult=false&with_genres=16&sort_by=popularity.desc&page=1");
+            case "documentaryPicks":return tmdb("/discover/movie",key,"&include_adult=false&with_genres=99&sort_by=popularity.desc&page=1");
+            default:throw new IllegalArgumentException("Unknown discovery shelf");
+        }
+    }
     static JSONObject animeData(String key,String type,int page)throws Exception {if(!type.equals("tv")&&!type.equals("movie")||page<1||page>500)throw new IllegalArgumentException("Invalid anime page");return tmdb("/discover/"+type,key,"&include_adult=false&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page="+page);}
     static JSONObject categoryData(String key,String type,int id,int page)throws Exception {if(id>0)return genreData(key,type,id,page);if(!type.equals("tv")&&!type.equals("movie")||page<1||page>500)throw new IllegalArgumentException("Invalid page");return tmdb("/discover/"+type,key,"&include_adult=false&with_original_language="+DiscoveryCollections.language(id)+"&sort_by=popularity.desc&page="+page);}
     static JSONObject genreData(String key,String type,int genre,int page) throws Exception {return DiscoveryApi.genrePage((path,q)->tmdb(path,key,q),type,genre,page);}
