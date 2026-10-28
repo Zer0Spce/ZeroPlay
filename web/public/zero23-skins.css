@@ -1,0 +1,27 @@
+/* ZeroPlay 2.3 experimental discovery-only visual skins.
+   Does not modify playback, TV navigation, audio, Live TV or Sports. */
+:root[data-zp23-skin="cinematic"]{--bg:#080b13;--surface:#141b2a;--ink:#f6f7fb;--muted:#a4b1c6;--mint:#8bb8ff}
+:root[data-zp23-skin="modern"]{--bg:#101014;--surface:#1c1c22;--ink:#fff;--muted:#b7b7c0;--mint:#ff5265}
+:root[data-zp23-skin="library"]{--bg:#111820;--surface:#1d2a34;--ink:#f1f6fa;--muted:#a8b8c5;--mint:#68d4c5}
+:root[data-zp23-skin="signature"]{--bg:#080e16;--surface:#122235;--ink:#f6fbff;--muted:#a4b9d2;--mint:#55e5cb}
+:root[data-zp23-skin]:not([data-zp23-skin="original"]) body{background:var(--bg);color:var(--ink)}
+:root[data-zp23-skin]:not([data-zp23-skin="original"]) main{background:radial-gradient(ellipse at 70% 0%,color-mix(in srgb,var(--mint) 8%,transparent),transparent 45%)}
+:root[data-zp23-skin]:not([data-zp23-skin="original"]) main .row-section .section-head h3{font-weight:750;letter-spacing:-.025em}
+:root[data-zp23-skin="cinematic"] main .hero{border-radius:24px;min-height:510px;box-shadow:0 24px 70px #0007}
+:root[data-zp23-skin="cinematic"] main .hero .hero-art{opacity:.83}
+:root[data-zp23-skin="cinematic"] main .hero .hero-shade{background:linear-gradient(90deg,#080b13 0%,#080b13bb 40%,transparent 90%),linear-gradient(0deg,#080b13,transparent 65%)}
+:root[data-zp23-skin="cinematic"] main .hero h2{font-size:clamp(38px,4.8vw,72px)}
+:root[data-zp23-skin="modern"] main .hero{border-radius:8px;min-height:420px}
+:root[data-zp23-skin="modern"] main .cards{gap:10px}
+:root[data-zp23-skin="modern"] main .card img{border-radius:6px}
+:root[data-zp23-skin="modern"] main .row-section{margin:22px 0}
+:root[data-zp23-skin="library"] main .hero{min-height:350px;border-radius:12px}
+:root[data-zp23-skin="library"] main .cards{flex-wrap:wrap;overflow:visible;gap:18px}
+:root[data-zp23-skin="library"] main .card{flex:0 0 clamp(140px,15vw,190px)}
+:root[data-zp23-skin="library"] main .card img{border-radius:10px}
+:root[data-zp23-skin="signature"] main .hero{border-radius:30px 8px 30px 8px;box-shadow:0 0 0 1px #55e5cb33}
+:root[data-zp23-skin="signature"] main .card img{border-radius:16px 4px 16px 4px}
+:root[data-zp23-skin="signature"] main .section-head h3{border-left:3px solid var(--mint);padding-left:12px}
+:root[data-zp23-skin]:not([data-zp23-skin="original"]) main .card:focus-visible{outline:3px solid var(--mint);outline-offset:3px}
+@media(max-width:760px){:root[data-zp23-skin="cinematic"] main .hero{min-height:410px}:root[data-zp23-skin="cinematic"] main .hero h2{font-size:34px}:root[data-zp23-skin="library"] main .card{flex-basis:calc(50% - 10px)}}
+@media(prefers-reduced-motion:reduce){:root[data-zp23-skin] main .card{transition:none!important}}
