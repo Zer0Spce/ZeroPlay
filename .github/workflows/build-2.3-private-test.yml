@@ -163,6 +163,13 @@ jobs:
       - name: Package portable ZIP
         working-directory: windows
         run: npm run build
+      - name: Rename preview ZIP without publishing
+        shell: pwsh
+        run: |
+          $source = 'windows/dist/ZeroPlay-2.2.5-Windows-x64.zip'
+          $target = 'windows/dist/ZeroPlay-2.3-preview-Windows-x64.zip'
+          if (!(Test-Path $source)) { throw "Expected portable ZIP missing: $source" }
+          Move-Item $source $target
       - name: Verify packaged ZIP
         shell: pwsh
         run: |
