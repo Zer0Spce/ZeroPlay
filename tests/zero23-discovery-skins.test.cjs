@@ -20,3 +20,13 @@ test('skin module does not reference protected playback, sports or TV navigation
   assert.doesNotMatch(js,/player-stage|player-exit|tv-player-input|live-preload|audioContext|volumeBoost|sportsEvents/i);
   assert.doesNotMatch(css,/web-player|player-stage|live-tv|sports-|\.tv-player/i);
 });
+
+test('curated TMDB shelves have endpoints and configurable home panels',()=>{
+ const source=fs.readFileSync(path.join(root,'zero22.js'),'utf8');
+ for(const name of ['topSeries','newSeries','animation','kDrama','documentaries']){
+   assert.match(source,new RegExp(name+':\\s*row\\('));
+   assert.match(source,new RegExp(name+':\\s*\\['));
+ }
+ assert.match(source,/usedDiscovery=new Set\(\)/);
+ assert.match(source,/usedDiscovery\.has\(key\(item\)\)/);
+});
