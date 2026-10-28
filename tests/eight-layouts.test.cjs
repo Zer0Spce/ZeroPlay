@@ -9,7 +9,7 @@ test('Windows retains four original UI choices and offers four new ones',()=>{
 });
 test('Each new Windows layout has separate structural navigation, hero and cards',()=>{
  const css=read('windows/ui/eight-layouts.css');
- for(const id of added){for(const selector of ['aside','main','cards .card'])assert.ok(css.includes('[data-layout="'+id+'"] '+selector),id+' '+selector);}
+ for(const id of added){for(const selector of ['aside','main','.cards .card'])assert.ok(css.includes('[data-layout="'+id+'"] '+selector),id+' '+selector);}
  for(const id of added)assert.ok(css.includes('[data-layout="'+id+'"] main:has(#home:not([hidden])) .hero'),id+' hero');
  assert.doesNotMatch(css,/\[data-layout="(?:youtube|google|flix|classic)"\]/);
 });
