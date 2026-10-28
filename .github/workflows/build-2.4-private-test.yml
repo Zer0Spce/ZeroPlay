@@ -1,0 +1,191 @@
+name: ZeroPlay 2.4 Private Test Packages (No Release)
+
+on:
+  push:
+    branches: [develop/2.4-ui-discovery-test]
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeroplay-2.4-private-test
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+
+      - name: Apply 2.2.4.1 baseline and 2.2.5 features
+        run: |
+          set -euo pipefail
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          # This regression includes assertions for the 2.2.4.1 version markers,
+          # so validate it before advancing the build to the 2.2.5 version.
+          node tests/audio-boost-2.2.4.1.test.cjs
+          node scripts/apply-custom-livetv-test.cjs
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='app/build.gradle';
+          let s=fs.readFileSync(p,'utf8');
+          if(!s.includes("versionName '2.2.5-test1'")||!s.includes('versionCode 51')) throw new Error('Expected 2.2.5 test markers');
+          s=s.replace("versionName '2.2.5-test1'","versionName '2.2.5'");
+          fs.writeFileSync(p,s);
+          NODE
+
+      - name: Verify preserved Android 2.2.5 baseline source
+        run: |
+          set -euo pipefail
+          grep -q 'versionCode 51' app/build.gradle
+          grep -q "versionName '2.2.5'" app/build.gradle
+          grep -q 'Load M3U from file' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'Load M3U from URL' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'Restore original playlist' app/src/main/java/com/zerostreams/app/MainActivity.java
+          grep -q 'customLiveTvMode' app/src/main/java/com/zerostreams/app/PlaylistStore.java
+          grep -q 'BuildConfig.TV&&(category.equals("Movies")||category.equals("Series"))' app/src/main/java/com/zerostreams/app/MainActivity.java
+          node tests/audio-boost-2.2.4.test.cjs
+          node tests/source-selection-regression.test.cjs
+          node tests/auto-source-recovery-default.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+
+      - name: Validate ZeroPlay 2.4 eight-layout regression
+        run: |
+          node --check web/public/zero22.js
+          node --check windows/ui/layouts.js
+          node --test tests/eight-layouts.test.cjs
+      - name: Unit tests Android and Android TV
+        run: gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest
+
+      - name: Build signed Android and Android TV APKs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleMobileRelease :app:assembleTvRelease
+          mkdir -p release-builds
+          cp app/build/outputs/apk/mobile/release/app-mobile-release.apk release-builds/ZeroPlay-2.4-preview-Android.apk
+          cp app/build/outputs/apk/tv/release/app-tv-release.apk release-builds/ZeroPlay-2.4-preview-Android-TV.apk
+          for apk in release-builds/*.apk; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | head -n 1
+          done
+
+      - name: Lint Android and Android TV
+        run: gradle --continue :app:lintMobileRelease :app:lintTvRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.4-preview-Android
+          path: release-builds/*.apk
+          if-no-files-found: error
+          compression-level: 0
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Apply 2.2.4.1 baseline and 2.2.5 custom M3U feature
+        run: |
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-windows-test.cjs
+          node -e "const fs=require('fs');const p='windows/package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Expected 2.2.5-test1 Windows package');j.version='2.2.5';j.build.buildVersion='2.2.5';j.build.win.artifactName='ZeroPlay-2.4-preview-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
+      - name: Verify preserved Windows 2.2.5 custom M3U source
+        shell: pwsh
+        run: |
+          $pkg = Get-Content windows/package.json -Raw | ConvertFrom-Json
+          if ($pkg.version -ne '2.2.5') { throw 'Windows compatibility package version is not 2.2.5' }
+          if ($pkg.build.win.artifactName -ne 'ZeroPlay-2.4-preview-Windows-x64.${ext}') { throw 'Windows artifact name is malformed' }
+          $main = Get-Content windows/main.cjs -Raw
+          $preload = Get-Content windows/preload.cjs -Raw
+          $app = Get-Content windows/ui/app.js -Raw
+          $playlist = Get-Content windows/playlist.cjs -Raw
+          foreach ($needle in @('playlist-file','playlist-url','playlist-restore')) {
+            if (-not $main.Contains($needle)) { throw "main IPC missing: $needle" }
+            if (-not $preload.Contains($needle)) { throw "preload bridge missing: $needle" }
+            if (-not $app.Contains($needle)) { throw "renderer action missing: $needle" }
+          }
+          if (-not $playlist.Contains('setCustomFile') -or -not $playlist.Contains('setCustomUrl') -or -not $playlist.Contains('restoreOriginal')) { throw 'playlist custom source methods missing' }
+      - name: Custom M3U switching regression test
+        run: node --test tests/windows-custom-livetv.test.cjs
+      - name: Existing Windows tests
+        working-directory: windows
+        run: npm test
+      - name: Configure bundled keys
+        working-directory: windows
+        run: npm run prepare-config
+      - name: Validate ZeroPlay 2.4 eight-layout UI before packaging
+        run: |
+          node --check windows/ui/layouts.js
+          node --check windows/ui/app.js
+          node --test tests/eight-layouts.test.cjs
+      - name: Package portable ZIP
+        working-directory: windows
+        run: npm run build
+      - name: Verify packaged ZIP
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem windows/dist/ZeroPlay-2.4-preview-Windows-x64.zip -File | Select-Object -First 1
+          if (-not $zip) { throw 'Windows 2.2.5 portable ZIP was not produced.' }
+          Write-Host "Built $($zip.Name) ($($zip.Length) bytes)"
+      - name: Verify Authenticode signature when configured
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CSC_LINK)) {
+            Write-Warning 'WINDOWS_CSC_LINK is not configured; build will be unsigned.'
+            exit 0
+          }
+          $exe = Get-ChildItem windows/dist/win-unpacked -Filter *.exe -File | Select-Object -First 1
+          if (-not $exe) { throw 'Packaged Windows executable not found.' }
+          $signature = Get-AuthenticodeSignature $exe.FullName
+          Write-Host "Signature status: $($signature.Status)"
+          if ($signature.Status -ne 'Valid') { throw "Windows executable signature is not valid: $($signature.Status)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.4-preview-Windows
+          path: windows/dist/ZeroPlay-2.4-preview-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
