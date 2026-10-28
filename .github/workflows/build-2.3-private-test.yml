@@ -135,7 +135,7 @@ jobs:
         shell: pwsh
         run: |
           $pkg = Get-Content windows/package.json -Raw | ConvertFrom-Json
-          if ($pkg.version -ne '2.2.5') { throw 'Windows package version is not 2.2.5' }
+          if ($pkg.version -ne '2.2.5') { throw 'Windows compatibility package version is not 2.2.5' }
           if ($pkg.build.win.artifactName -ne 'ZeroPlay-2.3-preview-Windows-x64.${ext}') { throw 'Windows artifact name is malformed' }
           $main = Get-Content windows/main.cjs -Raw
           $preload = Get-Content windows/preload.cjs -Raw
@@ -163,13 +163,6 @@ jobs:
       - name: Package portable ZIP
         working-directory: windows
         run: npm run build
-      - name: Rename preview ZIP without publishing
-        shell: pwsh
-        run: |
-          $source = 'windows/dist/ZeroPlay-2.2.5-Windows-x64.zip'
-          $target = 'windows/dist/ZeroPlay-2.3-preview-Windows-x64.zip'
-          if (!(Test-Path $source)) { throw "Expected portable ZIP missing: $source" }
-          Move-Item $source $target
       - name: Verify packaged ZIP
         shell: pwsh
         run: |
