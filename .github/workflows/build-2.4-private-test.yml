@@ -2,7 +2,7 @@ name: ZeroPlay 2.4 Private Test Packages (No Release)
 
 on:
   push:
-    branches: [develop/2.4-ui-discovery-test]
+    branches: [develop/2.4-eight-layouts-private-test]
   workflow_dispatch:
   pull_request:
     branches: [main]
@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: zeroplay-2.4-private-test
-  cancel-in-progress: true
+  group: zeroplay-2.4-private-test-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   android:
