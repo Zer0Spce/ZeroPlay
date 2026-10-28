@@ -1,11 +1,11 @@
 /* ZeroPlay 2.3 experimental discovery-only visual skins.
    Does not modify playback, TV navigation, audio, Live TV or Sports. */
-:root[data-zp23-skin="cinematic"]{--bg:#080b13;--surface:#141b2a;--ink:#f6f7fb;--muted:#a4b1c6;--mint:#8bb8ff}
-:root[data-zp23-skin="modern"]{--bg:#101014;--surface:#1c1c22;--ink:#fff;--muted:#b7b7c0;--mint:#ff5265}
-:root[data-zp23-skin="library"]{--bg:#111820;--surface:#1d2a34;--ink:#f1f6fa;--muted:#a8b8c5;--mint:#68d4c5}
-:root[data-zp23-skin="signature"]{--bg:#080e16;--surface:#122235;--ink:#f6fbff;--muted:#a4b9d2;--mint:#55e5cb}
-:root[data-zp23-skin]:not([data-zp23-skin="original"]) body{background:var(--bg);color:var(--ink)}
-:root[data-zp23-skin]:not([data-zp23-skin="original"]) main{background:radial-gradient(ellipse at 70% 0%,color-mix(in srgb,var(--mint) 8%,transparent),transparent 45%)}
+:root[data-zp23-skin="cinematic"] #content{--bg:#080b13;--surface:#141b2a;--ink:#f6f7fb;--muted:#a4b1c6;--mint:#8bb8ff}
+:root[data-zp23-skin="modern"] #content{--bg:#101014;--surface:#1c1c22;--ink:#fff;--muted:#b7b7c0;--mint:#ff5265}
+:root[data-zp23-skin="library"] #content{--bg:#111820;--surface:#1d2a34;--ink:#f1f6fa;--muted:#a8b8c5;--mint:#68d4c5}
+:root[data-zp23-skin="signature"] #content{--bg:#080e16;--surface:#122235;--ink:#f6fbff;--muted:#a4b9d2;--mint:#55e5cb}
+:root[data-zp23-skin]:not([data-zp23-skin="original"]) #content{background:var(--bg);color:var(--ink)}
+:root[data-zp23-skin]:not([data-zp23-skin="original"]) #content{background-image:radial-gradient(ellipse at 70% 0%,color-mix(in srgb,var(--mint) 8%,transparent),transparent 45%)}
 :root[data-zp23-skin]:not([data-zp23-skin="original"]) main .row-section .section-head h3{font-weight:750;letter-spacing:-.025em}
 :root[data-zp23-skin="cinematic"] main .hero{border-radius:24px;min-height:510px;box-shadow:0 24px 70px #0007}
 :root[data-zp23-skin="cinematic"] main .hero .hero-art{opacity:.83}
@@ -27,10 +27,10 @@
 @media(prefers-reduced-motion:reduce){:root[data-zp23-skin] main .card{transition:none!important}}
 
 /* Keep the new visual language within discovery; leave player and live surfaces alone. */
-:root[data-zp23-skin="cinematic"]{--zp-bg:#080b13;--zp-panel:#141b2a;--zp-text:#f6f7fb;--zp-muted:#a4b1c6;--zp-mint:#8bb8ff}
-:root[data-zp23-skin="modern"]{--zp-bg:#101014;--zp-panel:#1c1c22;--zp-text:#ffffff;--zp-muted:#b7b7c0;--zp-mint:#ff5265}
-:root[data-zp23-skin="library"]{--zp-bg:#111820;--zp-panel:#1d2a34;--zp-text:#f1f6fa;--zp-muted:#a8b8c5;--zp-mint:#68d4c5}
-:root[data-zp23-skin="signature"]{--zp-bg:#080e16;--zp-panel:#122235;--zp-text:#f6fbff;--zp-muted:#a4b9d2;--zp-mint:#55e5cb}
+:root[data-zp23-skin="cinematic"] #content{--zp-bg:#080b13;--zp-panel:#141b2a;--zp-text:#f6f7fb;--zp-muted:#a4b1c6;--zp-mint:#8bb8ff}
+:root[data-zp23-skin="modern"] #content{--zp-bg:#101014;--zp-panel:#1c1c22;--zp-text:#ffffff;--zp-muted:#b7b7c0;--zp-mint:#ff5265}
+:root[data-zp23-skin="library"] #content{--zp-bg:#111820;--zp-panel:#1d2a34;--zp-text:#f1f6fa;--zp-muted:#a8b8c5;--zp-mint:#68d4c5}
+:root[data-zp23-skin="signature"] #content{--zp-bg:#080e16;--zp-panel:#122235;--zp-text:#f6fbff;--zp-muted:#a4b9d2;--zp-mint:#55e5cb}
 :root[data-zp23-skin="cinematic"] #content .hero{min-height:clamp(410px,47vw,650px)}
 :root[data-zp23-skin="modern"] #content .row-section{margin-bottom:20px}
 :root[data-zp23-skin="modern"] #content .cards{gap:9px}
