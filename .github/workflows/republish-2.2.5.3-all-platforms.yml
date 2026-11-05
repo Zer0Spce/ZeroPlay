@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - fix/all-platform-vidrock-vidnest-republish-2.2.5.3
-      - main
     paths:
       - '.github/workflows/republish-2.2.5.3-all-platforms.yml'
       - 'app/src/main/java/com/zerostreams/app/PlaybackSources.java'
