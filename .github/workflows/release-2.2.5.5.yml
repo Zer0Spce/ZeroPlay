@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - fix/android-tv-inline-source-dropdowns-v2.2.5.5
-      - main
     paths:
       - '.github/workflows/release-2.2.5.5.yml'
       - 'app/src/main/java/com/zerostreams/app/MainActivity.java'
