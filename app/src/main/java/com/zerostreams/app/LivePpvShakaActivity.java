@@ -71,6 +71,9 @@ public final class LivePpvShakaActivity extends Activity {
         root.setBackgroundColor(Color.BLACK);
         browser=new WebView(this);
         browser.setBackgroundColor(Color.BLACK);
+        // Keep DPAD navigation on the native TV playback controls, not the video canvas.
+        browser.setFocusable(false);
+        browser.setFocusableInTouchMode(false);
         WebSettings webSettings=browser.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(false);
@@ -141,6 +144,7 @@ public final class LivePpvShakaActivity extends Activity {
         scrolling.addView(row);
         root.addView(scrolling,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         setContentView(root);
+        play.requestFocus();
         browser.loadUrl(PAGE);
         io.execute(()->{
             try {
