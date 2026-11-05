@@ -15,6 +15,8 @@ public class PlaybackSourcesTest {
         assertEquals("https://vidnest.fun/tv/1399/1/2",PlaybackSources.url("1399","tv",1,2,"vidnest"));
         assertEquals("https://embed.vidrift.net/embed/movie/299534",PlaybackSources.url("299534","movie",1,1,"vidrift"));
         assertEquals("https://embed.vidrift.net/embed/tv/1399/1/2",PlaybackSources.url("1399","tv",1,2,"vidrift"));
+        assertEquals("https://vidfast.vc/movie/299534",PlaybackSources.url("299534","movie",1,1,"vidfast"));
+        assertEquals("https://vidfast.vc/tv/1399/1/2",PlaybackSources.url("1399","tv",1,2,"vidfast"));
         assertEquals("VidSrc [Offline]",PlaybackSources.NAMES[3]);
     }
     @Test public void androidOwnsAutomaticNextEpisodeSwitching(){
@@ -28,8 +30,8 @@ public class PlaybackSourcesTest {
     @Test public void originsAreExactAndUnknownSourcesFallBack(){assertFalse(PlaybackSources.trusted("https://vidsrc.sh.attacker.example/embed/movie/1"));assertFalse(PlaybackSources.trusted("http://vidsrc.sh/embed/movie/1"));assertFalse(PlaybackSources.trusted("https://vidsrc.sh:8443/embed/movie/1"));assertTrue(PlaybackSources.trusted("https://embedwave.cc/embed/movie/1"));assertTrue(PlaybackSources.trusted("https://zxcstream.cc/player/movie/1"));
         assertTrue(PlaybackSources.trusted("https://vidrock.to/movie/1"));
         assertTrue(PlaybackSources.trusted("https://vidnest.fun/tv/1399/1/2"));
-        assertTrue(PlaybackSources.trusted("https://embed.vidrift.net/embed/movie/1"));
-        assertFalse(PlaybackSources.trusted("https://embed.vidrift.net.attacker.example/embed/movie/1"));assertEquals(8,PlaybackSources.IDS.length);assertEquals(0,PlaybackSources.index("unknown"));}
+        assertTrue(PlaybackSources.trusted("https://embed.vidrift.net/embed/movie/1"));assertTrue(PlaybackSources.trusted("https://vidfast.vc/movie/1"));
+        assertFalse(PlaybackSources.trusted("https://embed.vidrift.net.attacker.example/embed/movie/1"));assertEquals(9,PlaybackSources.IDS.length);assertEquals(0,PlaybackSources.index("unknown"));}
     @Test(expected=IllegalArgumentException.class) public void rawcastRequiresSecureApi(){PlaybackSources.url("550","movie",1,1,"rawcast");}
     @Test(expected=IllegalArgumentException.class) public void rejectsMalformedIds(){PlaybackSources.url("../private","movie",1,1,"vidstuck");}
 }
