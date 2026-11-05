@@ -33,7 +33,7 @@ public class BrowserPlayerActivity extends Activity {
         if(reader)setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
         String address=getIntent().getStringExtra("url");
         if(address==null||!address.startsWith("https://")){finish();return;}
-        tvPlayer=BuildConfig.TV&&!reader;liteTvPlayer=BuildConfig.TV&&BuildConfig.LITE&&!reader;prefs=getSharedPreferences("zero",MODE_PRIVATE);currentAddress=address;navigationMode=prefs.getString("playerNavigation","smart");
+        tvPlayer=BuildConfig.TV&&!reader;liteTvPlayer=BuildConfig.TV&&BuildConfig.LITE&&!reader;prefs=getSharedPreferences("zero",MODE_PRIVATE);currentAddress=address;navigationMode=tvPlayer&&!liteTvPlayer?TvSourceNavigation.effective(prefs,currentProvider()):TvSourceNavigation.global(prefs);
         blockAds=!reader&&prefs.getBoolean("blockAds",true);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -279,7 +279,20 @@ public class BrowserPlayerActivity extends Activity {
 
     private String currentProvider(){try{String host=Uri.parse(currentAddress).getHost();return "zxcstream.cc".equals(host)?"zxcstream":"embedwave.cc".equals(host)?"embedwave":"vidsrc.sh".equals(host)?"vidsrc-sh":"vidrock.to".equals(host)?"vidrock":"vidnest.fun".equals(host)?"vidnest":"embed.vidrift.net".equals(host)?"vidrift":"vidfast.vc".equals(host)?"vidfast":"vaplayer.ru".equals(host)?"vidapi":"vidstuck";}catch(Exception e){return "vidstuck";}}
     private String navigationModeLabel(){return navigationMode.equals("mouse")?"Mouse":navigationMode.equals("focus")?"D-pad navigation":"Smart / Hybrid";}
-    private void applyNavigationMode(String mode){navigationMode=mode;prefs.edit().putString("playerNavigation",mode).putBoolean("playerMouse",mode.equals("mouse")).apply();if(mouse!=null)mouse.setEnabled(mode.equals("mouse"));if(mode.equals("smart"))applySmartMode();}
+    private void applyNavigationMode(String mode){
+        navigationMode=TvSourceNavigation.sanitize(mode);
+        if(mouse!=null)mouse.setEnabled(navigationMode.equals("mouse"));
+        if(navigationMode.equals("smart"))applySmartMode();
+    }
+    private void saveSourceNavigationMode(String mode){
+        if(!tvPlayer||liteTvPlayer)return;
+        TvSourceNavigation.setOverride(prefs,currentProvider(),mode);
+        applyNavigationMode(TvSourceNavigation.effective(prefs,currentProvider()));
+    }
+    private void reloadSourceNavigationMode(){
+        if(!tvPlayer||liteTvPlayer)return;
+        applyNavigationMode(TvSourceNavigation.effective(prefs,currentProvider()));
+    }
     private void applySmartMode(){if(liteTvPlayer||!tvPlayer||mouse==null||!navigationMode.equals("smart")||web==null)return;web.evaluateJavascript("(typeof window.__zeroTvCanFocus==='function'&&window.__zeroTvCanFocus())",value->{boolean focus="true".equals(String.valueOf(value));mouse.setEnabled(!focus);});}
     private void scheduleLoadTimeout(){tvUi.removeCallbacks(loadTimeout);if(liteTvPlayer||getIntent().getBooleanExtra("reader",false))return;tvUi.postDelayed(loadTimeout,12000);}
     private final Runnable loadTimeout=()->{if(web==null||isFinishing())return;web.evaluateJavascript("(function(){var v=document.querySelector('video');return !!(v&&v.readyState>=2);})()",value->{if(!"true".equals(String.valueOf(value)))handlePlayerFailure("Player timeout");});};
@@ -290,10 +303,10 @@ public class BrowserPlayerActivity extends Activity {
         String id=parent.substring(parent.lastIndexOf('-')+1),type=parent.startsWith("tmdb-series-")?"tv":"movie";
         int season=1,episode=1;
         if(type.equals("tv")){int[] pos=currentEpisodePosition();season=pos[0];episode=pos[1];}
-        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidrock":current.equals("vidrock")?"vidnest":current.equals("vidnest")?"vidrift":current.equals("vidrift")?"vidfast":current.equals("vidfast")?"vidapi":current.equals("vidapi")?"vidsrc-sh":"vidstuck";
+        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidnest":current.equals("vidrock")?"vidnest":current.equals("vidnest")?"vidrift":current.equals("vidrift")?"vidfast":current.equals("vidfast")?"vidapi":current.equals("vidapi")?"vidsrc-sh":"vidstuck";
         try{return PlaybackSources.url(id,type,season,episode,next);}catch(Exception e){return "";}
     }
-    private boolean loadNextSource(){String next=alternateUrl();if(next.isEmpty())return false;currentAddress=next;loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Trying next source…");web.loadUrl(next);scheduleLoadTimeout();return true;}
+    private boolean loadNextSource(){String next=alternateUrl();if(next.isEmpty())return false;currentAddress=next;reloadSourceNavigationMode();loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Trying next source…");web.loadUrl(next);scheduleLoadTimeout();return true;}
     private void runPlayer(String script){if(web!=null)web.evaluateJavascript(script,null);}
     private void buildQuickBar(){}
     private void showQuickBar(){}
@@ -331,7 +344,7 @@ public class BrowserPlayerActivity extends Activity {
         if(!seriesPlayback()||season<0||episode<1)return;
         try{
             String url=PlaybackSources.url(seriesId(),"tv",season,episode,currentProvider());
-            observedSeason=season;observedEpisode=episode;currentAddress=url;nextScheduled=false;failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();
+            observedSeason=season;observedEpisode=episode;currentAddress=url;reloadSourceNavigationMode();nextScheduled=false;failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();
             status.setText("Opening S"+season+" E"+episode+"…");web.loadUrl(url);scheduleLoadTimeout();
         }catch(Exception e){nextScheduled=false;Toast.makeText(this,"Episode unavailable",Toast.LENGTH_SHORT).show();}
     }
@@ -347,7 +360,7 @@ public class BrowserPlayerActivity extends Activity {
             tvUi.post(()->new android.app.AlertDialog.Builder(this).setTitle("Season "+pos[0]+" episodes").setItems(labels.toArray(new String[0]),(d,n)->{if(n==0)moveEpisode(-1);else if(n==1)moveEpisode(1);else{int index=n-2;if(index>=0&&index<numbers.size())loadEpisode(pos[0],numbers.get(index));}}).setNegativeButton("Close",null).show());
         }catch(Exception e){tvUi.post(()->Toast.makeText(this,"Episodes unavailable",Toast.LENGTH_SHORT).show());}},"ZeroPlay-EpisodeMenu").start();
     }
-    private void showQuickMenu(){java.util.List<String> items=new java.util.ArrayList<>();items.add("Navigation · Smart / Hybrid");items.add("Navigation · D-pad");items.add("Navigation · Mouse");items.add("Retry player");items.add("Next source");if(seriesPlayback())items.add("Episodes · previous / next / choose");items.add("Skip intro · "+prefs.getInt("skipIntroSeconds",90)+" sec");items.add("Skip recap · "+prefs.getInt("skipRecapSeconds",45)+" sec");items.add("Player diagnostics");items.add("Exit playback");new android.app.AlertDialog.Builder(this).setTitle("ZeroPlay player").setItems(items.toArray(new String[0]),(d,n)->{String picked=items.get(n);if(picked.startsWith("Navigation · Smart"))applyNavigationMode("smart");else if(picked.startsWith("Navigation · D-pad"))applyNavigationMode("focus");else if(picked.startsWith("Navigation · Mouse"))applyNavigationMode("mouse");else if(picked.equals("Retry player")){failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();web.reload();scheduleLoadTimeout();}else if(picked.equals("Next source"))loadNextSource();else if(picked.startsWith("Episodes"))showEpisodeMenu();else if(picked.startsWith("Skip intro"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipIntroSeconds",90)+")");else if(picked.startsWith("Skip recap"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipRecapSeconds",45)+")");else if(picked.equals("Player diagnostics"))showDiagnostics();else confirmExit();}).setNegativeButton("Close",null).show();}
+    private void showQuickMenu(){java.util.List<String> items=new java.util.ArrayList<>();items.add("Navigation · Smart / Hybrid");items.add("Navigation · D-pad");items.add("Navigation · Mouse");items.add("Retry player");items.add("Next source");if(seriesPlayback())items.add("Episodes · previous / next / choose");items.add("Skip intro · "+prefs.getInt("skipIntroSeconds",90)+" sec");items.add("Skip recap · "+prefs.getInt("skipRecapSeconds",45)+" sec");items.add("Player diagnostics");items.add("Exit playback");new android.app.AlertDialog.Builder(this).setTitle("ZeroPlay player").setItems(items.toArray(new String[0]),(d,n)->{String picked=items.get(n);if(picked.startsWith("Navigation · Smart"))saveSourceNavigationMode("smart");else if(picked.startsWith("Navigation · D-pad"))saveSourceNavigationMode("focus");else if(picked.startsWith("Navigation · Mouse"))saveSourceNavigationMode("mouse");else if(picked.equals("Retry player")){failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();web.reload();scheduleLoadTimeout();}else if(picked.equals("Next source"))loadNextSource();else if(picked.startsWith("Episodes"))showEpisodeMenu();else if(picked.startsWith("Skip intro"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipIntroSeconds",90)+")");else if(picked.startsWith("Skip recap"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipRecapSeconds",45)+")");else if(picked.equals("Player diagnostics"))showDiagnostics();else confirmExit();}).setNegativeButton("Close",null).show();}
     private void showDiagnostics(){web.evaluateJavascript("JSON.stringify(window.__zeroPlayerDiagnostics?window.__zeroPlayerDiagnostics():{})",value->{String details=String.valueOf(value);new android.app.AlertDialog.Builder(this).setTitle("Player diagnostics").setMessage("Provider: "+currentProvider()+"\nNavigation: "+navigationModeLabel()+"\n"+PlaybackHealth.summary(prefs,currentProvider())+"\n\n"+details).setPositiveButton("Close",null).show();});}
     private void scheduleNextEpisode(String parent,int season,int episode){
         if(nextScheduled||!seriesPlayback()||season<0||episode<1)return;

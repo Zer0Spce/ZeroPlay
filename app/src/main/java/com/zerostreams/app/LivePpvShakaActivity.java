@@ -50,6 +50,8 @@ public final class LivePpvShakaActivity extends Activity {
     private HorizontalScrollView controlsContainer;
     private TextView title, status;
     private Button play, backButton;
+    private Button[] playerButtons;
+    private int focusedControlIndex = 0;
     private boolean pageLoaded, destroyed, ready, paused, playbackRunning, channelDialogOpen;
     private final Runnable hideControls = () -> {
         if(destroyed || !playbackRunning || channelDialogOpen || topBar==null || controlsContainer==null) return;
@@ -77,7 +79,16 @@ public final class LivePpvShakaActivity extends Activity {
         button.setId(View.generateViewId());
         button.setAllCaps(false);
         button.setFocusable(true);
-        button.setOnFocusChangeListener((view,focused)->{if(focused)wakeControls();});
+        button.setOnFocusChangeListener((view,focused)->{
+            // TV buttons must show which option the remote will activate.
+            button.setTextColor(focused ? Color.BLACK : Color.WHITE);
+            button.setBackgroundColor(focused ? ACCENT : 0xFF242733);
+            if(focused) {
+                if(playerButtons!=null)for(int i=0;i<playerButtons.length;i++)
+                    if(playerButtons[i]==button) {focusedControlIndex=i;break;}
+                wakeControls();
+            }
+        });
         button.setTextColor(Color.WHITE);
         button.setTextSize(14);
         button.setBackgroundColor(0xFF242733);
@@ -161,6 +172,7 @@ public final class LivePpvShakaActivity extends Activity {
         root.addView(top,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));
         LinearLayout row=new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setFocusable(false);
         row.setPadding(dp(6),dp(5),dp(6),dp(5));
         row.setBackgroundColor(0xDB090D16);
         play=control("Pause",()->{script(paused?"window.ZeroPpv.play()":"window.ZeroPpv.pause()");paused=!paused;play.setText(paused?"Play":"Pause");});
@@ -171,6 +183,7 @@ public final class LivePpvShakaActivity extends Activity {
         Button subtitlesButton=control("Subtitles",()->script("window.ZeroPpv.tracks('text')"));
         Button fitButton=control("Fit",()->script("window.ZeroPpv.fit()"));
         Button[] buttons={play,liveButton,retryButton,channelsButton,audioButton,subtitlesButton,fitButton};
+        playerButtons=buttons;
         for(int i=0;i<buttons.length;i++) {
             Button button=buttons[i];
             row.addView(button);
@@ -293,25 +306,73 @@ public final class LivePpvShakaActivity extends Activity {
         if(!channels.isEmpty())saved.putString("channelUrl",channels.get(index).url);
         super.onSaveInstanceState(saved);
     }
+    /**
+     * Use an explicit DPAD command map: WebView and immersive Android TV shells may not
+     * reliably deliver focus traversal or KEYCODE_DPAD_CENTER clicks to native buttons.
+     * Consume both DOWN and UP so a stray UP does not activate a second control.
+     */
+    private void focusControl(int next) {
+        if(playerButtons==null||controlsContainer==null)return;
+        focusedControlIndex=Math.max(0,Math.min(playerButtons.length-1,next));
+        wakeControls();
+        Button target=playerButtons[focusedControlIndex];
+        target.requestFocus();
+        controlsContainer.post(()->{
+            if(destroyed||controlsContainer==null)return;
+            int centered=target.getLeft()-(controlsContainer.getWidth()-target.getWidth())/2;
+            controlsContainer.smoothScrollTo(Math.max(0,centered),0);
+        });
+    }
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
-        if(event.getAction()==KeyEvent.ACTION_DOWN){
-            int key=event.getKeyCode();
-            if(key==KeyEvent.KEYCODE_MEDIA_PLAY) {script("window.ZeroPpv.play()");wakeControls();return true;}
-            if(key==KeyEvent.KEYCODE_MEDIA_PAUSE) {script("window.ZeroPpv.pause()");wakeControls();return true;}
-            if(key==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE){play.performClick();wakeControls();return true;}
-            boolean remoteNavigation=key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT
-                    ||key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN
-                    ||key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER
-                    ||key==KeyEvent.KEYCODE_MENU;
-            if(remoteNavigation){
-                boolean hidden=controlsContainer!=null&&controlsContainer.getVisibility()!=View.VISIBLE;
-                wakeControls();
-                if(hidden||getCurrentFocus()==root||getCurrentFocus()==browser||getCurrentFocus()==null){
-                    // First D-pad press reveals the UI and focuses Pause/Play; the next press selects/navigates.
-                    play.requestFocus();
-                    return true;
-                }
+        if(channelDialogOpen)return super.dispatchKeyEvent(event); // Picker must keep its own DPAD/OK handling.
+        int key=event.getKeyCode();
+        boolean dpad=key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT
+                ||key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN
+                ||key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER
+                ||key==KeyEvent.KEYCODE_NUMPAD_ENTER||key==KeyEvent.KEYCODE_MENU;
+        boolean media=key==KeyEvent.KEYCODE_MEDIA_PLAY||key==KeyEvent.KEYCODE_MEDIA_PAUSE
+                ||key==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE;
+        if(!dpad&&!media)return super.dispatchKeyEvent(event);
+        if(event.getAction()!=KeyEvent.ACTION_DOWN)return true;
+        if(event.getRepeatCount()>0&&(key==KeyEvent.KEYCODE_DPAD_CENTER
+                ||key==KeyEvent.KEYCODE_ENTER||key==KeyEvent.KEYCODE_NUMPAD_ENTER))return true;
+        if(key==KeyEvent.KEYCODE_MEDIA_PLAY){script("window.ZeroPpv.play()");wakeControls();return true;}
+        if(key==KeyEvent.KEYCODE_MEDIA_PAUSE){script("window.ZeroPpv.pause()");wakeControls();return true;}
+        if(key==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE){play.performClick();wakeControls();return true;}
+        boolean hidden=controlsContainer!=null&&controlsContainer.getVisibility()!=View.VISIBLE;
+        if(hidden) {
+            // The first press ONLY reveals the bar. The next OK press clicks the highlighted item.
+            focusControl(focusedControlIndex);
+            return true;
+        }
+        View active=getCurrentFocus();
+        if(key==KeyEvent.KEYCODE_DPAD_RIGHT) {
+            focusControl(active==backButton?0:focusedControlIndex+1);
+            return true;
+        }
+        if(key==KeyEvent.KEYCODE_DPAD_LEFT) {
+            focusControl(active==backButton?0:focusedControlIndex-1);
+            return true;
+        }
+        if(key==KeyEvent.KEYCODE_DPAD_UP) {
+            wakeControls();
+            if(backButton!=null)backButton.requestFocus();
+            return true;
+        }
+        if(key==KeyEvent.KEYCODE_DPAD_DOWN||key==KeyEvent.KEYCODE_MENU) {
+            focusControl(focusedControlIndex);
+            return true;
+        }
+        if(key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER
+                ||key==KeyEvent.KEYCODE_NUMPAD_ENTER) {
+            wakeControls();
+            if(active==backButton)backButton.performClick();
+            else if(playerButtons!=null) {
+                Button target=playerButtons[focusedControlIndex];
+                target.requestFocus();
+                target.performClick();
             }
+            return true;
         }
         return super.dispatchKeyEvent(event);
     }
