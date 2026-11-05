@@ -303,7 +303,7 @@ public class BrowserPlayerActivity extends Activity {
         String id=parent.substring(parent.lastIndexOf('-')+1),type=parent.startsWith("tmdb-series-")?"tv":"movie";
         int season=1,episode=1;
         if(type.equals("tv")){int[] pos=currentEpisodePosition();season=pos[0];episode=pos[1];}
-        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidrock":current.equals("vidrock")?"vidnest":current.equals("vidnest")?"vidrift":current.equals("vidrift")?"vidfast":current.equals("vidfast")?"vidapi":current.equals("vidapi")?"vidsrc-sh":"vidstuck";
+        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidnest":current.equals("vidrock")?"vidnest":current.equals("vidnest")?"vidrift":current.equals("vidrift")?"vidfast":current.equals("vidfast")?"vidapi":current.equals("vidapi")?"vidsrc-sh":"vidstuck";
         try{return PlaybackSources.url(id,type,season,episode,next);}catch(Exception e){return "";}
     }
     private boolean loadNextSource(){String next=alternateUrl();if(next.isEmpty())return false;currentAddress=next;reloadSourceNavigationMode();loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Trying next source…");web.loadUrl(next);scheduleLoadTimeout();return true;}
