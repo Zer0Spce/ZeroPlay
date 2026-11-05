@@ -179,6 +179,6 @@ jobs:
             release-assets/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title 'ZeroPlay 2.2.5.3 — Android Live PPV Shaka WebView' \
+            --title 'ZeroPlay 2.2.5.3 — Android Live PPV Auto-Hide and D-pad Fix' \
             --notes-file release-notes.md \
             --latest
