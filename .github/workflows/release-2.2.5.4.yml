@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - fix/android-tv-ppv-dpad-vidrock-offline-v2.2.5.4
-      - main
     paths:
       - '.github/workflows/release-2.2.5.4.yml'
       - 'app/src/main/java/com/zerostreams/app/LivePpvShakaActivity.java'
@@ -192,6 +191,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: ZeroPlay-2.2.5.4-All-Source-Android

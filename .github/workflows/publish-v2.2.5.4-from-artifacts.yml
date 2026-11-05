@@ -1,0 +1,76 @@
+name: Publish Verified ZeroPlay v2.2.5.4 Artifacts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-v2.2.5.4-from-artifacts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeroplay-publish-2-2-5-4
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download signed Android and Android TV APKs from verified main build
+        uses: actions/download-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5.4-All-Source-Android
+          run-id: 41981099017
+          github-token: ${{ github.token }}
+          path: release-assets
+
+      - name: Download Windows x64 ZIP from same verified main build
+        uses: actions/download-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5.4-All-Source-Windows
+          run-id: 41981099017
+          github-token: ${{ github.token }}
+          path: release-assets
+
+      - name: Verify artifacts and notes before release
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s docs/releases/v2.2.5.4.md
+          test -s release-assets/ZeroPlay-2.2.5.4-Android.apk
+          test -s release-assets/ZeroPlay-2.2.5.4-Android-TV.apk
+          test -s release-assets/ZeroPlay-2.2.5.4-Windows-x64.zip
+          grep -Fq 'versionCode 58' docs/releases/v2.2.5.4.md
+          grep -Fq 'Vidrock.to [Offline]' docs/releases/v2.2.5.4.md
+          cd release-assets
+          sha256sum ZeroPlay-2.2.5.4-Android.apk ZeroPlay-2.2.5.4-Android-TV.apk ZeroPlay-2.2.5.4-Windows-x64.zip > SHA256SUMS.txt
+
+      - name: Publish new v2.2.5.4 tag and release once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v2.2.5.4 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v2.2.5.4 already exists; will not overwrite its assets'
+            exit 1
+          fi
+          gh release create v2.2.5.4 \
+            release-assets/ZeroPlay-2.2.5.4-Android.apk \
+            release-assets/ZeroPlay-2.2.5.4-Android-TV.apk \
+            release-assets/ZeroPlay-2.2.5.4-Windows-x64.zip \
+            release-assets/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target 308279c8f304d43a19a8dfc6cae2c160821f2ed5 \
+            --title 'ZeroPlay v2.2.5.4 — Android TV Remote Fix & Source Navigation' \
+            --notes-file docs/releases/v2.2.5.4.md \
+            --latest
+          gh release view v2.2.5.4 --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[].name'
