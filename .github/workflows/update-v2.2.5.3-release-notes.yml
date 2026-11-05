@@ -1,0 +1,50 @@
+name: Publish Complete ZeroPlay v2.2.5.3 Release Notes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/releases/v2.2.5.3.md'
+      - '.github/workflows/update-v2.2.5.3-release-notes.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-notes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify complete release notes and unchanged downloadable assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s docs/releases/v2.2.5.3.md
+          grep -Fq 'Android versionCode:' docs/releases/v2.2.5.3.md
+          grep -Fq 'VidRock, VidNest, VidRift, VidFast, and VidAPI' docs/releases/v2.2.5.3.md
+          gh release view v2.2.5.3 --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[].name' | sort > "$RUNNER_TEMP/release-assets-before.txt"
+          for name in SHA256SUMS.txt ZeroPlay-2.2.5.3-Android-TV.apk ZeroPlay-2.2.5.3-Android.apk ZeroPlay-2.2.5.3-Windows-x64.zip; do
+            grep -Fxq "$name" "$RUNNER_TEMP/release-assets-before.txt"
+          done
+
+      - name: Update v2.2.5.3 release description and title only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit v2.2.5.3 --repo "$GITHUB_REPOSITORY" \
+            --title 'ZeroPlay v2.2.5.3 — Live PPV Controls & New Playback Sources' \
+            --notes-file docs/releases/v2.2.5.3.md
+          gh release view v2.2.5.3 --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[].name' | sort > "$RUNNER_TEMP/release-assets-after.txt"
+          diff -u "$RUNNER_TEMP/release-assets-before.txt" "$RUNNER_TEMP/release-assets-after.txt"
+          gh release view v2.2.5.3 --repo "$GITHUB_REPOSITORY" --json body,title \
+            --jq '.title, (.body | contains("Android versionCode:") and contains("VidAPI") and contains("Live PPV"))'
