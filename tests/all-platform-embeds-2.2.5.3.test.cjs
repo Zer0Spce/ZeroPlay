@@ -14,7 +14,7 @@ const expected=[
 ];
 test('New sources use documented TMDB embed routes on Windows and web',()=>{
   for(const app of [windows,web])for(const x of expected){
-    assert.equal(app.sources.find(s=>s.id===x.id)?.name,x.id==='vidrock'?'VidRock':x.id==='vidnest'?'VidNest':x.id==='vidrift'?'VidRift':x.id==='vidfast'?'VidFast':'VidAPI');
+    assert.equal(app.sources.find(s=>s.id===x.id)?.name,x.id==='vidrock'?'Vidrock.to [Offline]':x.id==='vidnest'?'VidNest':x.id==='vidrift'?'VidRift':x.id==='vidfast'?'VidFast':'VidAPI');
     const movie=new URL(app.url({type:'movie',id:299534},{},x.id));
     const episode=new URL(app.url({type:'tv',id:1399},{season:1,episode:2},x.id));
     assert.equal(movie.origin,'https://'+x.host);
@@ -31,11 +31,13 @@ test('Existing IDs stay stable and only the VidSrc display name changes',()=>{
   for(const app of [windows,web]){
     assert.deepEqual(app.sources.map(x=>x.id).slice(0,4),['vidstuck','zxcstream','embedwave','vidsrc-sh']);
     assert.equal(app.sources.find(x=>x.id==='vidsrc-sh')?.name,'VidSrc [Offline]');
+    assert.equal(app.sources.find(x=>x.id==='vidrock')?.name,'Vidrock.to [Offline]');
   }
   assert.equal(windows.sources.at(-1).id,'rawcast');
   const android=read('app/src/main/java/com/zerostreams/app/PlaybackSources.java');
   assert.match(android,/IDS=\{"vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","rawcast"\}/);
   assert.match(android,/VidSrc \[Offline\]/);
+  assert.match(android,/Vidrock\.to \[Offline\]/);
 });
 test('VidRift iframe is not sandboxed; origin and navigation restrictions remain enabled',()=>{
   const webPlayer=read('web/public/browser.js');
