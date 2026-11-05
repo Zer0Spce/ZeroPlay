@@ -22,6 +22,7 @@
         <activity android:name=".MangaReaderActivity" android:exported="false" />
         <activity android:name=".SportsPlayerActivity" android:exported="false" android:screenOrientation="landscape" android:configChanges="orientation|screenSize|keyboardHidden" />
         <activity android:name=".LivePlayerActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".LivePpvShakaActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".PlayerActivity" android:exported="false" android:screenOrientation="landscape" />
     </application>
 </manifest>
