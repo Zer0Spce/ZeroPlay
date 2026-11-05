@@ -9,10 +9,11 @@ const expected=[
   {id:'vidrock',host:'vidrock.to',prefix:'/'},
   {id:'vidnest',host:'vidnest.fun',prefix:'/'},
   {id:'vidrift',host:'embed.vidrift.net',prefix:'/embed/'},
+  {id:'vidfast',host:'vidfast.vc',prefix:'/'},
 ];
 test('New sources use documented TMDB embed routes on Windows and web',()=>{
   for(const app of [windows,web])for(const x of expected){
-    assert.equal(app.sources.find(s=>s.id===x.id)?.name,x.id==='vidrock'?'VidRock':x.id==='vidnest'?'VidNest':'VidRift');
+    assert.equal(app.sources.find(s=>s.id===x.id)?.name,x.id==='vidrock'?'VidRock':x.id==='vidnest'?'VidNest':x.id==='vidrift'?'VidRift':'VidFast');
     const movie=new URL(app.url({type:'movie',id:299534},{},x.id));
     const episode=new URL(app.url({type:'tv',id:1399},{season:1,episode:2},x.id));
     assert.equal(movie.origin,'https://'+x.host);
@@ -32,7 +33,7 @@ test('Existing IDs stay stable and only the VidSrc display name changes',()=>{
   }
   assert.equal(windows.sources.at(-1).id,'rawcast');
   const android=read('app/src/main/java/com/zerostreams/app/PlaybackSources.java');
-  assert.match(android,/IDS=\{"vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","rawcast"\}/);
+  assert.match(android,/IDS=\{"vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","rawcast"\}/);
   assert.match(android,/VidSrc \[Offline\]/);
 });
 test('VidRift iframe is not sandboxed; origin and navigation restrictions remain enabled',()=>{
@@ -56,7 +57,7 @@ test('Provider choices are available in Windows, Android and web settings',()=>{
   const winSettings=read('windows/ui/index.html');
   const webSettings=read('web/public/index.html');
   assert.match(android,/copyOf\(PlaybackSources\.NAMES,PlaybackSources\.NAMES\.length-1\)/);
-  for(const id of ['vidrock','vidnest','vidrift']){
+  for(const id of ['vidrock','vidnest','vidrift','vidfast']){
     assert.ok(winUi.includes("['"+id+"'"));
     assert.ok(winSettings.includes('value="'+id+'"'));
     assert.ok(webSettings.includes('value="'+id+'"'));
