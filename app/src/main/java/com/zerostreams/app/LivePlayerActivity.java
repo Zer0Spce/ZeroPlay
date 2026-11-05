@@ -7,6 +7,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.widget.*;
+import android.util.Log;
 import androidx.media3.common.*;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
@@ -32,7 +33,10 @@ public class LivePlayerActivity extends Activity {
     private Button play;
     private List<M3uPlaylist.Channel> channels=Collections.emptyList();
     private int index,resizeMode=AspectRatioFrameLayout.RESIZE_MODE_FIT,retryAttempt,loadGeneration;
-    private boolean started, destroyed, playWhenReady=true;
+    private boolean started, destroyed, playWhenReady=true, livePpv;
+    private int ppvProfile, ppvFeedSwitches;
+    private String ppvFailure="";
+    private final Set<String> ppvAttemptedUrls=new LinkedHashSet<>();
     private final Runnable hideControls=()->setControls(false);
     private Runnable pendingReconnect;
     private final Runnable infoTick=new Runnable(){public void run(){if(!started||player==null)return;if(player.getPlayerError()==null){long offset=player.getCurrentLiveOffset();String quality=player.getVideoFormat()==null?"":player.getVideoFormat().height>0?" · "+player.getVideoFormat().height+"p":"";status.setText(player.getPlaybackState()==Player.STATE_BUFFERING?"Connecting…":player.getPlaybackState()==Player.STATE_ENDED?"Stream ended · reconnecting…":player.isPlaying()?"● LIVE"+(offset!=C.TIME_UNSET&&offset>12_000?" · behind live":"")+quality:"Paused");}ui.postDelayed(this,1000);}};
@@ -61,7 +65,7 @@ public class LivePlayerActivity extends Activity {
         controlsContainer=row;
         root.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_UP){v.performClick();wakeControls();return true;}return true;});
         video.setOnClickListener(v->wakeControls());setContentView(root);
-        boolean live=getIntent().getBooleanExtra("liveList",true);String requested=state==null?getIntent().getStringExtra("channelUrl"):state.getString("channelUrl",getIntent().getStringExtra("channelUrl"));
+        boolean live=getIntent().getBooleanExtra("liveList",true);livePpv=live;String requested=state==null?getIntent().getStringExtra("channelUrl"):state.getString("channelUrl",getIntent().getStringExtra("channelUrl"));
         if(state!=null)playWhenReady=state.getBoolean("playing",true);
         io.execute(()->{try{List<M3uPlaylist.Channel> list=PlaylistStore.cached(getApplicationContext(),live).channels;int selected=-1;for(int i=0;i<list.size();i++)if(list.get(i).url.equals(requested)){selected=i;break;}final int found=selected;
             ui.post(()->{if(destroyed)return;if(found<0){status.setText("This channel is no longer in the list. Return and refresh.");buffering.setVisibility(View.GONE);return;}channels=list;index=found;title.setText(channels.get(index).name);if(started)startChannel(true);});
@@ -69,21 +73,38 @@ public class LivePlayerActivity extends Activity {
     }
     private HorizontalScrollView controlsContainer;
     private void cancelReconnect(){if(pendingReconnect!=null){ui.removeCallbacks(pendingReconnect);pendingReconnect=null;}}
+    /** Alternate feeds must describe the same event, never another match. */
+    private boolean tryNextPpvFeed(){
+        if(!livePpv||ppvFeedSwitches>=3)return false;
+        int next=LivePpvPlayback.nextSameEvent(channels,index,ppvAttemptedUrls);
+        if(next<0)return false;
+        index=next;ppvFeedSwitches++;ppvProfile=0;retryAttempt=0;ppvFailure="";
+        ppvAttemptedUrls.add(channels.get(next).url);
+        startChannel(false);
+        status.setText("Trying alternate feed "+(ppvFeedSwitches+1)+"…");
+        return true;
+    }
+    private void showPpvFailure(){
+        buffering.setVisibility(View.GONE);
+        status.setText("Stream unavailable · "+(ppvFailure.isEmpty()?"Connection failed":ppvFailure)+" · Retry or choose another feed");
+        wakeControls();
+    }
     private boolean transientPlaybackError(PlaybackException error){String name=error==null?"":error.getErrorCodeName();return !(name.contains("DECODING")||name.contains("DRM")||name.contains("PARSING")||name.contains("FAILED_RUNTIME_CHECK")||name.contains("BEHIND_LIVE_WINDOW"));}
     private void scheduleReconnect(String reason){
         if(!started||destroyed||channels.isEmpty())return;
         cancelReconnect();
-        if(retryAttempt>=MAX_AUTO_RETRIES){buffering.setVisibility(View.GONE);status.setText("Stream unavailable · Retry or choose another channel");wakeControls();return;}
+        if(retryAttempt>=MAX_AUTO_RETRIES){if(livePpv){if(tryNextPpvFeed())return;showPpvFailure();}else{buffering.setVisibility(View.GONE);status.setText("Stream unavailable · Retry or choose another channel");wakeControls();}return;}
         final int generation=loadGeneration;final int attempt=++retryAttempt;long delay=Math.min(10000L,1500L*(1L<<(attempt-1)));
-        status.setText("Stream interrupted · reconnecting "+attempt+"/"+MAX_AUTO_RETRIES+"…");buffering.setVisibility(View.VISIBLE);
+        status.setText(livePpv?"Retrying Live PPV · "+attempt+"/"+MAX_AUTO_RETRIES+" · "+(ppvFailure.isEmpty()?"network":ppvFailure):"Stream interrupted · reconnecting "+attempt+"/"+MAX_AUTO_RETRIES+"…");buffering.setVisibility(View.VISIBLE);
         pendingReconnect=()->{pendingReconnect=null;if(!started||destroyed||generation!=loadGeneration)return;startChannel(false);};ui.postDelayed(pendingReconnect,delay);
     }
     private void startChannel(boolean resetRetries){
-        cancelReconnect();if(resetRetries){retryAttempt=0;loadGeneration++;}
+        cancelReconnect();if(resetRetries){retryAttempt=0;loadGeneration++;if(livePpv){ppvProfile=0;ppvFeedSwitches=0;ppvFailure="";ppvAttemptedUrls.clear();}}
         releasePlayer();if(!started||channels.isEmpty())return;
-        M3uPlaylist.Channel channel=channels.get(index);title.setText(channel.name);status.setText(retryAttempt>0?"Reconnecting…":"Connecting…");buffering.setVisibility(View.VISIBLE);
+        M3uPlaylist.Channel channel=channels.get(index);if(livePpv)ppvAttemptedUrls.add(channel.url);title.setText(channel.name);status.setText(retryAttempt>0?"Reconnecting…":"Connecting…");buffering.setVisibility(View.VISIBLE);
         try {
-            DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(channel.headers.containsKey("User-Agent")?channel.headers.get("User-Agent"):"ZeroPlay/"+BuildConfig.VERSION_NAME).setConnectTimeoutMs(20000).setReadTimeoutMs(30000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(channel.headers);
+            Map<String,String> requestHeaders=livePpv?LivePpvPlayback.headers(channel.headers,ppvProfile):channel.headers;
+            DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent(requestHeaders.containsKey("User-Agent")?requestHeaders.get("User-Agent"):"ZeroPlay/"+BuildConfig.VERSION_NAME).setConnectTimeoutMs(20000).setReadTimeoutMs(30000).setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(requestHeaders);
             DefaultMediaSourceFactory sources=new DefaultMediaSourceFactory(http);
             MediaItem.Builder media=new MediaItem.Builder().setUri(channel.url).setMediaMetadata(new MediaMetadata.Builder().setTitle(channel.name).build());
             if(!channel.mime.isEmpty())media.setMimeType(channel.mime);
@@ -98,7 +119,7 @@ public class LivePlayerActivity extends Activity {
             player.addListener(new Player.Listener(){
                 @Override public void onPlaybackStateChanged(int state){buffering.setVisibility(state==Player.STATE_BUFFERING?View.VISIBLE:View.GONE);if(state==Player.STATE_READY){retryAttempt=0;wakeControls();}if(state==Player.STATE_ENDED)scheduleReconnect("ended");}
                 @Override public void onIsPlayingChanged(boolean playing){play.setText(playing?"Pause":"Play");if(!playing)wakeControls();}
-                @Override public void onPlayerError(PlaybackException error){if(transientPlaybackError(error)){scheduleReconnect(error.getErrorCodeName());}else{buffering.setVisibility(View.GONE);status.setText("Stream unavailable · "+error.getErrorCodeName()+" · Retry or choose another channel");wakeControls();}}
+                @Override public void onPlayerError(PlaybackException error){if(livePpv){ppvFailure=LivePpvPlayback.failure(error);Log.w("ZeroPlayLivePpv","PPV stream error: "+ppvFailure);if(LivePpvPlayback.shouldTryBrowserHeaders(error)&&ppvProfile<LivePpvPlayback.PROFILE_COUNT-1)ppvProfile++;if(transientPlaybackError(error))scheduleReconnect(ppvFailure);else if(!tryNextPpvFeed())showPpvFailure();}else if(transientPlaybackError(error)){scheduleReconnect(error.getErrorCodeName());}else{buffering.setVisibility(View.GONE);status.setText("Stream unavailable · "+error.getErrorCodeName()+" · Retry or choose another channel");wakeControls();}}
             });
             video.setPlayer(player);player.setMediaItem(media.build());player.prepare();player.setPlayWhenReady(playWhenReady);ui.removeCallbacks(infoTick);ui.post(infoTick);wakeControls();play.requestFocus();
         }catch(Exception error){buffering.setVisibility(View.GONE);status.setText("Channel settings are not supported on this device. Try another channel.");wakeControls();}
