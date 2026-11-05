@@ -49,9 +49,9 @@ public class TvSourceNavigationTest {
         fake.data.put("playerNavigation","focus");
         TvSourceNavigation.setOverride(fake.prefs,"vidstuck","mouse");
         assertEquals("mouse",TvSourceNavigation.effective(fake.prefs,"vidstuck"));
-        assertEquals("focus",TvSourceNavigation.effective(fake.prefs,"vidnest"));
+        assertEquals("smart",TvSourceNavigation.effective(fake.prefs,"vidnest"));
         TvSourceNavigation.setOverride(fake.prefs,"vidstuck","inherit");
-        assertEquals("focus",TvSourceNavigation.effective(fake.prefs,"vidstuck"));
+        assertEquals("smart",TvSourceNavigation.effective(fake.prefs,"vidstuck"));
     }
     @Test public void invalidModeIsSafeAndUnsupportedSourceIsRejected(){
         Fake fake=new Fake();
