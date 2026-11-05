@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - fix/live-ppv-autohide-dpad-v2.2.5.3
-      - main
     paths:
       - '.github/workflows/release-2.2.5.3.yml'
       - 'release-2.2.5.3-trigger.txt'
