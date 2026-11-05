@@ -20,6 +20,7 @@ public class PlaybackSourcesTest {
         assertEquals("https://vaplayer.ru/embed/movie/299534",PlaybackSources.url("299534","movie",1,1,"vidapi"));
         assertEquals("https://vaplayer.ru/embed/tv/1399/1/2",PlaybackSources.url("1399","tv",1,2,"vidapi"));
         assertEquals("VidSrc [Offline]",PlaybackSources.NAMES[3]);
+        assertEquals("Vidrock.to [Offline]",PlaybackSources.NAMES[4]);
     }
     @Test public void androidOwnsAutomaticNextEpisodeSwitching(){
         String vidstuck=PlaybackSources.url("1399","tv",1,2,"vidstuck");
