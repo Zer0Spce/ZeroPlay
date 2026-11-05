@@ -23,7 +23,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: zeroplay-2255-tv-windows-${{ github.ref }}
+  group: zeroplay-2255-tv-windows-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
