@@ -12,6 +12,7 @@ on:
       - 'windows/main.cjs'
       - 'windows/version-manager.cjs'
       - 'windows/updater.cjs'
+      - 'scripts/apply-2.2.4.1-audio-hotfix.cjs'
       - 'windows/test/desktop-startup-2.2.5.5.test.cjs'
       - 'windows/test/updater.test.cjs'
       - 'tests/android-tv-source-navigation-2.2.5.4.test.cjs'
