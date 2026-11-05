@@ -1,5 +1,5 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.playbackSources=factory();})(typeof globalThis==='object'?globalThis:this,()=>{
-  const sources=[{id:'vidstuck',name:'VidStuck'},{id:'zxcstream',name:'ZXCStream (Beta)'},{id:'embedwave',name:'Embedwave (BETA)'},{id:'vidsrc-sh',name:'VidSrc [Offline]'},{id:'vidrock',name:'VidRock'},{id:'vidnest',name:'VidNest'},{id:'vidrift',name:'VidRift'},{id:'vidfast',name:'VidFast'},{id:'vidapi',name:'VidAPI'}];
+  const sources=[{id:'vidstuck',name:'VidStuck'},{id:'zxcstream',name:'ZXCStream (Beta)'},{id:'embedwave',name:'Embedwave (BETA)'},{id:'vidsrc-sh',name:'VidSrc [Offline]'},{id:'vidrock',name:'Vidrock.to [Offline]'},{id:'vidnest',name:'VidNest'},{id:'vidrift',name:'VidRift'},{id:'vidfast',name:'VidFast'},{id:'vidapi',name:'VidAPI'}];
   const hosts=['vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh','vidrock.to','vidnest.fun','embed.vidrift.net','vidfast.vc','vaplayer.ru'];
   function source(id){return sources.find(row=>row.id===id)||sources[0];}
   function trusted(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.port&&hosts.includes(u.hostname);}catch{return false;}}
