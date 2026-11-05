@@ -9,6 +9,7 @@
   function errorText(error) {
     const e = error && error.detail ? error.detail : error;
     if (!e) return 'Unknown browser error';
+    if (e.message === 'WebView cannot play adaptive video' || e.message === 'Shaka library unavailable') return e.message;
     const code = Number(e.code);
     const category = Number(e.category);
     if (Number.isFinite(code) && code > 0) return 'Shaka ' + code + (Number.isFinite(category) ? ' · category ' + category : '');
