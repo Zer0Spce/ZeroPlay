@@ -6,7 +6,6 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -89,7 +88,7 @@ final class LivePpvPlayback {
 
     static String eventKey(String name) {
         if (name == null) return "";
-        return name.replaceFirst("(?i)\s+[—–-]\s+Feed\s+\d+(?:\s*·.*)?$", "")
+        return name.replaceFirst("(?i)\\s+[—–-]\\s+Feed\\s+\\d+(?:\\s*·.*)?$", "")
                    .trim().toLowerCase(Locale.ROOT);
     }
 
