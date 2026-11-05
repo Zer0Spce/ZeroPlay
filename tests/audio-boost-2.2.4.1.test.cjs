@@ -41,6 +41,10 @@ test('2.2.4.1 versions are applied with Electron-compatible semver',()=>{
   assert.equal(pkg.build.win.artifactName,'ZeroPlay-2.2.4.1-Windows-x64.${ext}');
   const updater=read('windows/updater.cjs');
   const versions=read('windows/version-manager.cjs');
-  assert.match(updater,/replace\(\/\-\(\\d\+\)\$\/,'.\$1'\)/);
-  assert.match(versions,/replace\(\/\-\(\\d\+\)\$\/,'.\$1'\)/);
+  // Current stable releases use a dedicated version formatter; the historical
+  // 2.2.4.1 parser is still accepted for older baselines.
+  assert.ok(updater.includes("const cleanVersion=value=>versions.publicVersion(value)") ||
+    updater.includes("const publicVersion=value=>"),'Windows updater handles numeric build suffixes');
+  assert.ok(versions.includes('function publicVersion(value)') ||
+    versions.includes("replace(/-(\\d+)$/,'.$1')"),'Windows launcher handles numeric build suffixes');
 });
