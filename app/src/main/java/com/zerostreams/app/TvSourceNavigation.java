@@ -30,7 +30,9 @@ final class TvSourceNavigation {
     }
     static String effective(SharedPreferences prefs,String source) {
         String local=override(prefs,source);
-        return INHERIT.equals(local) ? global(prefs) : local;
+        // The settings screen now has only per-source dropdowns. Even legacy global
+        // choices from 2.2.5.4 must not change a source's Smart / Hybrid default.
+        return INHERIT.equals(local) ? SMART : local;
     }
     static void setOverride(SharedPreferences prefs,String source,String mode) {
         String key=sourceKey(source);

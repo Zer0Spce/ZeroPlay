@@ -4,13 +4,13 @@ const fs=require('node:fs'),fsp=require('node:fs/promises'),path=require('node:p
 const versions=require('./version-manager.cjs');
 const API='https://api.github.com/repos/Zer0Spce/ZeroPlay/releases?per_page=20';
 let installed=false,mainWindow,updateWindow,currentRelease,downloadBusy=false;
-const cleanVersion=value=>String(value||'').trim().replace(/^v/i,'').split('-')[0].split('.').map(x=>Number(x)||0);
+const cleanVersion=value=>versions.publicVersion(value).split('.').map(x=>Number(x)||0);
 function newer(remote,local){const a=cleanVersion(remote),b=cleanVersion(local),n=Math.max(a.length,b.length,3);for(let i=0;i<n;i++){const d=(a[i]||0)-(b[i]||0);if(d)return d>0;}return false;}
 function testRelease(release){return /(?:^|[-_.])(test|demo|placeholder)(?:$|[-_.])/i.test(String(release?.tag_name||''));}
 function stateFile(){return path.join(app.getPath('userData'),'updater.json');}
 function readState(){try{return JSON.parse(fs.readFileSync(stateFile(),'utf8'));}catch{return {};}}
 function writeState(value){const target=stateFile(),temp=target+'.tmp';fs.writeFileSync(temp,JSON.stringify(value));fs.renameSync(temp,target);}
-function releaseView(release){return {current:app.getVersion(),version:String(release.tag_name||'').replace(/^v/i,''),tag:release.tag_name||'',name:release.name||release.tag_name||'ZeroPlay update',changelog:release.body||'No changelog was provided.',published:release.published_at||'',assetName:release.asset?.name||'',size:Number(release.asset?.size)||0};}
+function releaseView(release){return {current:versions.publicVersion(app.getVersion()),version:String(release.tag_name||'').replace(/^v/i,''),tag:release.tag_name||'',name:release.name||release.tag_name||'ZeroPlay update',changelog:release.body||'No changelog was provided.',published:release.published_at||'',assetName:release.asset?.name||'',size:Number(release.asset?.size)||0};}
 async function latest(){const response=await fetch(API,{headers:{Accept:'application/vnd.github+json','User-Agent':'ZeroPlay-Windows-Updater'},signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('Could not check GitHub for updates ('+response.status+').');const releases=await response.json();const release=Array.isArray(releases)?releases.find(r=>!r.draft&&!r.prerelease&&!testRelease(r)):null;if(!release)throw Error('No stable ZeroPlay release is available.');const version=String(release.tag_name||'').replace(/^v/i,'');const asset=(release.assets||[]).find(x=>x.name===`ZeroPlay-${version}-Windows-x64.zip`)||(release.assets||[]).find(x=>/^ZeroPlay-.*-Windows-x64\.zip$/i.test(x.name||''));if(!asset)throw Error('The latest stable release does not contain a Windows portable ZIP.');const checksumAsset=(release.assets||[]).find(x=>/^SHA256SUMS\.txt$/i.test(x.name||''))||null;return {...release,asset,checksumAsset};}
 function trustedMain(event){if(!mainWindow||mainWindow.isDestroyed()||event.sender!==mainWindow.webContents)throw Error('Untrusted updater request');}
 function trustedUpdate(event){if(!updateWindow||updateWindow.isDestroyed()||event.sender!==updateWindow.webContents)throw Error('Untrusted updater window');}

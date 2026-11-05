@@ -2,6 +2,19 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const updater=require('../updater.cjs'),versions=require('../version-manager.cjs');
 test('update version comparison handles tags and patch versions',()=>{assert.deepEqual(updater.cleanVersion('v2.1.0'),[2,1,0]);assert.equal(updater.newer('2.1','2.0.3'),true);assert.equal(updater.newer('2.1.0','2.1'),false);});
 test('versioned launcher treats release tags with trailing zeroes as the same app version',()=>{assert.equal(versions.sameVersion('2.2','2.2.0'),true);assert.equal(versions.sameVersion('v2.2.0','2.2'),true);assert.equal(versions.sameVersion('2.2.1','2.2'),false);});
+test('four-part public versions preserve the internal numeric build suffix',()=>{
+  assert.equal(versions.publicVersion('2.2.5-4'),'2.2.5.4');
+  assert.equal(versions.publicVersion('2.2.5-5'),'2.2.5.5');
+  assert.equal(versions.publicVersion('v2.2.5.5'),'2.2.5.5');
+  assert.equal(versions.sameVersion('2.2.5-5','v2.2.5.5'),true);
+  assert.equal(versions.sameVersion('2.2.5-4','2.2.5.5'),false);
+  assert.deepEqual(updater.cleanVersion('2.2.5-4'),[2,2,5,4]);
+  assert.equal(updater.newer('2.2.5.5','2.2.5-4'),true);
+  assert.equal(updater.newer('2.2.5.5','2.2.5-5'),false);
+  assert.equal(updater.newer('2.2.5.4','2.2.5-5'),false);
+  assert.equal(versions.isNewerVersion('2.2.5-5','2.2.5.4'),true);
+  assert.equal(versions.isNewerVersion('2.2.5-4','2.2.5.5'),false);
+});
 test('updater ignores demo releases',()=>{assert.equal(updater.testRelease({tag_name:'v9.9.9-TEST'}),true);assert.equal(updater.testRelease({tag_name:'v2.1-DEMO'}),true);assert.equal(updater.testRelease({tag_name:'v2.1'}),false);});
 test('Windows updater delegates installation to ZeroPlayUpdater.exe',()=>{const source=fs.readFileSync(path.join(__dirname,'..','updater.cjs'),'utf8');assert.match(source,/ZeroPlayUpdater\.exe/);assert.match(source,/--wait-pid/);assert.doesNotMatch(source,/tar\.exe/);assert.doesNotMatch(source,/Expand-Archive/);assert.doesNotMatch(source,/robocopy\.exe/);});
 test('standalone helper owns ZIP extraction and version activation',()=>{const source=fs.readFileSync(path.join(__dirname,'..','updater-helper','Program.cs'),'utf8');assert.match(source,/ZipFile\.ExtractToDirectory/);assert.match(source,/current\.json/);assert.match(source,/ZeroPlayUpdater-error\.txt/);});
