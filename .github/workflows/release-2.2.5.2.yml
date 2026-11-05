@@ -116,7 +116,7 @@ jobs:
           for apk in release-builds/*.apk; do
             "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
             "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionName='2.2.5.2'"
-            "$ANDROID_HOME/build-tools/34.0.0/unzip" -l "$apk" | grep -q 'assets/ppv-shaka-player.compiled.js'
+            unzip -l "$apk" | grep -q 'assets/ppv-shaka-player.compiled.js'
           done
 
       - name: Lint Android and Android TV
