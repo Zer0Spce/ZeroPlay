@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -39,13 +40,33 @@ import org.json.JSONObject;
 public final class LivePpvShakaActivity extends Activity {
     private static final String PAGE = "https://appassets.androidplatform.net/assets/ppv-shaka.html";
     private static final int ACCENT = 0xFF65E6CC;
+    private static final long CONTROLS_HIDE_DELAY_MS = 4500L;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private List<M3uPlaylist.Channel> channels = Collections.emptyList();
     private WebView browser;
+    private FrameLayout root;
+    private LinearLayout topBar;
+    private HorizontalScrollView controlsContainer;
     private TextView title, status;
-    private Button play;
-    private boolean pageLoaded, destroyed, ready, paused;
+    private Button play, backButton;
+    private boolean pageLoaded, destroyed, ready, paused, playbackRunning, channelDialogOpen;
+    private final Runnable hideControls = () -> {
+        if(destroyed || !playbackRunning || channelDialogOpen || topBar==null || controlsContainer==null) return;
+        topBar.setVisibility(View.GONE);
+        controlsContainer.setVisibility(View.GONE);
+        // Retain a focus anchor when the TV remote buttons disappear.
+        if(root!=null)root.requestFocus();
+    };
+
+    /** Controls hide only during active playback, and stay open while paused or in an error state. */
+    private void wakeControls() {
+        if(destroyed || topBar==null || controlsContainer==null)return;
+        topBar.setVisibility(View.VISIBLE);
+        controlsContainer.setVisibility(View.VISIBLE);
+        ui.removeCallbacks(hideControls);
+        if(playbackRunning && !channelDialogOpen)ui.postDelayed(hideControls,CONTROLS_HIDE_DELAY_MS);
+    }
     private int index;
     private String requested;
 
@@ -53,12 +74,14 @@ public final class LivePpvShakaActivity extends Activity {
     private Button control(String label, Runnable action) {
         Button button=new Button(this);
         button.setText(label);
+        button.setId(View.generateViewId());
         button.setAllCaps(false);
         button.setFocusable(true);
+        button.setOnFocusChangeListener((view,focused)->{if(focused)wakeControls();});
         button.setTextColor(Color.WHITE);
         button.setTextSize(14);
         button.setBackgroundColor(0xFF242733);
-        button.setOnClickListener(v->action.run());
+        button.setOnClickListener(v->{action.run();wakeControls();});
         return button;
     }
     @Override public void onCreate(Bundle state) {
@@ -67,13 +90,20 @@ public final class LivePpvShakaActivity extends Activity {
         requested=state==null?getIntent().getStringExtra("channelUrl"):state.getString("channelUrl",getIntent().getStringExtra("channelUrl"));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        FrameLayout root=new FrameLayout(this);
+        root=new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
+        root.setFocusable(true);
+        root.setFocusableInTouchMode(true);
         browser=new WebView(this);
         browser.setBackgroundColor(Color.BLACK);
         // Keep DPAD navigation on the native TV playback controls, not the video canvas.
         browser.setFocusable(false);
         browser.setFocusableInTouchMode(false);
+        // On touch devices a tap on the video brings the controls back.
+        browser.setOnTouchListener((view,event)->{
+            if(event.getActionMasked()==MotionEvent.ACTION_DOWN)wakeControls();
+            return false;
+        });
         WebSettings webSettings=browser.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(false);
@@ -108,7 +138,9 @@ public final class LivePpvShakaActivity extends Activity {
         top.setBackgroundColor(0xDB090D16);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setPadding(dp(12),dp(8),dp(12),dp(8));
-        top.addView(control("‹ Back",this::finish));
+        backButton=control("‹ Back",this::finish);
+        top.addView(backButton);
+        topBar=top;
         LinearLayout labels=new LinearLayout(this);
         labels.setPadding(dp(16),0,dp(8),0);
         labels.setOrientation(LinearLayout.VERTICAL);
@@ -132,16 +164,27 @@ public final class LivePpvShakaActivity extends Activity {
         row.setPadding(dp(6),dp(5),dp(6),dp(5));
         row.setBackgroundColor(0xDB090D16);
         play=control("Pause",()->{script(paused?"window.ZeroPpv.play()":"window.ZeroPpv.pause()");paused=!paused;play.setText(paused?"Play":"Pause");});
-        row.addView(play);
-        row.addView(control("● Live",()->script("window.ZeroPpv.live()")));
-        row.addView(control("Retry",this::openChannel));
-        row.addView(control("Channels",this::showChannels));
-        row.addView(control("Audio",()->script("window.ZeroPpv.tracks('audio')")));
-        row.addView(control("Subtitles",()->script("window.ZeroPpv.tracks('text')")));
-        row.addView(control("Fit",()->script("window.ZeroPpv.fit()")));
+        Button liveButton=control("● Live",()->script("window.ZeroPpv.live()"));
+        Button retryButton=control("Retry",this::openChannel);
+        Button channelsButton=control("Channels",this::showChannels);
+        Button audioButton=control("Audio",()->script("window.ZeroPpv.tracks('audio')"));
+        Button subtitlesButton=control("Subtitles",()->script("window.ZeroPpv.tracks('text')"));
+        Button fitButton=control("Fit",()->script("window.ZeroPpv.fit()"));
+        Button[] buttons={play,liveButton,retryButton,channelsButton,audioButton,subtitlesButton,fitButton};
+        for(int i=0;i<buttons.length;i++) {
+            Button button=buttons[i];
+            row.addView(button);
+            // Explicit focus neighbors keep D-pad navigation working inside HorizontalScrollView.
+            button.setNextFocusLeftId(buttons[Math.max(0,i-1)].getId());
+            button.setNextFocusRightId(buttons[Math.min(buttons.length-1,i+1)].getId());
+            button.setNextFocusUpId(backButton.getId());
+        }
+        backButton.setNextFocusDownId(play.getId());
         HorizontalScrollView scrolling=new HorizontalScrollView(this);
         scrolling.setHorizontalScrollBarEnabled(false);
+        scrolling.setFocusable(false);
         scrolling.addView(row);
+        controlsContainer=scrolling;
         root.addView(scrolling,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         setContentView(root);
         play.requestFocus();
@@ -174,17 +217,22 @@ public final class LivePpvShakaActivity extends Activity {
         if(agent!=null&&!agent.isEmpty())browser.getSettings().setUserAgentString(agent);
         title.setText(channel.name);
         status.setText("Connecting via Shaka WebView…");
+        playbackRunning=false;
+        wakeControls();
         paused=false;
         play.setText("Pause");
         script("window.ZeroPpv.load("+JSONObject.quote(channel.url)+","+JSONObject.quote(channel.mime)+")");
     }
     private void showChannels() {
         if(channels.isEmpty())return;
+        channelDialogOpen=true;
+        wakeControls();
         String[] names=new String[channels.size()];
         for(int i=0;i<names.length;i++)names[i]=channels.get(i).name;
         new AlertDialog.Builder(this).setTitle("Live PPV channels")
                 .setSingleChoiceItems(names,index,(d,selected)->{index=selected;openChannel();d.dismiss();})
-                .setNegativeButton("Close",null).show();
+                .setNegativeButton("Close",null)
+                .setOnDismissListener(d->{channelDialogOpen=false;wakeControls();}).show();
     }
     public final class Bridge {
         @JavascriptInterface public void state(String state,String detail) {
@@ -193,10 +241,19 @@ public final class LivePpvShakaActivity extends Activity {
                 if(destroyed||status==null)return;
                 switch(state) {
                     case "ready": ready=true;break;
-                    case "playing": status.setText("● LIVE · Shaka");paused=false;play.setText("Pause");break;
-                    case "buffering": status.setText("Buffering · Shaka WebView");break;
-                    case "paused": status.setText("Paused · Shaka");paused=true;play.setText("Play");break;
+                    case "playing":
+                        status.setText("● LIVE · Shaka");
+                        paused=false;play.setText("Pause");playbackRunning=true;wakeControls();
+                        break;
+                    case "buffering":
+                        status.setText("Buffering · Shaka WebView");playbackRunning=false;wakeControls();
+                        break;
+                    case "paused":
+                        status.setText("Paused · Shaka");paused=true;play.setText("Play");
+                        playbackRunning=false;wakeControls();
+                        break;
                     case "error":
+                        playbackRunning=false;wakeControls();
                         String safe=detail.replaceAll("[^A-Za-z0-9 .·_-]","").trim();
                         status.setText("Stream unavailable · "+(safe.isEmpty()?"browser playback error":safe));
                         break;
@@ -206,11 +263,21 @@ public final class LivePpvShakaActivity extends Activity {
             });
         }
     }
-    @Override protected void onPause(){super.onPause();script("window.ZeroPpv.pause()");}
+    @Override protected void onPause(){
+        playbackRunning=false;
+        ui.removeCallbacks(hideControls);
+        script("window.ZeroPpv.pause()");
+        super.onPause();
+    }
     @Override protected void onResume(){super.onResume();if(browser!=null)browser.onResume();}
-    @Override protected void onStop(){if(browser!=null)browser.onPause();super.onStop();}
+    @Override protected void onStop(){
+        ui.removeCallbacks(hideControls);
+        if(browser!=null)browser.onPause();
+        super.onStop();
+    }
     @Override protected void onDestroy(){
         destroyed=true;
+        ui.removeCallbacks(hideControls);
         if(browser!=null) {
             script("window.ZeroPpv.stop()");
             browser.removeJavascriptInterface("ZeroPpvBridge");
@@ -229,9 +296,22 @@ public final class LivePpvShakaActivity extends Activity {
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         if(event.getAction()==KeyEvent.ACTION_DOWN){
             int key=event.getKeyCode();
-            if(key==KeyEvent.KEYCODE_MEDIA_PLAY) {script("window.ZeroPpv.play()");return true;}
-            if(key==KeyEvent.KEYCODE_MEDIA_PAUSE) {script("window.ZeroPpv.pause()");return true;}
-            if(key==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE){play.performClick();return true;}
+            if(key==KeyEvent.KEYCODE_MEDIA_PLAY) {script("window.ZeroPpv.play()");wakeControls();return true;}
+            if(key==KeyEvent.KEYCODE_MEDIA_PAUSE) {script("window.ZeroPpv.pause()");wakeControls();return true;}
+            if(key==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE){play.performClick();wakeControls();return true;}
+            boolean remoteNavigation=key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT
+                    ||key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN
+                    ||key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER
+                    ||key==KeyEvent.KEYCODE_MENU;
+            if(remoteNavigation){
+                boolean hidden=controlsContainer!=null&&controlsContainer.getVisibility()!=View.VISIBLE;
+                wakeControls();
+                if(hidden||getCurrentFocus()==root||getCurrentFocus()==browser||getCurrentFocus()==null){
+                    // First D-pad press reveals the UI and focuses Pause/Play; the next press selects/navigates.
+                    play.requestFocus();
+                    return true;
+                }
+            }
         }
         return super.dispatchKeyEvent(event);
     }
