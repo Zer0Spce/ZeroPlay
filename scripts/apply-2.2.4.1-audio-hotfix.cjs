@@ -126,6 +126,9 @@ patch('windows/package.json',text=>{
 patch('windows/updater.cjs',text=>{
   const old="const cleanVersion=value=>String(value||'').trim().replace(/^v/i,'').split('-')[0].split('.').map(x=>Number(x)||0);";
   const next="const publicVersion=value=>String(value||'').trim().replace(/^v/i,'').replace(/-(\\d+)$/,'.$1');\nconst cleanVersion=value=>publicVersion(value).split('-')[0].split('.').map(x=>Number(x)||0);";
+  // Newer releases have a tested version-manager publicVersion helper.
+  // Keep it; the historical 2.2.4.1 compatibility patch must not replace it.
+  if(text.includes("const cleanVersion=value=>versions.publicVersion(value).split('.').map(x=>Number(x)||0);"))return text;
   if(!text.includes(old))throw new Error('Windows updater version parser marker missing');
   text=text.replace(old,next);
   text=text.replace("function releaseView(release){return {current:app.getVersion(),version:","function releaseView(release){return {current:publicVersion(app.getVersion()),version:");
@@ -135,6 +138,7 @@ patch('windows/updater.cjs',text=>{
 patch('windows/version-manager.cjs',text=>{
   const old="function normalizedVersion(value){const parts=String(value||'').trim().replace(/^v/i,'').split('-')[0].split('.').map(x=>Number(x)||0);";
   const next="function normalizedVersion(value){const parts=String(value||'').trim().replace(/^v/i,'').replace(/-(\\d+)$/,'.$1').split('-')[0].split('.').map(x=>Number(x)||0);";
+  if(text.includes("function publicVersion(value)")&&text.includes("function normalizedVersion(value){const parts=publicVersion(value).split('.').map"))return text;
   if(!text.includes(old))throw new Error('Windows version manager parser marker missing');
   return text.replace(old,next);
 });
