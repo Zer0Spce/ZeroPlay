@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.*;
+import android.util.Log;
 import android.widget.*;
 import androidx.media3.common.*;
 import androidx.media3.datasource.DefaultHttpDataSource;
@@ -33,6 +34,7 @@ public class LivePlayerActivity extends Activity {
     private List<M3uPlaylist.Channel> channels=Collections.emptyList();
     private int index,resizeMode=AspectRatioFrameLayout.RESIZE_MODE_FIT,retryAttempt,loadGeneration;
     private boolean started, destroyed, playWhenReady=true;
+    private String lastPlaybackFailure="";
     private final Runnable hideControls=()->setControls(false);
     private Runnable pendingReconnect;
     private final Runnable infoTick=new Runnable(){public void run(){if(!started||player==null)return;if(player.getPlayerError()==null){long offset=player.getCurrentLiveOffset();String quality=player.getVideoFormat()==null?"":player.getVideoFormat().height>0?" · "+player.getVideoFormat().height+"p":"";status.setText(player.getPlaybackState()==Player.STATE_BUFFERING?"Connecting…":player.getPlaybackState()==Player.STATE_ENDED?"Stream ended · reconnecting…":player.isPlaying()?"● LIVE"+(offset!=C.TIME_UNSET&&offset>12_000?" · behind live":"")+quality:"Paused");}ui.postDelayed(this,1000);}};
@@ -73,13 +75,13 @@ public class LivePlayerActivity extends Activity {
     private void scheduleReconnect(String reason){
         if(!started||destroyed||channels.isEmpty())return;
         cancelReconnect();
-        if(retryAttempt>=MAX_AUTO_RETRIES){buffering.setVisibility(View.GONE);status.setText("Stream unavailable · Retry or choose another channel");wakeControls();return;}
+        if(retryAttempt>=MAX_AUTO_RETRIES){buffering.setVisibility(View.GONE);status.setText("Stream unavailable · "+(lastPlaybackFailure.isEmpty()?"Connection interrupted":lastPlaybackFailure)+" · Retry or another channel");wakeControls();return;}
         final int generation=loadGeneration;final int attempt=++retryAttempt;long delay=Math.min(10000L,1500L*(1L<<(attempt-1)));
-        status.setText("Stream interrupted · reconnecting "+attempt+"/"+MAX_AUTO_RETRIES+"…");buffering.setVisibility(View.VISIBLE);
+        status.setText("Stream interrupted · "+(lastPlaybackFailure.isEmpty()?reason:lastPlaybackFailure)+" · retry "+attempt+"/"+MAX_AUTO_RETRIES+"…");buffering.setVisibility(View.VISIBLE);
         pendingReconnect=()->{pendingReconnect=null;if(!started||destroyed||generation!=loadGeneration)return;startChannel(false);};ui.postDelayed(pendingReconnect,delay);
     }
     private void startChannel(boolean resetRetries){
-        cancelReconnect();if(resetRetries){retryAttempt=0;loadGeneration++;}
+        cancelReconnect();if(resetRetries){retryAttempt=0;loadGeneration++;lastPlaybackFailure="";}
         releasePlayer();if(!started||channels.isEmpty())return;
         M3uPlaylist.Channel channel=channels.get(index);title.setText(channel.name);status.setText(retryAttempt>0?"Reconnecting…":"Connecting…");buffering.setVisibility(View.VISIBLE);
         try {
@@ -96,12 +98,12 @@ public class LivePlayerActivity extends Activity {
             player=new ExoPlayer.Builder(this).setMediaSourceFactory(sources).build();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);player.setHandleAudioBecomingNoisy(true);
             player.addListener(new Player.Listener(){
-                @Override public void onPlaybackStateChanged(int state){buffering.setVisibility(state==Player.STATE_BUFFERING?View.VISIBLE:View.GONE);if(state==Player.STATE_READY){retryAttempt=0;wakeControls();}if(state==Player.STATE_ENDED)scheduleReconnect("ended");}
+                @Override public void onPlaybackStateChanged(int state){buffering.setVisibility(state==Player.STATE_BUFFERING?View.VISIBLE:View.GONE);if(state==Player.STATE_READY){retryAttempt=0;lastPlaybackFailure="";wakeControls();}if(state==Player.STATE_ENDED)scheduleReconnect("ended");}
                 @Override public void onIsPlayingChanged(boolean playing){play.setText(playing?"Pause":"Play");if(!playing)wakeControls();}
-                @Override public void onPlayerError(PlaybackException error){if(transientPlaybackError(error)){scheduleReconnect(error.getErrorCodeName());}else{buffering.setVisibility(View.GONE);status.setText("Stream unavailable · "+error.getErrorCodeName()+" · Retry or choose another channel");wakeControls();}}
+                @Override public void onPlayerError(PlaybackException error){lastPlaybackFailure=LivePlaybackFailure.describe(error.getErrorCodeName(),error);Log.w("ZeroPlayLive", "Live stream failed: "+lastPlaybackFailure);if(transientPlaybackError(error)){scheduleReconnect(lastPlaybackFailure);}else{buffering.setVisibility(View.GONE);status.setText("Stream unavailable · "+lastPlaybackFailure+" · Retry or another channel");wakeControls();}}
             });
             video.setPlayer(player);player.setMediaItem(media.build());player.prepare();player.setPlayWhenReady(playWhenReady);ui.removeCallbacks(infoTick);ui.post(infoTick);wakeControls();play.requestFocus();
-        }catch(Exception error){buffering.setVisibility(View.GONE);status.setText("Channel settings are not supported on this device. Try another channel.");wakeControls();}
+        }catch(Exception error){buffering.setVisibility(View.GONE);lastPlaybackFailure=LivePlaybackFailure.describe("PLAYER_SETUP",error);Log.w("ZeroPlayLive","Live player setup failed: "+lastPlaybackFailure);status.setText("Stream unavailable · "+lastPlaybackFailure+" · Try another channel");wakeControls();}
     }
     void retry(){playWhenReady=true;startChannel(true);}
     void message(String text){Toast.makeText(this,text,Toast.LENGTH_SHORT).show();}
