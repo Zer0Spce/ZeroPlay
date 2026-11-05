@@ -12,6 +12,8 @@ test('four-part public versions preserve the internal numeric build suffix',()=>
   assert.equal(updater.newer('2.2.5.5','2.2.5-4'),true);
   assert.equal(updater.newer('2.2.5.5','2.2.5-5'),false);
   assert.equal(updater.newer('2.2.5.4','2.2.5-5'),false);
+  assert.equal(versions.isNewerVersion('2.2.5-5','2.2.5.4'),true);
+  assert.equal(versions.isNewerVersion('2.2.5-4','2.2.5.5'),false);
 });
 test('updater ignores demo releases',()=>{assert.equal(updater.testRelease({tag_name:'v9.9.9-TEST'}),true);assert.equal(updater.testRelease({tag_name:'v2.1-DEMO'}),true);assert.equal(updater.testRelease({tag_name:'v2.1'}),false);});
 test('Windows updater delegates installation to ZeroPlayUpdater.exe',()=>{const source=fs.readFileSync(path.join(__dirname,'..','updater.cjs'),'utf8');assert.match(source,/ZeroPlayUpdater\.exe/);assert.match(source,/--wait-pid/);assert.doesNotMatch(source,/tar\.exe/);assert.doesNotMatch(source,/Expand-Archive/);assert.doesNotMatch(source,/robocopy\.exe/);});
