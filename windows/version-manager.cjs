@@ -12,6 +12,14 @@ function publicVersion(value){
 }
 function normalizedVersion(value){const parts=publicVersion(value).split('.').map(x=>Number(x)||0);while(parts.length>1&&parts[parts.length-1]===0)parts.pop();return parts.join('.');}
 function sameVersion(a,b){return normalizedVersion(a)===normalizedVersion(b);}
+function isNewerVersion(a,b){
+  const left=publicVersion(a).split('.').map(v=>Number(v)||0);
+  const right=publicVersion(b).split('.').map(v=>Number(v)||0);
+  for(let i=0;i<Math.max(left.length,right.length,4);i++){
+    if((left[i]||0)!==(right[i]||0))return (left[i]||0)>(right[i]||0);
+  }
+  return false;
+}
 function relativeExe(versionDir){return path.relative(rootDir(),path.join(versionDir,'ZeroPlay.exe'));}
 function absoluteSelection(selection){if(!selection?.path)return null;const target=path.resolve(rootDir(),selection.path);if(!target.startsWith(rootDir()+path.sep)&&target!==path.join(rootDir(),'ZeroPlay.exe'))return null;return target;}
 function atomicWrite(value){const file=pointerPath(),temp=file+'.tmp-'+process.pid;fs.writeFileSync(temp,JSON.stringify(value,null,2));fs.renameSync(temp,file);}
@@ -21,7 +29,7 @@ function activate(version,versionDir,localVersion){const previous=currentSelecti
 function confirmCurrent(version){if(!process.argv.includes('--version-child'))return false;const pointer=readPointer();if(!pointer?.pending||!sameVersion(pointer.version,version))return false;pointer.pending=false;pointer.confirmedAt=new Date().toISOString();atomicWrite(pointer);return true;}
 function spawnSelection(selection,extra=[]){const exe=absoluteSelection(selection);if(!exe||!fs.existsSync(exe))throw Error('Selected ZeroPlay version is missing: '+String(selection?.path||''));const child=spawn(exe,['--version-child',...extra],{cwd:path.dirname(exe),env:{...process.env,ZERO_LAUNCHER_ROOT:rootDir()},detached:true,stdio:'ignore',windowsHide:false});return child;}
 function rollback(pointer){const previous=pointer?.previous||baseSelection();atomicWrite({...previous,pending:false,rolledBackAt:new Date().toISOString()});return previous;}
-function maybeLaunchCurrent(app){if(!app.isPackaged||process.argv.includes('--smoke-test')||process.argv.includes('--ui-smoke-test')||process.argv.includes('--version-child'))return false;const pointer=readPointer(),target=absoluteSelection(pointer);if(!pointer||!target||!fs.existsSync(target)||path.resolve(target)===path.resolve(process.execPath))return false;let child;try{child=spawnSelection(pointer);child.unref();}catch{return false;}
+function maybeLaunchCurrent(app){if(!app.isPackaged||process.argv.includes('--smoke-test')||process.argv.includes('--ui-smoke-test')||process.argv.includes('--version-child'))return false;const pointer=readPointer(),target=absoluteSelection(pointer);if(!pointer||!target||!fs.existsSync(target)||path.resolve(target)===path.resolve(process.execPath))return false;if(isNewerVersion(app.getVersion(),pointer.version))return false; // Do not reopen a broken older cached release when the user's portable EXE is newer.let child;try{child=spawnSelection(pointer);child.unref();}catch{return false;}
   // A confirmed version is already known-good. Start it detached and let the stable launcher exit.
   if(!pointer.pending){setTimeout(()=>app.exit(0),350);return true;}
   let finished=false;const finish=()=>{if(finished)return;finished=true;clearInterval(check);clearTimeout(timeout);app.exit(0);};const recover=()=>{if(finished)return;finished=true;clearInterval(check);clearTimeout(timeout);try{child.kill();}catch{}try{const previous=rollback(pointer),fallback=spawnSelection(previous,['--rollback']);fallback.unref();}catch{}app.exit(0);};
@@ -31,4 +39,4 @@ function maybeLaunchCurrent(app){if(!app.isPackaged||process.argv.includes('--sm
   return true;}
 function launchRoot(){const exe=path.join(rootDir(),'ZeroPlay.exe');const child=spawn(exe,[],{cwd:rootDir(),env:{...process.env,ZERO_LAUNCHER_ROOT:rootDir()},detached:true,stdio:'ignore',windowsHide:false});child.unref();return child;}
 async function ensureVersionsDir(){const dir=path.join(rootDir(),'versions');await fsp.mkdir(dir,{recursive:true});return dir;}
-module.exports={rootDir,pointerPath,readPointer,publicVersion,normalizedVersion,sameVersion,currentSelection,activate,confirmCurrent,maybeLaunchCurrent,launchRoot,ensureVersionsDir,absoluteSelection};
+module.exports={rootDir,pointerPath,readPointer,publicVersion,normalizedVersion,sameVersion,isNewerVersion,currentSelection,activate,confirmCurrent,maybeLaunchCurrent,launchRoot,ensureVersionsDir,absoluteSelection};
