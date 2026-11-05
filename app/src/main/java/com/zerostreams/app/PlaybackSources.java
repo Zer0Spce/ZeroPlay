@@ -2,7 +2,7 @@ package com.zerostreams.app;
 import java.net.URI;
 final class PlaybackSources {
     static final String[] IDS={"vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","rawcast"};
-    static final String[] NAMES={"VidStuck","ZXCStream (Beta)","Embedwave (BETA)","VidSrc [Offline]","VidRock","VidNest","VidRift","VidFast","VidAPI","RawCast · Limited API quota"};
+    static final String[] NAMES={"VidStuck","ZXCStream (Beta)","Embedwave (BETA)","VidSrc [Offline]","Vidrock.to [Offline]","VidNest","VidRift","VidFast","VidAPI","RawCast · Limited API quota"};
     static final String[] ORIGINS={"https://vidstuck.cc","https://zxcstream.cc","https://embedwave.cc","https://vidsrc.sh","https://vidrock.to","https://vidnest.fun","https://embed.vidrift.net","https://vidfast.vc","https://vaplayer.ru"};
     static int index(String id){for(int i=0;i<IDS.length;i++)if(IDS[i].equals(id))return i;return 0;}
     static boolean trusted(String address){try{URI u=new URI(address);if(!"https".equals(u.getScheme())||u.getPort()!=-1&&u.getPort()!=443)return false;for(String origin:ORIGINS)if(new URI(origin).getHost().equals(u.getHost()))return true;}catch(Exception ignored){}return false;}
