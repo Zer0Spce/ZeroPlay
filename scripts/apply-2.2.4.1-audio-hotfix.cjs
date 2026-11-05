@@ -6,7 +6,16 @@ const file=rel=>path.join(root,rel);
 
 function patch(rel,fn){
   const target=file(rel),before=fs.readFileSync(target,'utf8'),after=fn(before);
-  if(after===before)throw new Error('2.2.4.1 patch made no change: '+rel);
+  if(after===before){
+    // Modern Windows builds already include the corrected version helpers.
+    // This historical patch must keep them intact rather than failing or reverting.
+    const upgradedUpdater=rel==='windows/updater.cjs'
+      &&before.includes("const cleanVersion=value=>versions.publicVersion(value)");
+    const upgradedLauncher=rel==='windows/version-manager.cjs'
+      &&before.includes('function publicVersion(value)');
+    if(upgradedUpdater||upgradedLauncher){console.log('Already modern: '+rel);return;}
+    throw new Error('2.2.4.1 patch made no change: '+rel);
+  }
   fs.writeFileSync(target,after);
   console.log('Patched',rel);
 }
