@@ -110,7 +110,7 @@ public class BrowserPlayerActivity extends Activity {
 
         web.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest request){
-                if(tvPlayer&&request.isForMainFrame()&&request.hasGesture()&&java.util.Arrays.asList("vidstuck.cc","zxcstream.cc","embedwave.cc","vidsrc.sh").contains(request.getUrl().getHost())&&!("zxcstream.cc".equals(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).startsWith("/player/"):String.valueOf(request.getUrl().getPath()).startsWith("/embed/"))){confirmExit();return true;}
+                if(tvPlayer&&request.isForMainFrame()&&request.hasGesture()&&java.util.Arrays.asList("vidstuck.cc","zxcstream.cc","embedwave.cc","vidsrc.sh","vidrock.to","vidnest.fun","embed.vidrift.net","vidfast.vc","vaplayer.ru").contains(request.getUrl().getHost())&&!("zxcstream.cc".equals(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).startsWith("/player/"):(java.util.Arrays.asList("vidrock.to","vidnest.fun","vidfast.vc").contains(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).matches("/(movie|tv)/.*"):String.valueOf(request.getUrl().getPath()).startsWith("/embed/")))){confirmExit();return true;}
                 return (blockAds&&AdBlockRules.blocks(request.getUrl().getHost())) || !"https".equals(request.getUrl().getScheme()) || (request.isForMainFrame()&&!PlaybackSources.trusted(request.getUrl().toString()));
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest request){
@@ -277,7 +277,7 @@ public class BrowserPlayerActivity extends Activity {
         });
     }
 
-    private String currentProvider(){try{String host=Uri.parse(currentAddress).getHost();return "zxcstream.cc".equals(host)?"zxcstream":"embedwave.cc".equals(host)?"embedwave":"vidsrc.sh".equals(host)?"vidsrc-sh":"vidstuck";}catch(Exception e){return "vidstuck";}}
+    private String currentProvider(){try{String host=Uri.parse(currentAddress).getHost();return "zxcstream.cc".equals(host)?"zxcstream":"embedwave.cc".equals(host)?"embedwave":"vidsrc.sh".equals(host)?"vidsrc-sh":"vidrock.to".equals(host)?"vidrock":"vidnest.fun".equals(host)?"vidnest":"embed.vidrift.net".equals(host)?"vidrift":"vidfast.vc".equals(host)?"vidfast":"vaplayer.ru".equals(host)?"vidapi":"vidstuck";}catch(Exception e){return "vidstuck";}}
     private String navigationModeLabel(){return navigationMode.equals("mouse")?"Mouse":navigationMode.equals("focus")?"D-pad navigation":"Smart / Hybrid";}
     private void applyNavigationMode(String mode){navigationMode=mode;prefs.edit().putString("playerNavigation",mode).putBoolean("playerMouse",mode.equals("mouse")).apply();if(mouse!=null)mouse.setEnabled(mode.equals("mouse"));if(mode.equals("smart"))applySmartMode();}
     private void applySmartMode(){if(liteTvPlayer||!tvPlayer||mouse==null||!navigationMode.equals("smart")||web==null)return;web.evaluateJavascript("(typeof window.__zeroTvCanFocus==='function'&&window.__zeroTvCanFocus())",value->{boolean focus="true".equals(String.valueOf(value));mouse.setEnabled(!focus);});}
@@ -290,7 +290,7 @@ public class BrowserPlayerActivity extends Activity {
         String id=parent.substring(parent.lastIndexOf('-')+1),type=parent.startsWith("tmdb-series-")?"tv":"movie";
         int season=1,episode=1;
         if(type.equals("tv")){int[] pos=currentEpisodePosition();season=pos[0];episode=pos[1];}
-        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidsrc-sh":"vidstuck";
+        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidrock":current.equals("vidrock")?"vidnest":current.equals("vidnest")?"vidrift":current.equals("vidrift")?"vidfast":current.equals("vidfast")?"vidapi":current.equals("vidapi")?"vidsrc-sh":"vidstuck";
         try{return PlaybackSources.url(id,type,season,episode,next);}catch(Exception e){return "";}
     }
     private boolean loadNextSource(){String next=alternateUrl();if(next.isEmpty())return false;currentAddress=next;loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Trying next source…");web.loadUrl(next);scheduleLoadTimeout();return true;}

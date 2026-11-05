@@ -1,16 +1,17 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.playbackSources=factory();})(typeof globalThis==='object'?globalThis:this,()=>{
-  const sources=[{id:'vidstuck',name:'VidStuck'},{id:'zxcstream',name:'ZXCStream (Beta)'},{id:'embedwave',name:'Embedwave (BETA)'},{id:'vidsrc-sh',name:'VidSrc.sh'},{id:'rawcast',name:'RawCast · Limited API quota'}];
-  const hosts=['vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh'];
+  const sources=[{id:'vidstuck',name:'VidStuck'},{id:'zxcstream',name:'ZXCStream (Beta)'},{id:'embedwave',name:'Embedwave (BETA)'},{id:'vidsrc-sh',name:'VidSrc [Offline]'},{id:'vidrock',name:'VidRock'},{id:'vidnest',name:'VidNest'},{id:'vidrift',name:'VidRift'},{id:'vidfast',name:'VidFast'},{id:'vidapi',name:'VidAPI'},{id:'rawcast',name:'RawCast · Limited API quota'}];
+  const hosts=['vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh','vidrock.to','vidnest.fun','embed.vidrift.net','vidfast.vc','vaplayer.ru'];
   function source(id){return sources.find(row=>row.id===id)||sources[0];}
   function trusted(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.port&&hosts.includes(u.hostname);}catch{return false;}}
   function url(item,position={},provider='vidstuck'){
     if(!['movie','tv'].includes(item?.type)||!Number.isSafeInteger(item.id)||item.id<1)throw Error('Invalid title');
     const season=Number.isInteger(position.season)&&position.season>=0?position.season:1,episode=Number.isInteger(position.episode)&&position.episode>0?position.episode:1;
     const suffix=`${item.type}/${item.id}`+(item.type==='tv'?`/${season}/${episode}`:'');const id=source(provider).id;
-    if(id==='rawcast')throw Error('RawCast requires secure API resolution.');const host=id==='vidsrc-sh'?'vidsrc.sh':id==='embedwave'?'embedwave.cc':id==='zxcstream'?'zxcstream.cc':'vidstuck.cc';const u=id==='zxcstream'?new URL(`https://${host}/player/${suffix}`):new URL(`https://${host}/embed/${suffix}`);if(id==='zxcstream'){u.searchParams.set('domainAd','zeroplay');u.searchParams.set('color','65E6CC');u.searchParams.set('autoplay','true');}
+    if(id==='rawcast')throw Error('RawCast requires secure API resolution.');const host=id==='vidsrc-sh'?'vidsrc.sh':id==='vidrock'?'vidrock.to':id==='vidnest'?'vidnest.fun':id==='vidrift'?'embed.vidrift.net':id==='vidfast'?'vidfast.vc':id==='vidapi'?'vaplayer.ru':id==='embedwave'?'embedwave.cc':id==='zxcstream'?'zxcstream.cc':'vidstuck.cc';const u=id==='vidrock'||id==='vidnest'||id==='vidfast'?new URL(`https://${host}/${suffix}`):id==='zxcstream'?new URL(`https://${host}/player/${suffix}`):new URL(`https://${host}/embed/${suffix}`);if(id==='zxcstream'){u.searchParams.set('domainAd','zeroplay');u.searchParams.set('color','65E6CC');u.searchParams.set('autoplay','true');}
     if(id==='vidstuck'){for(const [k,v]of Object.entries({branding:'ZeroPlay',color:'65E6CC',subtitle:'english',overlay:'true'}))u.searchParams.set(k,v);if(item.type==='tv')for(const k of ['nextEpisode','episodeSelector','autoplayNextEpisode'])u.searchParams.set(k,'true');}
+    if(id==='vidapi')u.searchParams.set('ds_lang','en');
     if(id==='vidsrc-sh'){u.searchParams.set('ds_lang','en');if(item.type==='tv')u.searchParams.set('autonext','1');}
-    if(Number.isFinite(position.timestamp)&&position.timestamp>30&&Number(position.percent)<95){if(id==='vidstuck')u.searchParams.set('progress',String(Math.floor(position.timestamp)));if(id==='vidsrc-sh')u.searchParams.set('startAt',String(Math.floor(position.timestamp)));}
+    if(Number.isFinite(position.timestamp)&&position.timestamp>30&&Number(position.percent)<95){if(id==='vidstuck')u.searchParams.set('progress',String(Math.floor(position.timestamp)));if(id==='vidsrc-sh')u.searchParams.set('startAt',String(Math.floor(position.timestamp)));if(id==='vidapi')u.searchParams.set('resumeAt',String(Math.floor(position.timestamp)));}
     return u.href;
   }
   function normalize(data){if(data?.type!=='PLAYER_EVENT')return data;const p=data.data,info=p?.player_info;if(!info?.tmdb)return null;return {id:info.tmdb,type:info.mediaType,timestamp:p.player_progress,duration:p.player_duration,season:info.season,episode:info.episode};}

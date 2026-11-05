@@ -1,16 +1,20 @@
 package com.zerostreams.app;
 import java.net.URI;
 final class PlaybackSources {
-    static final String[] IDS={"vidstuck","zxcstream","embedwave","vidsrc-sh","rawcast"};
-    static final String[] NAMES={"VidStuck","ZXCStream (Beta)","Embedwave (BETA)","VidSrc.sh","RawCast · Limited API quota"};
-    static final String[] ORIGINS={"https://vidstuck.cc","https://zxcstream.cc","https://embedwave.cc","https://vidsrc.sh"};
+    static final String[] IDS={"vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","rawcast"};
+    static final String[] NAMES={"VidStuck","ZXCStream (Beta)","Embedwave (BETA)","VidSrc [Offline]","VidRock","VidNest","VidRift","VidFast","VidAPI","RawCast · Limited API quota"};
+    static final String[] ORIGINS={"https://vidstuck.cc","https://zxcstream.cc","https://embedwave.cc","https://vidsrc.sh","https://vidrock.to","https://vidnest.fun","https://embed.vidrift.net","https://vidfast.vc","https://vaplayer.ru"};
     static int index(String id){for(int i=0;i<IDS.length;i++)if(IDS[i].equals(id))return i;return 0;}
     static boolean trusted(String address){try{URI u=new URI(address);if(!"https".equals(u.getScheme())||u.getPort()!=-1&&u.getPort()!=443)return false;for(String origin:ORIGINS)if(new URI(origin).getHost().equals(u.getHost()))return true;}catch(Exception ignored){}return false;}
     static String url(String id,String type,int season,int episode,String provider){
         if(!id.matches("[1-9][0-9]*")||!type.equals("movie")&&!type.equals("tv")||season<0||episode<1)throw new IllegalArgumentException("Invalid title or episode");
         provider=IDS[index(provider)];if(provider.equals("rawcast"))throw new IllegalArgumentException("RawCast requires secure API resolution");
-        String host=provider.equals("vidsrc-sh")?"vidsrc.sh":provider.equals("embedwave")?"embedwave.cc":provider.equals("zxcstream")?"zxcstream.cc":"vidstuck.cc";
-        String value=provider.equals("zxcstream")
+        String host=provider.equals("vidsrc-sh")?"vidsrc.sh":provider.equals("vidrock")?"vidrock.to":provider.equals("vidnest")?"vidnest.fun":provider.equals("vidrift")?"embed.vidrift.net":provider.equals("vidfast")?"vidfast.vc":provider.equals("vidapi")?"vaplayer.ru":provider.equals("embedwave")?"embedwave.cc":provider.equals("zxcstream")?"zxcstream.cc":"vidstuck.cc";
+        String value=provider.equals("vidrift")||provider.equals("vidapi")
+            ?"https://"+host+"/embed/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")
+            :provider.equals("vidrock")||provider.equals("vidnest")||provider.equals("vidfast")
+            ?"https://"+host+"/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")
+            :provider.equals("zxcstream")
             ?"https://"+host+"/player/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")+"?domainAd=zeroplay&color=65E6CC&autoplay=true"
             :"https://"+host+"/embed/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"");
         // ZeroPlay owns automatic next-episode switching on Android. Keep the provider's
