@@ -7,7 +7,7 @@ function readPointer(){try{const value=JSON.parse(fs.readFileSync(pointerPath(),
 // 2.2.5-5; map *numeric* prerelease build markers back to the displayed version.
 function publicVersion(value){
   const name=String(value||'').trim().replace(/^v/i,'');
-  const match=name.match(/^(\\d+)\\.(\\d+)\\.(\\d+)-(\\d+)$/);
+  const match=name.match(/^(\d+)\.(\d+)\.(\d+)-(\d+)$/);
   return match?`${match[1]}.${match[2]}.${match[3]}.${match[4]}`:name;
 }
 function normalizedVersion(value){const parts=publicVersion(value).split('.').map(x=>Number(x)||0);while(parts.length>1&&parts[parts.length-1]===0)parts.pop();return parts.join('.');}
