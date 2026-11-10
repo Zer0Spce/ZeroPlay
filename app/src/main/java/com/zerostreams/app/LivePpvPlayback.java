@@ -64,16 +64,21 @@ final class LivePpvPlayback {
         }
     }
 
+    static boolean isMalformedManifest(int errorCode) {
+        return errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED;
+    }
+
     static boolean isMalformedManifest(PlaybackException error) {
-        return error != null
-                && error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED;
+        return error != null && isMalformedManifest(error.errorCode);
     }
 
     /** A successful HTTP request may still return HTML or another non-HLS response. */
+    static boolean shouldTryBrowserHeaders(int errorCode) {
+        return isMalformedManifest(errorCode) || (errorCode >= 2000 && errorCode < 3000);
+    }
+
     static boolean shouldTryBrowserHeaders(PlaybackException error) {
-        if (error == null) return false;
-        String name = error.getErrorCodeName();
-        return isMalformedManifest(error) || (name != null && name.contains("IO_"));
+        return error != null && shouldTryBrowserHeaders(error.errorCode);
     }
 
     static String failure(PlaybackException error) {
