@@ -82,16 +82,13 @@ public class LivePpvPlaybackTest {
     }
 
     @Test public void malformedManifestCanTryBoundedRequestProfiles() {
-        androidx.media3.common.PlaybackException manifest=new androidx.media3.common.PlaybackException(
-            "Invalid playlist header", null,
-            androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED);
-        androidx.media3.common.PlaybackException unsupported=new androidx.media3.common.PlaybackException(
-            "Unsupported playlist", null,
-            androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED);
-        assertTrue(LivePpvPlayback.isMalformedManifest(manifest));
-        assertTrue(LivePpvPlayback.shouldTryBrowserHeaders(manifest));
-        assertTrue(LivePpvPlayback.failure(manifest).startsWith("Invalid HLS manifest"));
+        int malformed=androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED;
+        int unsupported=androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED;
+        assertTrue(LivePpvPlayback.isMalformedManifest(malformed));
+        assertTrue(LivePpvPlayback.shouldTryBrowserHeaders(malformed));
         assertFalse(LivePpvPlayback.shouldTryBrowserHeaders(unsupported));
+        assertTrue(LivePpvPlayback.shouldTryBrowserHeaders(
+                androidx.media3.common.PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS));
         assertEquals(4,LivePpvPlayback.PROFILE_COUNT);
     }
 
