@@ -12,12 +12,17 @@ final class M3uPlaylist {
     static final long LIVE_TTL = 60 * 60 * 1000L;
     private static final Pattern ATTRIBUTE = Pattern.compile("([\\w-]+)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s,]+))");
     static final class Channel {
-        final String id, name, group, logo, url, mime, drmType, drmKey;
+        final String id, name, group, logo, url, mime, drmType, drmKey, streamStatus;
         final Map<String,String> headers;
         Channel(String id, String name, String group, String logo, String url, String mime,
                 String drmType, String drmKey, Map<String,String> headers) {
+            this(id,name,group,logo,url,mime,drmType,drmKey,headers,"unverified");
+        }
+        Channel(String id, String name, String group, String logo, String url, String mime,
+                String drmType, String drmKey, Map<String,String> headers, String status) {
             this.id=id; this.name=name; this.group=group; this.logo=logo; this.url=url;
             this.mime=mime; this.drmType=drmType; this.drmKey=drmKey;
+            this.streamStatus="verified".equals(status)||"reachable".equals(status)?status:"unverified";
             this.headers=Collections.unmodifiableMap(new LinkedHashMap<>(headers));
         }
     }
@@ -27,7 +32,7 @@ final class M3uPlaylist {
         if(!input.trim().startsWith("#EXTM3U") || input.contains("#EXT-X-TARGETDURATION"))
             throw new IOException("Expected an M3U channel playlist");
         LinkedHashMap<String,Channel> result=new LinkedHashMap<>();
-        String name="",id="",group="",logo="",mime="",drmType="",drmKey="";
+        String name="",id="",group="",logo="",mime="",drmType="",drmKey="",streamStatus="unverified";
         boolean entry=false;
         Map<String,String> headers=new LinkedHashMap<>();
         try(BufferedReader reader=new BufferedReader(new StringReader(input))) {
@@ -35,13 +40,14 @@ final class M3uPlaylist {
             while((raw=reader.readLine())!=null) {
                 String line=raw.trim();
                 if(line.startsWith("#EXTINF:")) {
-                    name="";id="";group="";logo="";mime="";drmType="";drmKey="";headers.clear();entry=false;
+                    name="";id="";group="";logo="";mime="";drmType="";drmKey="";streamStatus="unverified";headers.clear();entry=false;
                     int comma=infoComma(line); if(comma<0)continue;
                     Map<String,String> attrs=new HashMap<>();Matcher m=ATTRIBUTE.matcher(line.substring(0,comma));
                     while(m.find())attrs.put(m.group(1).toLowerCase(Locale.ROOT),m.group(2)!=null?m.group(2):m.group(3)!=null?m.group(3):m.group(4));
                     name=line.substring(comma+1).trim();if(name.isEmpty())name=attribute(attrs,"tvg-name","");
                     id=attribute(attrs,"tvg-id","");group=attribute(attrs,"group-title","Channels").trim();
                     logo=attribute(attrs,"tvg-logo","");if(!httpUrl(logo))logo="";
+                    streamStatus=attribute(attrs,"x-stream-status","unverified").toLowerCase(Locale.ROOT);
                     entry=!name.isEmpty();
                 } else if(entry && line.startsWith("#EXTGRP:")) {
                     group=line.substring(8).trim();
@@ -64,7 +70,7 @@ final class M3uPlaylist {
                         if(path.endsWith(".mpd"))mime="application/dash+xml";else if(path.endsWith(".m3u8"))mime="application/x-mpegURL";
                     }
                     String channelId=id.isEmpty()?Integer.toHexString((name+"|"+url).hashCode()):id;
-                    if(!result.containsKey(name+"|"+url))result.put(name+"|"+url,new Channel(channelId,name,group.isEmpty()?"Channels":group,logo,url,mime,drmType,drmKey,headers));
+                    if(!result.containsKey(name+"|"+url))result.put(name+"|"+url,new Channel(channelId,name,group.isEmpty()?"Channels":group,logo,url,mime,drmType,drmKey,headers,streamStatus));
                     entry=false;
                     if(result.size()>=3000)break;
                 }
