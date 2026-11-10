@@ -22,6 +22,7 @@ static class Program
         readonly ProgressBar progress = new() { Minimum = 0, Maximum = 100, Value = 2 };
         readonly TextBox log = new() { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BackColor = Color.FromArgb(20,20,20), ForeColor = Color.Gainsboro, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Consolas", 9) };
         readonly Button close = new() { Text = "Close", Enabled = false, AutoSize = true };
+        readonly Button copyLog = new() { Text = "Copy logs", AutoSize = true };
         string root = "";
 
         public UpdateForm(string[] args)
@@ -38,7 +39,8 @@ static class Program
             panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             title.Margin = new Padding(0,0,0,8); status.Margin = new Padding(0,0,0,12); progress.Dock = DockStyle.Fill;
             log.Dock = DockStyle.Fill; log.Margin = new Padding(0,12,0,12); close.Anchor = AnchorStyles.Right; close.Click += (_,__) => Close();
-            panel.Controls.Add(title); panel.Controls.Add(status); panel.Controls.Add(progress); panel.Controls.Add(log); panel.Controls.Add(close);
+            copyLog.Anchor = AnchorStyles.Left; copyLog.Click += (_,__) => { if (!string.IsNullOrEmpty(log.Text)) Clipboard.SetText(log.Text); };
+            panel.Controls.Add(title); panel.Controls.Add(status); panel.Controls.Add(progress); panel.Controls.Add(log); panel.Controls.Add(copyLog); panel.Controls.Add(close);
             Controls.Add(panel);
             Shown += async (_,__) => await RunUpdate();
             FormClosing += (_,e) => { if (!close.Enabled) e.Cancel = true; };
@@ -47,7 +49,9 @@ static class Program
         void Step(string text, int percent)
         {
             status.Text = text; progress.Value = Math.Max(0, Math.Min(100, percent));
-            log.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}");
+            string line = $"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}";
+            log.AppendText(line);
+            if (!string.IsNullOrWhiteSpace(root)) { try { File.AppendAllText(Path.Combine(root, "ZeroPlayUpdater.log"), line); } catch { } }
             Application.DoEvents();
         }
 
@@ -100,12 +104,12 @@ static class Program
                     Step("Relaunching ZeroPlay…", 96);
                     await Task.Delay(500);
                     Launch(Path.Combine(root, "ZeroPlay.exe"), root);
+                    Step("Waiting for ZeroPlay to confirm the new version…", 98);
+                    await Task.Run(() => WaitForConfirmation(root, version));
 
-                    Step("Update completed successfully.", 100);
-                    title.Text = "ZeroPlay updated";
-                    close.Text = "Done"; close.Enabled = true;
-                    await Task.Delay(2200);
-                    Close();
+                    Step("Update completed successfully. Logs remain visible until you close this window.", 100);
+                    title.Text = "ZeroPlay updated successfully";
+                    close.Text = "Close"; close.Enabled = true;
                 }
                 catch
                 {
@@ -125,8 +129,10 @@ static class Program
                 title.Text = "Update failed";
                 status.Text = error.Message;
                 progress.Value = 0;
-                log.AppendText(Environment.NewLine + "FAILED: " + error + Environment.NewLine);
-                close.Enabled = true;
+                string failure = Environment.NewLine + "FAILED: " + error + Environment.NewLine;
+                log.AppendText(failure);
+                try { File.AppendAllText(Path.Combine(root, "ZeroPlayUpdater.log"), failure); } catch { }
+                close.Text = "Close"; close.Enabled = true;
             }
         }
     }
@@ -163,6 +169,33 @@ static class Program
             if (!process.WaitForExit(30000)) throw new TimeoutException("ZeroPlay did not close in time for the update.");
         }
         catch (ArgumentException) { }
+    }
+
+    // Success is shown only after the launched version confirms the pending activation.
+    static void WaitForConfirmation(string root, string version)
+    {
+        string pointer = Path.Combine(root, "current.json");
+        var deadline = DateTime.UtcNow.AddSeconds(40);
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                JsonObject? state = ReadPointer(pointer);
+                string? selected = state?["version"]?.GetValue<string>();
+                if (state != null && string.Equals(selected, version, StringComparison.OrdinalIgnoreCase)
+                    && state["pending"]?.GetValue<bool>() == false
+                    && !string.IsNullOrWhiteSpace(state["confirmedAt"]?.GetValue<string>()))
+                    return;
+                if (state != null && !string.IsNullOrWhiteSpace(selected)
+                    && !string.Equals(selected, version, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("ZeroPlay rolled back to the previous version. See update logs.");
+            }
+            catch (InvalidOperationException) { throw; }
+            catch (IOException) { }
+            catch (JsonException) { }
+            Thread.Sleep(500);
+        }
+        throw new TimeoutException("ZeroPlay did not confirm startup of the updated version. Check the app and logs.");
     }
 
     static string LocatePortableRoot(string stage)
