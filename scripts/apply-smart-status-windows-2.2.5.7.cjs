@@ -5,6 +5,8 @@ function patch(rel,changes){
  const file=path.join(root,rel);let code=fs.readFileSync(file,'utf8');
  for(const [from,to] of changes){
    if(code.includes(to))continue;
+   // Also accept the equivalent PPV favorites condition already committed directly to app.js.
+   if(from.includes('data-favorite-channel')&&code.includes("+(live?'':'<button data-favorite-channel"))continue;
    if(!code.includes(from))throw Error('Missing Smart Status marker in '+rel+': '+from.slice(0,80));
    code=code.replaceAll(from,to);
  }
