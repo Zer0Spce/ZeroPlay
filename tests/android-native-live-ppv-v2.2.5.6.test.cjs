@@ -27,7 +27,10 @@ test('Native player accepts separate live and IPTV playlists and preserves strea
   assert.match(playlist,/http-user-agent/);
 });
 test('Full mobile, TV and Lite use the same MainActivity player route', () => {
-  assert.match(read('app/src/main/java/com/zerostreams/app/CategoryMainActivity.java'),/extends MainActivity/);
+  assert.match(read('app/src/main/java/com/zerostreams/app/CategoryMainActivity.java'),/extends ReleaseMainActivity/);
+    assert.match(read('app/src/main/java/com/zerostreams/app/ReleaseMainActivity.java'),/extends FinalMainActivity/);
+    assert.match(read('app/src/main/java/com/zerostreams/app/FinalMainActivity.java'),/extends FixedMainActivity/);
+    assert.match(read('app/src/main/java/com/zerostreams/app/FixedMainActivity.java'),/extends MainActivity/);
   assert.match(read('app/src/main/java/com/zerostreams/app/PresentationMainActivity.java'),/extends CategoryMainActivity/);
   assert.match(read('app/src/main/java/com/zerostreams/app/LiteMainActivity.java'),/extends PresentationMainActivity/);
   for (const flavor of ['mobile','tv','liteMobile','liteTv']) {
