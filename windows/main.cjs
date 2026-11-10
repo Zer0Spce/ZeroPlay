@@ -196,7 +196,7 @@ app.whenReady().then(async()=>{
   ipcMain.on('player-tools-activity',event=>{if(event.sender===toolbar?.webContents)playerHost?.activity();});
   ipcMain.on('sports-activity',event=>{if(sportsSelection&&event.sender===player?.webContents)playerHost?.activity();});
   ipcMain.handle('sports-play',(event,id,index)=>{trusted(event);return openSports(id,index);});
-  ipcMain.handle('playlist',async(event,section,force)=>{trusted(event);const snapshot=await playlistStore.get(section,force===true);return {...snapshot,channels:snapshot.channels.map((c,index)=>({index,name:c.name,group:c.group,logo:c.logo,favorite:(state.liveFavorites||[]).includes(channelKey(section,c))}))};});
+  ipcMain.handle('playlist',async(event,section,force)=>{trusted(event);const snapshot=await playlistStore.get(section,force===true);return {...snapshot,channels:snapshot.channels.map((c,index)=>({index,name:c.name,group:c.group,logo:c.logo,streamStatus:c.streamStatus||'unverified',favorite:(state.liveFavorites||[]).includes(channelKey(section,c))}))};});
   ipcMain.handle('live-play',async(event,section,index)=>{trusted(event);await openLive(section,index);return true;});
   ipcMain.handle('channel-favorite',(event,section,index)=>{trusted(event);const id=channelKey(section,playlistStore.select(section,index));const saved=new Set(state.liveFavorites||[]);if(!saved.add(id)|| (state.liveFavorites||[]).includes(id))saved.delete(id);state.liveFavorites=[...saved];persist();return saved.has(id);});
   ipcMain.on('live-progress',(event,data)=>{try{liveTrusted(event);}catch{return;}if(!liveSelection?.channel.vod||!current||Date.now()-lastProgress<2500)return;const position=core.progress({...data,id:current.id,type:current.type,...liveSelection.channel.rawcastEpisode},current);if(position){lastProgress=Date.now();core.record(state,current,position);persist();}});
@@ -257,7 +257,7 @@ app.whenReady().then(async()=>{
     try{
       const result=await main.webContents.executeJavaScript(
         'window.zero.state().then(data=>({version:data.version,rail:!!document.querySelector(\'[data-nav="Home"]\'),status:!!document.querySelector(\'#status\')}))');
-      if(!/^2\.2\.5\.5$/.test(result.version)||!result.rail||!result.status)
+      if(!/^2\.2\.5\.7$/.test(result.version)||!result.rail||!result.status)
         throw Error('Desktop interface did not initialize: '+JSON.stringify(result));
       console.log('ZERO_WINDOWS_UI_SMOKE_PASS '+JSON.stringify(result));
       app.exit(0);
