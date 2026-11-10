@@ -69,6 +69,32 @@ public class LivePpvPlaybackTest {
         assertEquals(-1,LivePpvPlayback.nextSameEvent(channels,0,Collections.emptySet()));
     }
 
+    @Test public void unverifiedWweFeedsAreRecognizedAsSameEvent() {
+        List<M3uPlaylist.Channel> channels=Arrays.asList(
+            feed("WWE RAW — Feed 1 — Unverified", "WWE", "https://cdn.example/wwe.m3u8"),
+            feed("WWE RAW — Feed 2 — Unverified", "WWE", "https://cdn.example/wwealt.m3u8"),
+            feed("WWE SmackDown — Feed 1 — Unverified", "WWE", "https://cdn.example/smackdown.m3u8"));
+        Set<String> attempted=new HashSet<>(Collections.singleton(channels.get(0).url));
+        assertEquals("wwe raw", LivePpvPlayback.eventKey(channels.get(0).name));
+        assertEquals(1,LivePpvPlayback.nextSameEvent(channels,0,attempted));
+        attempted.add(channels.get(1).url);
+        assertEquals(-1,LivePpvPlayback.nextSameEvent(channels,0,attempted));
+    }
+
+    @Test public void malformedManifestCanTryBoundedRequestProfiles() {
+        androidx.media3.common.PlaybackException manifest=new androidx.media3.common.PlaybackException(
+            "Invalid playlist header", null,
+            androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED);
+        androidx.media3.common.PlaybackException unsupported=new androidx.media3.common.PlaybackException(
+            "Unsupported playlist", null,
+            androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED);
+        assertTrue(LivePpvPlayback.isMalformedManifest(manifest));
+        assertTrue(LivePpvPlayback.shouldTryBrowserHeaders(manifest));
+        assertTrue(LivePpvPlayback.failure(manifest).startsWith("Invalid HLS manifest"));
+        assertFalse(LivePpvPlayback.shouldTryBrowserHeaders(unsupported));
+        assertEquals(4,LivePpvPlayback.PROFILE_COUNT);
+    }
+
     @Test public void profileCountIsBounded() {
         assertEquals(4,LivePpvPlayback.PROFILE_COUNT);
     }
