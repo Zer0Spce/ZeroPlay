@@ -18,6 +18,20 @@ public class M3uPlaylistTest {
         String list="#EXTM3U\n#EXTINF:-1,Bad\nfile:///etc/passwd\n#EXTINF:-1,Valid\nhttps://cdn/live.m3u8|User-Agent=hello%0D%0AAuthorization%3Asecret&Referer=https%3A%2F%2Fhost\n#EXTINF:-1 tvg-id=\"same\",Other\nhttps://cdn/other.m3u8\n#EXTINF:-1 tvg-id=\"same\",Other HD\nhttps://cdn/other-hd.m3u8\n#EXTINF:-1,Valid\nhttps://cdn/live.m3u8\n";
         List<M3uPlaylist.Channel> channels=M3uPlaylist.parse(list);assertEquals(3,channels.size());assertFalse(channels.get(0).headers.containsKey("User-Agent"));assertEquals("https://host",channels.get(0).headers.get("Referer"));
     }
+    @Test public void streamStatusesAreSeparatedFromChannelTitles() throws Exception {
+        String list="#EXTM3U\n"
+            +"#EXTINF:-1 x-stream-status=\"verified\" group-title=\"WWE\",WWE RAW — Feed 1\nhttps://cdn/live1.m3u8\n"
+            +"#EXTINF:-1 x-stream-status=\"reachable\" group-title=\"WWE\",WWE RAW — Feed 2\nhttps://cdn/live2.m3u8\n"
+            +"#EXTINF:-1 x-stream-status=\"injected\" group-title=\"WWE\",Other\nhttps://cdn/live3.m3u8\n"
+            +"#EXTINF:-1,Legacy\nhttps://cdn/live4.m3u8\n";
+        List<M3uPlaylist.Channel> channels=M3uPlaylist.parse(list);
+        assertEquals(4,channels.size());
+        assertEquals("verified",channels.get(0).streamStatus);
+        assertEquals("reachable",channels.get(1).streamStatus);
+        assertEquals("unverified",channels.get(2).streamStatus);
+        assertEquals("unverified",channels.get(3).streamStatus);
+        assertEquals("WWE RAW — Feed 1",channels.get(0).name);
+    }
     @Test(expected=IOException.class) public void rejectsHlsSegmentManifest() throws Exception {M3uPlaylist.parse("#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXTINF:6,\nhttps://cdn/part.ts\n");}
     @Test(expected=IOException.class) public void rejectsHtmlErrorPageInsteadOfReplacingCachedChannels() throws Exception {M3uPlaylist.parse("<html>Not found</html>");}
 }
