@@ -136,6 +136,7 @@
   }
 
   async function ensureTop10(){
+    if(document.documentElement.dataset.layout==='figma-streaming'){document.querySelector('.zero-top10')?.remove();return;}
     if(document.documentElement.dataset.section&&document.documentElement.dataset.section!=='Home')return;
     const hero=document.querySelector('#hero');if(!hero)return;
     const state=await snapshot(),region=state?.settings?.region||'PH',panels=state?.settings?.homePanels;
