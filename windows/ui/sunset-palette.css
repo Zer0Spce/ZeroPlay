@@ -1,0 +1,59 @@
+/* ZeroPlay v2.2.5.8 TEST — Uxintace six-swatch Sunset branding.
+   Scoped to the existing dark theme; other user-selected themes stay intact.
+   Source swatches: #181A2F #242E49 #37415C #FDA481 #B4182D #54162B. */
+:root[data-theme="dark"]{
+  --bg:#181A2F;--surface:#242E49;--sidebar:#181A2F;--card:#37415C;
+  --button:#242E49;--ink:#FFF7F1;--muted:#D4C9D3;
+  --mint:#FDA481;--accent:#FDA481;--focus:#FDA481;
+  --selected:#54162B;--dialog:#242E49;--highlight:#FDA481;
+  --border:#37415C;
+}
+:root[data-theme="dark"] body{background:#181A2F}
+:root[data-theme="dark"] aside{background:#181A2F;border-color:#37415C}
+:root[data-theme="dark"] aside button.active,
+:root[data-theme="dark"] aside button:hover{background:#54162B;color:#FDA481}
+:root[data-theme="dark"] .brand span{color:#FDA481}
+:root[data-theme="dark"] button.primary,
+:root[data-theme="dark"] .actions button.primary{
+  background:#FDA481!important;color:#181A2F!important;border-color:#FDA481!important;
+}
+:root[data-theme="dark"] button.primary:hover{
+  background:#FFD1B7!important;border-color:#FFD1B7!important;
+}
+:root[data-theme="dark"] button:focus-visible,
+:root[data-theme="dark"] .card:focus-visible,
+:root[data-theme="dark"] input:focus-visible,
+:root[data-theme="dark"] select:focus-visible {
+  outline-color:#FDA481!important;
+}
+:root[data-theme="dark"] .card:focus-within{border-color:#FDA481}
+:root[data-theme="dark"] .hero{background:#242E49}
+:root[data-theme="dark"] .hero-shade{
+  background:linear-gradient(90deg,#181A2Ff8,#181A2F88 60%,#181A2F32),
+             linear-gradient(0deg,#181A2F,transparent 65%)!important;
+}
+:root[data-theme="dark"] .zero-top10{--mint:#FDA481}
+:root[data-theme="dark"] .ranked button:hover,
+:root[data-theme="dark"] .ranked button:focus-visible{border-color:#FDA481!important}
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .rating,
+:root[data-theme="dark"] .section-head small{color:#FDA481}
+:root[data-theme="dark"] .surprise-button{
+  background:#B4182D!important;color:#FFF7F1!important;border-color:#B4182D!important;
+}
+:root[data-theme="dark"] .surprise-button:hover{background:#9E162B!important}
+:root[data-theme="dark"] .download-card progress{accent-color:#FDA481}
+:root[data-theme="dark"] .panel-toggle input,
+:root[data-theme="dark"] input[type="checkbox"]{accent-color:#FDA481}
+:root[data-theme="dark"] .refresh-recommendations{
+  border:1px solid #FDA481!important;color:#FDA481!important;
+  border-radius:999px;background:#242E49!important;
+  font-size:12px;padding:7px 13px;font-weight:750;
+}
+:root[data-theme="dark"] .refresh-recommendations:hover,
+:root[data-theme="dark"] .refresh-recommendations:focus-visible{
+  color:#181A2F!important;background:#FDA481!important;
+}
+:root[data-theme="dark"] .zero22-badge{background:#B4182D;color:#FFF7F1}
+:root[data-theme="dark"] dialog{background:#242E49;color:#FFF7F1}
+:root[data-theme="dark"] .zero-theme-red-accent{background:#B4182D}
