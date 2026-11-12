@@ -1,59 +1,109 @@
-/* ZeroPlay v2.2.5.8 TEST — Uxintace six-swatch Sunset branding.
-   Scoped to the existing dark theme; other user-selected themes stay intact.
-   Source swatches: #181A2F #242E49 #37415C #FDA481 #B4182D #54162B. */
+/* ZeroPlay v2.2.5.8 candidate — Zero Crimson
+   User palette: #DF2531 solid red, 45% and 65% transparency, #FFFFFF;
+   replace pure #000000 with slightly lighter neutral charcoal #242426.
+   Works with existing layout and all native controls. Other themes unchanged.
+ */
 :root[data-theme="dark"]{
-  --bg:#181A2F;--surface:#242E49;--sidebar:#181A2F;--card:#37415C;
-  --button:#242E49;--ink:#FFF7F1;--muted:#D4C9D3;
-  --mint:#FDA481;--accent:#FDA481;--focus:#FDA481;
-  --selected:#54162B;--dialog:#242E49;--highlight:#FDA481;
-  --border:#37415C;
+  color-scheme:dark;
+  --bg:#242426;--surface:#2D2D32;--sidebar:#202023;--card:#37373D;
+  --button:#38383E;--ink:#FFFFFF;--muted:#C7C7CF;
+  --mint:#DF2531;--accent:#DF2531;--focus:#DF2531;
+  --selected:#5C242B;--dialog:#2D2D32;--highlight:#FF747C;
+  --border:#494950;
 }
-:root[data-theme="dark"] body{background:#181A2F}
-:root[data-theme="dark"] aside{background:#181A2F;border-color:#37415C}
-:root[data-theme="dark"] aside button.active,
-:root[data-theme="dark"] aside button:hover{background:#54162B;color:#FDA481}
-:root[data-theme="dark"] .brand span{color:#FDA481}
-:root[data-theme="dark"] button.primary,
-:root[data-theme="dark"] .actions button.primary{
-  background:#FDA481!important;color:#181A2F!important;border-color:#FDA481!important;
+:root[data-theme="dark"] body{
+  background:#242426;color:#FFFFFF;font-family:'Open Sans','Segoe UI',Arial,sans-serif;
 }
-:root[data-theme="dark"] button.primary:hover{
-  background:#FFD1B7!important;border-color:#FFD1B7!important;
+:root[data-theme="dark"] aside{
+  background:#202023!important;border-color:#494950!important;
+}
+:root[data-theme="dark"] aside button.active{
+  color:#FFFFFF!important;background:rgba(223,37,49,.65)!important;
+}
+:root[data-theme="dark"] aside button:hover:not(.active){
+  background:rgba(223,37,49,.45)!important;color:#FFFFFF!important;
+}
+:root[data-theme="dark"] button,
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select{
+  border-color:#494950;color:#FFFFFF;
 }
 :root[data-theme="dark"] button:focus-visible,
-:root[data-theme="dark"] .card:focus-visible,
 :root[data-theme="dark"] input:focus-visible,
-:root[data-theme="dark"] select:focus-visible {
-  outline-color:#FDA481!important;
+:root[data-theme="dark"] select:focus-visible,
+:root[data-theme="dark"] .card:focus-visible{
+  outline:2px solid #DF2531!important;outline-offset:2px;
 }
-:root[data-theme="dark"] .card:focus-within{border-color:#FDA481}
-:root[data-theme="dark"] .hero{background:#242E49}
+:root[data-theme="dark"] button.primary,
+:root[data-theme="dark"] .actions button.primary{
+  background:#DF2531!important;color:#FFFFFF!important;
+  border-color:#DF2531!important;
+}
+:root[data-theme="dark"] button.primary:hover{
+  background:#F03542!important;
+}
+:root[data-theme="dark"] .brand span,
+:root[data-theme="dark"] .zero-wordmark .play{
+  color:#DF2531!important;
+}
+:root[data-theme="dark"] .hero{background:#2D2D32}
 :root[data-theme="dark"] .hero-shade{
-  background:linear-gradient(90deg,#181A2Ff8,#181A2F88 60%,#181A2F32),
-             linear-gradient(0deg,#181A2F,transparent 65%)!important;
+  background:linear-gradient(90deg,#242426f5,#24242699 59%,#2424262d),
+             linear-gradient(0deg,#242426,transparent 68%)!important;
 }
-:root[data-theme="dark"] .zero-top10{--mint:#FDA481}
-:root[data-theme="dark"] .ranked button:hover,
-:root[data-theme="dark"] .ranked button:focus-visible{border-color:#FDA481!important}
+:root[data-theme="dark"] .zero-top10{--mint:#DF2531}
 :root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .section-head small,
 :root[data-theme="dark"] .rating,
-:root[data-theme="dark"] .section-head small{color:#FDA481}
-:root[data-theme="dark"] .surprise-button{
-  background:#B4182D!important;color:#FFF7F1!important;border-color:#B4182D!important;
+:root[data-theme="dark"] .thumb-rating{color:#FF747C!important}
+:root[data-theme="dark"] .card:focus-visible,
+:root[data-theme="dark"] .ranked button:hover{border-color:#DF2531!important}
+:root[data-theme="dark"] .zero22-badge{
+  background:#DF2531!important;color:#FFFFFF!important;
 }
-:root[data-theme="dark"] .surprise-button:hover{background:#9E162B!important}
-:root[data-theme="dark"] .download-card progress{accent-color:#FDA481}
-:root[data-theme="dark"] .panel-toggle input,
-:root[data-theme="dark"] input[type="checkbox"]{accent-color:#FDA481}
+:root[data-theme="dark"] .surprise-button{
+  background:#DF2531!important;color:white!important;border-color:#DF2531!important;
+}
 :root[data-theme="dark"] .refresh-recommendations{
-  border:1px solid #FDA481!important;color:#FDA481!important;
-  border-radius:999px;background:#242E49!important;
+  background:#2D2D32!important;border:1px solid #DF2531!important;
+  color:#FFFFFF!important;border-radius:999px;
   font-size:12px;padding:7px 13px;font-weight:750;
 }
-:root[data-theme="dark"] .refresh-recommendations:hover,
-:root[data-theme="dark"] .refresh-recommendations:focus-visible{
-  color:#181A2F!important;background:#FDA481!important;
+:root[data-theme="dark"] .refresh-recommendations:hover{
+  background:rgba(223,37,49,.65)!important;
 }
-:root[data-theme="dark"] .zero22-badge{background:#B4182D;color:#FFF7F1}
-:root[data-theme="dark"] dialog{background:#242E49;color:#FFF7F1}
-:root[data-theme="dark"] .zero-theme-red-accent{background:#B4182D}
+:root[data-theme="dark"] .progress i,
+:root[data-theme="dark"] .zero-home-progress i{background:#DF2531!important}
+:root[data-theme="dark"] .panel-toggle input,
+:root[data-theme="dark"] input[type="checkbox"]{accent-color:#DF2531}
+:root[data-theme="dark"] dialog,
+:root[data-theme="dark"] #settings{background:#2D2D32;color:#FFFFFF}
+:root[data-theme="dark"] .zero-fresh-controls{
+  display:flex;align-items:center;gap:12px;min-height:38px;
+  margin:0 0 11px;flex-wrap:wrap;
+}
+:root[data-theme="dark"] .discovery-rail-tag{
+  color:#FF747C;font-size:11px;letter-spacing:.04em;font-weight:700;
+}
+:root[data-theme="dark"][data-section="Home"] main>header{
+  margin-bottom:6px!important;
+}
+:root[data-theme="dark"][data-section="Home"] main>header h1{
+  margin:4px 0!important;
+}
+:root[data-theme="dark"][data-section="Home"] .hero{
+  margin-top:6px;min-height:410px;
+}
+:root[data-theme="dark"][data-section="Home"] .tools{
+  margin:0 0 9px;
+}
+:root[data-theme="dark"] .row-section{
+  margin-top:20px;
+}
+:root[data-theme="dark"] .zero-top10-head h3:before{
+  background:#DF2531;
+}
+@media(max-width:800px){
+  :root[data-theme="dark"][data-section="Home"] .hero{min-height:340px}
+  :root[data-theme="dark"] .zero-fresh-controls{margin-bottom:6px}
+}
