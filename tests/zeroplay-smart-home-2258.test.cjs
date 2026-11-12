@@ -100,7 +100,7 @@ test('30-day exposure suppression prioritizes fresh picks',()=>{
   x.pools.trending=[];
   x.seen=Object.fromEntries(Array.from({length:20},(_,i)=>['movie:'+(i+1),now-29*e.DAY]));
   const picks=e.select(x).hero.map(e.id);
-  assert.ok(picks.includes('movie:8891'), 'fresh hero not selected');
+  assert.ok(picks.length>0 && picks.every(id=>!Object.hasOwn(x.seen,id)), 'recently shown title was selected while unseen catalog items were available');
 });
 test('Continue Watching uses progress, per-title de-duplication and most recent activity',()=>{
   const record=(id,percent,at)=>movie(id,{percent,at,timestamp:120,duration:300});
