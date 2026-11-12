@@ -58,7 +58,7 @@ test('same seed and same source pages return stable selections',()=>{
   const a=fixture();
   assert.deepEqual(e.select(a).hero.map(e.id),e.select(a).hero.map(e.id));
 });
-test('14-day repetition window expires and old history is pruned',()=>{
+test('30-day suppression expires and old history is pruned',()=>{
   assert.deepEqual(e.prune({'movie:7':now-e.DAY,'movie:8':now-90*e.DAY,'notAnId':now},now),{'movie:7':now-e.DAY});
 });
 test('watchlist and Continue Watching hero selections remain user controlled',()=>{
@@ -67,19 +67,62 @@ test('watchlist and Continue Watching hero selections remain user controlled',()
   a.carouselSource='watchlist';
   assert.equal(e.select(a).hero.length,0);
 });
-test('six-swatch Sunset palette is on Windows and Android, and absolute baseline stays untouched',()=>{
+test('Zero Crimson matches the supplied red, white and lighter-charcoal palette on Windows and Android',()=>{
   const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
   const theme=read('windows/themes.cjs'),css=read('windows/ui/sunset-palette.css');
   const android=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
   const native=read('app/src/main/java/com/zerostreams/app/SmartHomeRecommendations.java');
-  for(const hex of ['#181A2F','#242E49','#37415C','#FDA481','#B4182D','#54162B']){
+  for(const hex of ['#DF2531','#FFFFFF','#242426']){
     assert.ok(theme.includes(hex)||css.includes(hex),'Missing brand swatch '+hex);
   }
-  assert.match(android,/#181A2F/);
-  assert.match(android,/#FDA481/);
-  assert.match(native,/14\*DAY/);
+  assert.match(theme,/Zero Crimson/);
+  assert.match(css,/rgba\(223,37,49,\.45\)/);
+  assert.match(css,/rgba\(223,37,49,\.65\)/);
+  assert.match(android,/#DF2531/);
+  assert.match(android,/#242426/);
+  assert.match(native,/EXPOSE_DAYS=30/);
   assert.match(native,/Zero22\.activeProfile/);
   assert.match(read('windows/ui/app.js'),/window.ZeroFreshHome.prepare/);
   assert.match(read('windows/ui/index.html'),/src="fresh-home.js"/);
   assert.ok(!read('windows/ui/index.html').includes('figma-one'));
+});
+test('low-vote perfect 10 cannot dominate a quality-weighted featured carousel',()=>{
+  const opts=fixture();
+  opts.pools.day.unshift(movie(9822,{rating:10,voteCount:3,popularity:200}));
+  const result=e.select(opts);
+  assert.ok(!result.hero.some(x=>x.id===9822));
+  assert.ok(e.quality(movie(9822,{rating:10,voteCount:3})) < e.quality(movie(500,{rating:8.1,voteCount:4000})));
+});
+test('30-day exposure suppression prioritizes fresh picks',()=>{
+  const x=fixture();
+  const fresh=movie(8891,{rating:8.4,voteCount:18000});
+  x.pools.day=[...Array.from({length:20},(_,i)=>movie(i+1)),fresh];
+  x.pools.trending=[];
+  x.seen=Object.fromEntries(Array.from({length:20},(_,i)=>['movie:'+(i+1),now-29*e.DAY]));
+  const picks=e.select(x).hero.map(e.id);
+  assert.ok(picks.includes('movie:8891'), 'fresh hero not selected');
+});
+test('Continue Watching uses progress, per-title de-duplication and most recent activity',()=>{
+  const record=(id,percent,at)=>movie(id,{percent,at,timestamp:120,duration:300});
+  const values=e.continueWatching({'tv:1':record(1,46,7),'tv:1:episode':record(1,29,11),'tv:2':record(2,100,12),
+    'movie:3':record(3,0,10),'movie:4':record(4,26,6)});
+  assert.equal(values.length,2);
+  assert.equal(values[0].id,1);
+  assert.equal(values[0].percent,29);
+});
+test('section rotation preserves pinned shelves and honors user-reordered panels',()=>{
+  const given=['clock','featured','top10','continue','recommended','trending','hidden','now'];
+  const a=e.rotatingPanels(given,'cycle-one');
+  const b=e.rotatingPanels(given,'cycle-two');
+  assert.equal(a[0],'featured');assert.equal(a[1],'continue');assert.equal(a[2],'top10');
+  assert.notDeepEqual(a,b);
+  assert.deepEqual(e.rotatingPanels(given,'cycle-three',true),given);
+});
+test('new four discovery categories are available on desktop and native Android',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const app=read('windows/ui/app.js'),native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+  for(const category of ['thrillers','recent','different','classics']){
+    assert.ok(app.includes(category),category+' missing in Windows');
+    assert.ok(native.includes('case "'+category+'"'),category+' missing in Android');
+  }
 });
