@@ -45,21 +45,48 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
       - name: Install Windows dependencies
         working-directory: windows
         run: npm ci --no-audit --no-fund
-      - name: Existing Windows regression tests
+      - name: Apply official v2.2.5.7 Windows release patches
+        shell: pwsh
+        run: |
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-windows-test.cjs
+          node scripts/apply-smart-status-windows-2.2.5.7.cjs
+          node -e "const fs=require('fs'),p='windows/package.json',j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Unexpected Windows baseline');j.version='2.2.5-7';j.build.buildVersion='2.2.5.7';j.build.win.artifactName='ZeroPlay-2.2.5.7-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+          if ($LASTEXITCODE -ne 0) { throw 'v2.2.5.7 Windows patch failed' }
+      - name: Existing Windows and Figma UI regression tests
         working-directory: windows
-        run: npm test
+        shell: pwsh
+        run: |
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'Windows tests failed' }
+          node --test test/smart-status-2.2.5.7.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Smart status tests failed' }
+          node --test ../tests/figma-streaming.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Figma test regression failed after release patches' }
+      - name: Build the v2.2.5.7 standalone updater helper
+        shell: pwsh
+        run: |
+          dotnet publish windows/updater-helper/ZeroPlayUpdater.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o windows/updater-publish
+          if ($LASTEXITCODE -ne 0) { throw 'Updater build failed' }
+          Copy-Item windows/updater-publish/ZeroPlayUpdater.exe windows/ZeroPlayUpdater.exe -Force
+          if ((Get-Item windows/ZeroPlayUpdater.exe).Length -lt 1000000) { throw 'Updater helper too small' }
       - name: Package Figma UI Windows test ZIP (not a published release)
         shell: pwsh
         working-directory: windows
         run: |
           npm run build -- --publish never
           if ($LASTEXITCODE -ne 0) { throw 'Windows test packaging failed.' }
-          $zip = Get-ChildItem -Path dist -Filter '*.zip' | Select-Object -First 1
+          $zip = Get-Item dist/ZeroPlay-2.2.5.7-Windows-x64.zip -ErrorAction Stop
           if (-not $zip) { throw 'No Windows portable ZIP produced.' }
           New-Item -ItemType Directory -Force delivery | Out-Null
+          if ((Get-Item dist/win-unpacked/ZeroPlayUpdater.exe -ErrorAction Stop).Length -lt 1000000) { throw 'Packaged updater missing' }
           Copy-Item $zip.FullName delivery/ZeroPlay-v2.2.5.7-Figma-UI-TEST-Windows-x64.zip -Force
           (Get-FileHash delivery/ZeroPlay-v2.2.5.7-Figma-UI-TEST-Windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content delivery/SHA256.txt
       - uses: actions/upload-artifact@v4
