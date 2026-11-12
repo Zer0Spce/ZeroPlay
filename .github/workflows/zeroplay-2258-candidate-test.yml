@@ -1,0 +1,197 @@
+name: ZeroPlay 2.2.5.8 Candidate — Recommendations and Sunset Palette (TEST ONLY)
+on:
+  push:
+    branches:
+      - test/v2.2.5.8-recommendations-palette
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeroplay-2258-palette-test
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Preserve stable native Live PPV and Android TV navigation
+        run: |
+          set -euo pipefail
+          node --test tests/android-native-live-ppv-v2.2.5.6.test.cjs
+          node tests/android-tv-source-navigation-2.2.5.4.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+          node tests/source-selection-regression.test.cjs
+      - name: Apply existing Android feature stack and version 2.2.5.7 code 62
+        run: |
+          set -euo pipefail
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node tests/audio-boost-2.2.4.1.test.cjs
+          node scripts/apply-custom-livetv-test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs'),file='app/build.gradle';let s=fs.readFileSync(file,'utf8');
+          if(!s.includes("versionName '2.2.5-test1'")||!s.includes('versionCode 51'))throw Error('Unexpected baseline');
+          s=s.replace("versionName '2.2.5-test1'","versionName '2.2.5.8-TEST'");
+          s=s.replace('versionCode 51','versionCode 63');
+          fs.writeFileSync(file,s);
+          NODE
+          node --test tests/android-native-live-ppv-v2.2.5.6.test.cjs
+      - name: Test palette and recommendation engine integration
+        run: |
+          node --check windows/ui/fresh-recommendations.js
+          node --check windows/ui/fresh-home.js
+          node --check windows/ui/app.js
+          node --test tests/zeroplay-smart-home-2258.test.cjs
+      - name: Run full and Lite Android unit tests
+        run: gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest :app:testLiteMobileReleaseUnitTest :app:testLiteTvReleaseUnitTest
+      - name: Build and verify signed four public Android APKs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-2.2.5.7.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleMobileRelease :app:assembleTvRelease :app:assembleLiteMobileRelease :app:assembleLiteTvRelease
+          mkdir -p release-builds
+          cp app/build/outputs/apk/mobile/release/app-mobile-release.apk release-builds/ZeroPlay-2.2.5.8-TEST-Android.apk
+          cp app/build/outputs/apk/tv/release/app-tv-release.apk release-builds/ZeroPlay-2.2.5.8-TEST-Android-TV.apk
+          cp app/build/outputs/apk/liteMobile/release/app-liteMobile-release.apk release-builds/ZeroPlay-2.2.5.8-TEST-Android-Lite.apk
+          cp app/build/outputs/apk/liteTv/release/app-liteTv-release.apk release-builds/ZeroPlay-2.2.5.8-TEST-Android-TV-Lite.apk
+          test "$(find release-builds -maxdepth 1 -name '*.apk' | wc -l)" -eq 4
+          for apk in release-builds/*.apk; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionCode='63'"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionName='2.2.5.8-TEST'"
+          done
+      - name: Android lint for all public editions
+        run: gradle --continue :app:lintMobileRelease :app:lintTvRelease :app:lintLiteMobileRelease :app:lintLiteTvRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5.8-TEST-Android
+          path: release-builds/*.apk
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 110
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Preserve stable Windows stack, add status UI, set 2.2.5.7
+        run: |
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-windows-test.cjs
+          node scripts/apply-smart-status-windows-2.2.5.7.cjs
+          node -e "const fs=require('fs'),p='windows/package.json',j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Unexpected Windows baseline');j.version='2.2.5-7';j.build.buildVersion='2.2.5.7';j.build.win.artifactName='ZeroPlay-2.2.5.7-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
+          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.5-7')!=='2.2.5.7')throw Error('Windows public version mapping failed')"
+      - name: Test new discovery and brand palette
+        shell: pwsh
+        run: |
+          node --check windows/ui/fresh-recommendations.js
+          if ($LASTEXITCODE -ne 0) { throw 'Discovery JS syntax check failed' }
+          node --check windows/ui/fresh-home.js
+          if ($LASTEXITCODE -ne 0) { throw 'Home integration syntax check failed' }
+          node --check windows/ui/app.js
+          if ($LASTEXITCODE -ne 0) { throw 'Windows UI syntax check failed' }
+          node --test tests/zeroplay-smart-home-2258.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Recommendation tests failed' }
+      - name: Run all Windows and Smart Stream Status regressions
+        working-directory: windows
+        run: |
+          npm test
+          node --test test/smart-status-2.2.5.7.test.cjs
+          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.5\\.7$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.5.7')"
+      - name: Build self-contained visible ZeroPlayUpdater.exe
+        shell: pwsh
+        run: |
+          dotnet publish windows/updater-helper/ZeroPlayUpdater.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o windows/updater-publish
+          Copy-Item windows/updater-publish/ZeroPlayUpdater.exe windows/ZeroPlayUpdater.exe -Force
+          $helper = Get-Item windows/ZeroPlayUpdater.exe -ErrorAction Stop
+          if ($helper.Length -lt 1000000) { throw 'Standalone updater helper unexpectedly small' }
+          Write-Host "ZeroPlayUpdater.exe built: $($helper.Length) bytes"
+      - name: Package Windows x64 ZIP including updater
+        working-directory: windows
+        run: npm run build -- --publish never
+      - name: Check actual Windows ZIP contains separate updater helper
+        shell: pwsh
+        run: |
+          $helper = Get-Item windows/dist/win-unpacked/ZeroPlayUpdater.exe -ErrorAction Stop
+          if($helper.Length -lt 1000000){throw 'Updater not packaged beside ZeroPlay.exe'}
+          $zip = Get-Item windows/dist/ZeroPlay-2.2.5.7-Windows-x64.zip -ErrorAction Stop
+          if($zip.Length -lt 5000000){throw 'Windows portable ZIP missing or empty'}
+          Add-Type -AssemblyName System.IO.Compression
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zip.FullName)
+          try {
+            $names = @($archive.Entries | ForEach-Object { $_.FullName })
+            if(-not ($names | Where-Object { $_ -match '(^|/)ZeroPlayUpdater[.]exe$' })){throw 'ZIP missing ZeroPlayUpdater.exe'}
+            if(-not ($names | Where-Object { $_ -match '(^|/)ZeroPlay[.]exe$' })){throw 'ZIP missing ZeroPlay.exe'}
+          } finally { $archive.Dispose() }
+          Write-Host 'Windows ZIP includes both ZeroPlay.exe and standalone updater.'
+      - name: Packaged Windows UI startup smoke
+        shell: pwsh
+        run: |
+          $exe=(Get-Item windows/dist/win-unpacked/ZeroPlay.exe -ErrorAction Stop).FullName
+          $process=Start-Process -FilePath $exe -ArgumentList '--ui-smoke-test','--disable-gpu' -PassThru
+          if(-not $process.WaitForExit(60000)){ $process.Kill(); throw 'ZeroPlay packaged UI startup timed out' }
+          if($process.ExitCode -ne 0){ throw "ZeroPlay packaged UI failed with exit code $($process.ExitCode)" }
+          Write-Host 'Packaged Windows 2.2.5.7 startup passed.'
+      - name: Copy verified Windows test ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force windows/delivery | Out-Null
+          Copy-Item windows/dist/ZeroPlay-2.2.5.7-Windows-x64.zip windows/delivery/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip -Force
+          (Get-FileHash windows/delivery/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content windows/delivery/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5.8-TEST-Windows
+          path: windows/delivery/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
