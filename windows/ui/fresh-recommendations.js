@@ -1,91 +1,150 @@
-/* ZeroPlay v2.2.5.8 TEST — deterministic, exposure-aware homepage discovery.
- * Pure selection logic, with no UI, networking or persistent state in this file.
- * Titles are ranked only from real TMDB results. No invented availability.
+/* ZeroPlay Discovery 2.0 — pure, deterministic curation.
+ * Live TMDB candidates; no availability promises. Source previews and genre keys
+ * are per user profile, and the fallback intentionally allows re-use only when
+ * the catalog cannot fill a rail with fresh candidates.
  */
 ((root,factory)=>{
-  const x=factory();
-  if(typeof module==='object'&&module.exports)module.exports=x;
-  else root.ZeroFreshRecommendations=x;
+  const engine=factory();
+  if(typeof module==='object'&&module.exports)module.exports=engine;
+  else root.ZeroFreshRecommendations=engine;
 })(typeof globalThis!=='undefined'?globalThis:this,()=>{
   'use strict';
-  const DAY=86400000;
+  const DAY=86400000, SUPPRESSION_DAYS=30;
   const id=item=>item.type+':'+item.id;
+  const unique=items=>[...new Map(items.filter(Boolean).map(x=>[id(x),x])).values()];
   function hash(value){
-    let h=2166136261;for(const char of String(value)){h^=char.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;
+    let h=2166136261;for(const ch of String(value)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;
   }
   function prune(seen,now=Date.now()){
-    return Object.fromEntries(Object.entries(seen||{}).filter(([k,v])=>
-      /^(movie|tv):[1-9]\d*$/.test(k)&&Number.isFinite(Number(v))&&
-      Number(v)>now-30*DAY&&Number(v)<=now+DAY).slice(-1600));
+    return Object.fromEntries(Object.entries(seen||{}).filter(([key,time])=>
+      /^(movie|tv):[1-9]\d*$/.test(key) && Number(time)>now-45*DAY && Number(time)<=now+DAY)
+      .slice(-1800));
   }
-  function select({
-    pools={}, now=Date.now(), seed='default', seen={}, positions={},
-    history=[], notInterested=[], carouselSource='top', perShelf=18
-  }={}){
-    const used=new Set(),ignored=new Set(notInterested),
-      watched=new Set(Object.keys(positions||{}));
-    const all=new Map();
-    for(const source of Object.values(pools)){
-      for(const item of Array.isArray(source)?source:[]){
-        if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||
-          Number(item.id)<1||!item.poster&&!item.backdrop)continue;
-        const k=id(item);
-        if(ignored.has(k)||watched.has(k))continue;
-        if(!all.has(k))all.set(k,item);
-      }
+  function continueWatching(positions={}) {
+    const found=new Map();
+    for(const record of Object.values(positions||{})){
+      if(!record || !['movie','tv'].includes(record.type) ||
+        !Number.isSafeInteger(Number(record.id)) || Number(record.id)<1)continue;
+      const percent=Number(record.percent),timestamp=Number(record.timestamp);
+      if(!Number.isFinite(percent)||percent<=1||percent>=95||timestamp<=0)continue;
+      if(!(record.poster||record.backdrop))continue;
+      const key=id(record),old=found.get(key);
+      if(!old||Number(record.at||0)>Number(old.at||0))found.set(key,record);
     }
-    const today=new Date(now).toISOString().slice(0,10);
-    const recentCutoff=now-14*DAY;
-    const genres=new Set((history||[]).slice(0,30).flatMap(h=>h.genreIds||[]));
-    function candidates(sources,test=()=>true){
-      const distinct=new Map();
-      for(const source of sources)for(const original of pools[source]||[]){
-        if(!original)continue;
-        const key=id(original),item=all.get(key);
-        if(!item||used.has(key)||distinct.has(key)||!test(item))continue;
-        distinct.set(key,item);
-      }
-      return [...distinct.values()];
+    return [...found.values()].sort((a,b)=>Number(b.at||0)-Number(a.at||0)).slice(0,20);
+  }
+  function quality(x){ // Bayesian rating smoothing prevents low-vote 10.0 titles dominating.
+    const votes=Math.max(0,Number(x.voteCount)||0),rating=Math.max(0,Math.min(10,Number(x.rating)||0));
+    return (votes*rating+450*6.4)/(votes+450);
+  }
+  function select({pools={},now=Date.now(),seed='default',seen={},positions={},history=[],
+    favorites=[],notInterested=[],carouselSource='top',perShelf=18}={}){
+    const used=new Set(),ignored=new Set(notInterested),watched=new Set(Object.keys(positions||{}));
+    const saved=new Set((favorites||[]).filter(x=>x?.id&&x.type).map(id));
+    const all=new Map(),today=new Date(now).toISOString().slice(0,10);
+    for(const source of Object.values(pools))for(const item of Array.isArray(source)?source:[]){
+      if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||
+        Number(item.id)<=0||(!item.poster&&!item.backdrop))continue;
+      const key=id(item);
+      if(ignored.has(key)||watched.has(key)||saved.has(key))continue;
+      if(!all.has(key))all.set(key,item);
     }
-    const rating=item=>Math.max(0,Math.min(.10,(Number(item.rating)||0)-6)*.015);
-    function take(label,sources,condition=()=>true,n=perShelf){
-      const list=candidates(sources,condition);
-      list.sort((a,b)=>(
-        (hash(seed+':'+label+':'+id(b))/4294967295+rating(b))-
-        (hash(seed+':'+label+':'+id(a))/4294967295+rating(a))
-      ));
-      const fresh=list.filter(x=>!(Number(seen[id(x)])>=recentCutoff));
-      const recycled=list.filter(x=>Number(seen[id(x)])>=recentCutoff);
-      const chosen=fresh.concat(recycled).slice(0,n);
-      for(const item of chosen)used.add(id(item));
+    const genreWeights=new Map();
+    const watchedTitles=(history||[]).filter(x=>x?.genreIds?.length).slice(0,30);
+    watchedTitles.forEach((item,i)=>(item.genreIds||[]).forEach(genre=>
+      genreWeights.set(genre,(genreWeights.get(genre)||0)+Math.max(.15,1-i/40))));
+    const favoritesWithGenres=(favorites||[]).filter(x=>x?.genreIds?.length).slice(0,15);
+    favoritesWithGenres.forEach(x=>x.genreIds.forEach(g=>genreWeights.set(g,(genreWeights.get(g)||0)+.8)));
+    const liked=new Set([...genreWeights.keys()]);
+    const recentCutoff=now-SUPPRESSION_DAYS*DAY;
+    const released=x=>!x.date||x.date<=today;
+    const movie=x=>x.type==='movie'&&released(x);
+    const tv=x=>x.type==='tv'&&released(x);
+    const enough=x=>quality(x)>=6.25&&(Number(x.voteCount)||0)>=70;
+    const strong=x=>released(x)&&Boolean(x.backdrop)&&Number(x.voteCount)>=
+      (x.type==='movie'?250:150)&&quality(x)>=6.6&&(Number(x.popularity)||0)>=8;
+    function pool(names,rule=()=>true){
+      const entries=new Map();
+      for(const name of names)for(const row of pools[name]||[]){
+        if(!row)continue;
+        const k=id(row),item=all.get(k);
+        if(item&&!used.has(k)&&!entries.has(k)&&rule(item))entries.set(k,item);
+      }
+      return [...entries.values()];
+    }
+    function rank(item,label){
+      const random=hash(seed+':'+label+':'+id(item))/4294967295;
+      const voteConfidence=Math.min(1,Math.log1p(Math.max(0,Number(item.voteCount)||0))/9);
+      const fit=Math.min(3,(item.genreIds||[]).reduce((a,g)=>a+(genreWeights.get(g)||0),0));
+      return random*.65+quality(item)*.115+voteConfidence*.13+Math.min(1,(item.popularity||0)/150)*.08+fit*.065;
+    }
+    function take(label,names,rule=()=>true,count=perShelf,diverse=true){
+      const entries=pool(names,rule);
+      entries.sort((a,b)=>rank(b,label)-rank(a,label));
+      const unseen=entries.filter(x=>!(Number(seen[id(x)])>=recentCutoff));
+      const old=entries.filter(x=>Number(seen[id(x)])>=recentCutoff);
+      const chosen=[],genres=new Map();
+      function fill(items,diversity=true){
+        for(const item of items){
+          if(chosen.length>=count)break;
+          if(chosen.some(x=>id(x)===id(item)))continue;
+          const dominant=(item.genreIds||[])[0];
+          if(diversity&&dominant&&Number(genres.get(dominant)||0)>=Math.max(2,Math.ceil(count/3)))continue;
+          chosen.push(item);if(dominant)genres.set(dominant,(genres.get(dominant)||0)+1);
+        }
+      }
+      fill(unseen,diverse);
+      fill(unseen,false);
+      if(chosen.length<count){fill(old,diverse);fill(old,false);}
+      for(const x of chosen)used.add(id(x));
       return chosen;
     }
-    const available=item=>!item.date||item.date<=today;
-    const typeMovie=item=>available(item)&&item.type==='movie';
+    const heroSources=carouselSource==='recommended'?['recommended','top','trending','popular','day']:
+      carouselSource==='popular'?['popular','trending','day','recommended']:
+      carouselSource==='now'?['now','day','trending','popular']:
+      ['day','trending','popular','recommended','series','now'];
     let hero=[];
     if(!['watchlist','continue'].includes(carouselSource)){
-      const heroPool=carouselSource==='recommended'?['recommended','top','trending','popular']:
-        carouselSource==='popular'?['popular','trending','now','top']:
-        carouselSource==='now'?['now','trending','popular']:
-        ['trending','day','popular','series','recommended'];
-      hero=take('hero:'+carouselSource,heroPool,item=>available(item)&&Boolean(item.backdrop),6);
+      hero=take('hero:'+carouselSource,heroSources,strong,6,true);
+      if(!hero.length)hero=take('hero-fallback',heroSources,x=>released(x)&&Boolean(x.backdrop)&&enough(x),6,true);
     }
     const shelves={};
-    shelves.because=genres.size?take('because',['trending','recommended','popular','series','top'],item=>
-      available(item)&&(item.genreIds||[]).some(g=>genres.has(g))):[];
-    shelves.hidden=take('hidden',['gems','classics','top','recommended','popular'],item=>
-      typeMovie(item)&&Number(item.rating)>=6.7&&Number(item.voteCount)>=100&&Number(item.popularity)<300);
-    shelves.tonight=take('tonight',['top','recommended','popular','trending','gems'],item=>
-      typeMovie(item)&&Number(item.rating)>=6.6&&Number(item.voteCount)>=125);
-    shelves.recommended=take('recommended',['recommended','top','popular','trending'],typeMovie);
-    shelves.trending=take('trending',['trending','day','popular','series'],available);
-    shelves.popular=take('popular',['popular','recommended','trending'],typeMovie);
-    shelves.series=take('series',['series','trending','day'],item=>available(item)&&item.type==='tv');
-    shelves.now=take('now',['now','popular','trending'],typeMovie);
-    shelves.airing=take('airing',['airing','series'],item=>available(item)&&item.type==='tv');
-    shelves.upcoming=take('upcoming',['upcoming'],item=>Boolean(item.date&&item.date>today)&&item.type==='movie');
-    // Short source categories should not forcibly fill from unrelated media.
-    return {hero,shelves,used:[...used],candidateCount:all.size};
+    shelves.because=liked.size?
+      take('because',['similar','trending','recommended','popular','series','top'],
+        x=>released(x)&&enough(x)&&(x.genreIds||[]).some(g=>liked.has(g))):[];
+    shelves.hidden=take('hidden',['gems','classics','top','popular'],x=>movie(x)&&
+      quality(x)>=6.8&&Number(x.voteCount)>=180&&Number(x.popularity)<300);
+    shelves.tonight=take('tonight',['recommended','top','trending','popular','gems'],
+      x=>movie(x)&&enough(x));
+    shelves.recommended=take('recommended',['recommended','popular','top','trending','gems'],
+      x=>movie(x)&&enough(x));
+    shelves.trending=take('trending',['day','trending','series','popular'],x=>released(x)&&enough(x));
+    shelves.popular=take('popular',['popular','trending','top'],x=>movie(x)&&enough(x));
+    shelves.series=take('series',['series','trending','day'],x=>tv(x)&&enough(x));
+    shelves.now=take('now',['now','day','popular'],x=>movie(x)&&enough(x));
+    shelves.airing=take('airing',['airing','series'],x=>tv(x)&&enough(x));
+    shelves.upcoming=take('upcoming',['upcoming'],x=>x.type==='movie'&&Boolean(x.date)&&x.date>today);
+    shelves.thrillers=take('thrillers',['thrillers','top','gems','recommended'],x=>movie(x)&&
+      (x.genreIds||[]).includes(53)&&quality(x)>=7&&Number(x.voteCount)>=180);
+    const lastYear=new Date(now-365*DAY).toISOString().slice(0,10);
+    shelves.recent=take('recent',['now','day','popular','new'],x=>movie(x)&&
+      Boolean(x.date)&&x.date>=lastYear&&enough(x));
+    const favoriteGenres=new Set([...liked]);
+    shelves.different=take('different',['world','classics','gems','day','trending'],x=>released(x)&&
+      enough(x)&&(!favoriteGenres.size||!(x.genreIds||[]).some(g=>favoriteGenres.has(g))));
+    shelves.classics=take('classics',['classics','top'],x=>movie(x)&&Number((x.date||'').slice(0,4))>0&&
+      Number((x.date||'').slice(0,4))<=new Date(now).getFullYear()-8&&enough(x));
+    return {hero,shelves,candidateCount:all.size,used:[...used],seed};
   }
-  return Object.freeze({select,prune,id,hash,DAY});
+  function rotatingPanels(order,seed,custom=false){
+    if(custom)return [...order];
+    const preferred=['featured','continue','upnext','watchlist','top10'];
+    const dynamic=['because','tonight','hidden','recommended','thrillers','recent','different','classics',
+      'trending','popular','series','now','airing'];
+    const others=order.filter(x=>!preferred.includes(x)&&!dynamic.includes(x));
+    const stable=preferred.filter(x=>order.includes(x));
+    const rotating=dynamic.filter(x=>order.includes(x)).sort((a,b)=>hash(seed+':'+a)-hash(seed+':'+b));
+    return [...stable,...rotating,...others];
+  }
+  return Object.freeze({select,prune,id,quality,continueWatching,rotatingPanels,DAY,SUPPRESSION_DAYS});
 });
