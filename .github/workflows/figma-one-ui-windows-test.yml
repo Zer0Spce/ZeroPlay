@@ -1,0 +1,109 @@
+name: ZeroPlay Figma One UI — Windows Test
+on:
+  push:
+    branches:
+      - feature/figma-one-ui-v2257-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  figma-layout-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify syntax and recommendation/layout tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check windows/main.cjs
+          node --check windows/ui/layouts.js
+          node --check windows/ui/app.js
+          node --check windows/ui/home-visuals.js
+          node --check windows/ui/figma-one-engine.js
+          node --check windows/ui/figma-one.js
+          node --test tests/figma-one-ui.test.cjs
+          git diff --check
+
+  windows-test-zip:
+    needs: figma-layout-check
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Apply official v2.2.5.7 Windows release patches
+        shell: pwsh
+        run: |
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-windows-test.cjs
+          node scripts/apply-smart-status-windows-2.2.5.7.cjs
+          node -e "const fs=require('fs'),p='windows/package.json',j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Unexpected Windows baseline');j.version='2.2.5-7';j.build.buildVersion='2.2.5.7';j.build.win.artifactName='ZeroPlay-2.2.5.7-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2));"
+          if ($LASTEXITCODE -ne 0) { throw 'v2.2.5.7 Windows patch failed' }
+      - name: Existing Windows and Figma One UI regression tests
+        working-directory: windows
+        shell: pwsh
+        run: |
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'Windows tests failed' }
+          node --test test/smart-status-2.2.5.7.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Smart status tests failed' }
+          node --test ../tests/figma-one-ui.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Figma One test regression failed after release patches' }
+      - name: Build the v2.2.5.7 standalone updater helper
+        shell: pwsh
+        run: |
+          dotnet publish windows/updater-helper/ZeroPlayUpdater.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o windows/updater-publish
+          if ($LASTEXITCODE -ne 0) { throw 'Updater build failed' }
+          Copy-Item windows/updater-publish/ZeroPlayUpdater.exe windows/ZeroPlayUpdater.exe -Force
+          if ((Get-Item windows/ZeroPlayUpdater.exe).Length -lt 1000000) { throw 'Updater helper too small' }
+      - name: Package Figma One UI Windows test ZIP (not a published release)
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows test packaging failed.' }
+          $zip = Get-Item dist/ZeroPlay-2.2.5.7-Windows-x64.zip -ErrorAction Stop
+          if (-not $zip) { throw 'No Windows portable ZIP produced.' }
+          New-Item -ItemType Directory -Force delivery | Out-Null
+          if ((Get-Item dist/win-unpacked/ZeroPlayUpdater.exe -ErrorAction Stop).Length -lt 1000000) { throw 'Packaged updater missing' }
+          Copy-Item $zip.FullName delivery/ZeroPlay-v2.2.5.7-Figma-One-UI-TEST-Windows-x64.zip -Force
+          (Get-FileHash delivery/ZeroPlay-v2.2.5.7-Figma-One-UI-TEST-Windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content delivery/SHA256.txt
+      - name: Smoke-test Figma One UI and capture actual Windows screenshot
+        shell: pwsh
+        run: |
+          $exe = (Get-Item windows/dist/win-unpacked/ZeroPlay.exe -ErrorAction Stop).FullName
+          $cwd = (Resolve-Path windows).Path
+          $p = Start-Process -FilePath $exe -ArgumentList '--figma-one-smoke-test','--disable-gpu' -WorkingDirectory $cwd -PassThru
+          if (-not $p.WaitForExit(150000)) { $p.Kill(); throw 'Figma One UI smoke test timed out' }
+          if ($p.ExitCode -ne 0) { throw "Figma One UI smoke test exited with code $($p.ExitCode)" }
+          $image = Get-Item windows/dist/figma-one-preview.png -ErrorAction Stop
+          if ($image.Length -lt 25000) { throw 'Figma One UI preview screenshot unexpectedly small' }
+          Copy-Item $image.FullName windows/delivery/Figma-One-UI-PREVIEW.png -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-Figma-One-UI-Windows-TEST
+          path: windows/delivery/*
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 0
