@@ -1,0 +1,71 @@
+name: ZeroPlay Figma Streaming UI — Windows Test
+on:
+  push:
+    branches:
+      - feature/figma-streaming-v2257-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  figma-layout-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify syntax and recommendation/layout tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check windows/main.cjs
+          node --check windows/ui/layouts.js
+          node --check windows/ui/app.js
+          node --check windows/ui/home-visuals.js
+          node --check windows/ui/figma-streaming-engine.js
+          node --check windows/ui/figma-streaming.js
+          node --test tests/figma-streaming.test.cjs
+          git diff --check
+
+  windows-test-zip:
+    needs: figma-layout-check
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Existing Windows regression tests
+        working-directory: windows
+        run: npm test
+      - name: Package Figma UI Windows test ZIP (not a published release)
+        shell: pwsh
+        working-directory: windows
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows test packaging failed.' }
+          $zip = Get-ChildItem -Path dist -Filter '*.zip' | Select-Object -First 1
+          if (-not $zip) { throw 'No Windows portable ZIP produced.' }
+          New-Item -ItemType Directory -Force delivery | Out-Null
+          Copy-Item $zip.FullName delivery/ZeroPlay-v2.2.5.7-Figma-UI-TEST-Windows-x64.zip -Force
+          (Get-FileHash delivery/ZeroPlay-v2.2.5.7-Figma-UI-TEST-Windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content delivery/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-Figma-UI-Windows-TEST
+          path: windows/delivery/*
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 0
