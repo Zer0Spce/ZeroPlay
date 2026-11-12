@@ -121,7 +121,7 @@
   function top10Section(items,region){
     const section=document.createElement('section');section.className='row-section zero-top10';section.dataset.zeroTop10='1';
     const head=document.createElement('div');head.className='section-head zero-top10-head';
-    const h3=document.createElement('h3');h3.textContent=`TOP 10 TODAY IN ${REGION_NAMES[region]||'PHILIPPINES'}`;head.appendChild(h3);section.appendChild(head);
+    const h3=document.createElement('h3');h3.textContent='TMDB TRENDING TODAY';head.appendChild(h3);section.appendChild(head);
     const rail=document.createElement('div');rail.className='zero-top10-rail';installRailScrolling(rail);
     items.slice(0,10).forEach((item,index)=>{
       const button=document.createElement('button');button.type='button';button.className='zero-top10-card';button.setAttribute('aria-label',`Number ${index+1}, ${item.title}`);
