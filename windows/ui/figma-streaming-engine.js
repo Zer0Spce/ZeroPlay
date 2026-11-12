@@ -49,8 +49,10 @@
       for (const x of selected) used.add(id(x));
       return selected;
     };
-    const hero = pick(['tv','day','week','movies','now','rated'], 'featured',
-      item => Boolean(item.backdrop), 1)[0] || null;
+    const hero = pick(['tv'], 'featured-series',
+      item => item.type === 'tv' && Boolean(item.backdrop), 1)[0] ||
+      pick(['day','week','movies','now','rated'], 'featured-fallback',
+        item => Boolean(item.backdrop), 1)[0] || null;
     const genres = new Set(history.slice(0, 30).flatMap(item => item.genreIds || []));
     const rails = {
       'Popular on ZeroPlay': pick(['day','week','movies','tv','now'], 'popular'),
