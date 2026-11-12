@@ -1,0 +1,79 @@
+name: ZeroPlay Refreshed — Windows test
+on:
+  push:
+    branches:
+      - feature/zeroplay-refreshed-test
+  pull_request:
+    paths:
+      - 'windows/ui/refreshed*'
+      - 'windows/ui/app.js'
+      - 'windows/ui/index.html'
+      - 'windows/ui/layouts.js'
+      - 'windows/main.cjs'
+      - 'tests/zeroplay-refreshed.test.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discovery-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify syntax, discovery, and opt-in isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check windows/ui/refreshed-engine.js
+          node --check windows/ui/refreshed.js
+          node --check windows/ui/app.js
+          node --check windows/ui/layouts.js
+          node --check windows/main.cjs
+          node --check windows/ui/home-visuals.js
+          node --test tests/zeroplay-refreshed.test.cjs
+          git diff --check
+
+  windows-test-package:
+    needs: discovery-regressions
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Run existing Windows regression suite
+        working-directory: windows
+        run: npm test
+      - name: Package Windows test ZIP (not a release)
+        working-directory: windows
+        shell: pwsh
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Packaging failed' }
+          $zip = Get-ChildItem dist -Filter 'ZeroPlay-*.zip' | Select-Object -First 1
+          if (-not $zip) { throw 'Windows ZIP missing' }
+          New-Item -ItemType Directory -Force delivery | Out-Null
+          Copy-Item $zip.FullName delivery/ZeroPlay-Refreshed-Windows-TEST.zip -Force
+          (Get-FileHash delivery/ZeroPlay-Refreshed-Windows-TEST.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content delivery/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-Refreshed-Windows-TEST
+          path: windows/delivery/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
