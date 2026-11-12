@@ -10,13 +10,13 @@ if(!pkg.build?.win||!Array.isArray(pkg.build.extraFiles)||
 // Use the supplied playmark for the Windows title-bar icon and package icon.
 // ICO with an embedded transparent PNG is supported by current Windows/Electron.
 const assets=path.join(__dirname,'..','windows','assets');
-const iconPng=path.join(assets,'zeroplay-app-icon.png');
+const iconPng=path.join(assets,'zeroplay-app-icon-256.png');
 const logoPng=path.join(assets,'zeroplay-home-logo.png');
 if(!fs.existsSync(iconPng)||!fs.existsSync(logoPng))throw new Error('Approved ZeroPlay logo/icon assets missing');
 const png=fs.readFileSync(iconPng);
 if(png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')throw new Error('App icon PNG signature invalid');
 const width=png.readUInt32BE(16),height=png.readUInt32BE(20);
-if(width!==height||width<128||width>256)throw new Error('App icon must be square and 128–256 pixels');
+if(width!==256||height!==256)throw new Error('Windows app icon must be a 256x256 PNG');
 const header=Buffer.alloc(22);
 header.writeUInt16LE(0,0);header.writeUInt16LE(1,2);header.writeUInt16LE(1,4);
 header[6]=width===256?0:width;header[7]=height===256?0:height;
