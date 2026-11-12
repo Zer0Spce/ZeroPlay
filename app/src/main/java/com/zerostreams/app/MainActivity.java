@@ -221,6 +221,10 @@ public class MainActivity extends Activity {
             hidden=Zero22.hiddenGems(prefs,movies),
             tonight=Zero22.tonight(prefs,movies);
         homeRecommendationSession=SmartHomeRecommendations.begin(prefs,System.currentTimeMillis());
+        homeHeroItems=new ArrayList<>();
+        List<Catalog.Item> sourceHero=carouselSourceItems(clean);
+        String heroMode=carouselSource();
+        homeHeroItems=heroMode.equals("continue")||heroMode.equals("watchlist")?sourceHero:homeRecommendationSession.featured(sourceHero,6);
         homeRecommendationSession.reserve(resumes);
         homeRecommendationSession.reserve(upnext);
         homeRecommendationSession.reserveIds(favorites());
@@ -235,7 +239,7 @@ public class MainActivity extends Activity {
         shuffle.setContentDescription("Refresh movie and TV recommendations");
         content.addView(shuffle,new LinearLayout.LayoutParams(-2,dp(BuildConfig.TV?46:42)));
         space(content,12);
-        for(String id:Zero22.homeOrder(prefs)){
+        for(String id:SmartHomeRecommendations.panelOrder(prefs,Zero22.homeOrder(prefs),homeRecommendationSession.seed)){
             if(!homePanel(id))continue;
             switch(id){
             case "clock":homeTools(clean);break;
@@ -265,6 +269,14 @@ public class MainActivity extends Activity {
             case "airing":if(!airingToday.isEmpty())posterRow("Airing today",
                 homeRecommendationSession.claim("airing",airingToday,18),token);
                 else loadAiringToday();break;
+            case "thrillers":posterRow("Highly rated thrillers",
+                homeRecommendationSession.claim("thrillers",discoveryThrillers(clean),18),token);break;
+            case "recent":posterRow("Recent releases",
+                homeRecommendationSession.claim("recent",discoveryRecent(clean),18),token);break;
+            case "different":posterRow("Something different",
+                homeRecommendationSession.claim("different",discoveryDifferent(clean),18),token);break;
+            case "classics":posterRow("Rediscover the classics",
+                homeRecommendationSession.claim("classics",discoveryClassics(clean),18),token);break;
             default:homeExtraRow(id,token);break;
             }
         }
@@ -272,7 +284,13 @@ public class MainActivity extends Activity {
     }
     void loadAiringToday(){if(airingLoading||tmdbKey().isEmpty())return;airingLoading=true;io.execute(()->{List<Catalog.Item> rows;try{rows=ContentApi.airingToday(tmdbKey());}catch(Exception e){rows=new ArrayList<>();}List<Catalog.Item> ready=rows;ui.post(()->{airingLoading=false;airingToday=ready;if(!isDestroyed()&&category.equals("Home"))render();});});}
     void peopleSection(){if(peopleSearch==null||peopleSearch.length()==0)return;sectionLabel(content,"People");HorizontalScrollView rail=new HorizontalScrollView(this);rail.setHorizontalScrollBarEnabled(false);LinearLayout cards=new LinearLayout(this);for(int i=0;i<Math.min(peopleSearch.length(),12);i++){JSONObject person=peopleSearch.optJSONObject(i);if(person==null||person.optInt("id")<=0)continue;String name=person.optString("name","Person"),known=person.optString("known_for_department","");Button b=button(name+(known.isEmpty()?"":" · "+known),()->startActivity(new Intent(this,PersonFilmographyActivity.class).putExtra("personId",person.optInt("id")).putExtra("personName",name)));b.setContentDescription("Open "+name+" profile");LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(BuildConfig.TV?220:180),dp(52));lp.setMargins(0,0,dp(10),0);cards.addView(b,lp);}rail.addView(cards);content.addView(rail);space(content,18);}
-    String cardBadge(Catalog.Item item,int progress){if(item.raw.optInt("upNextEpisode",0)>0)return "S"+item.raw.optInt("upNextSeason",1)+" E"+item.raw.optInt("upNextEpisode",1)+" NEXT";if(progress>=95)return "WATCHED";if(favorites().contains(item.id))return "WATCHLIST";String date=item.raw.optString("releaseDate","");String year=String.valueOf(Calendar.getInstance().get(Calendar.YEAR));if(date.startsWith(year))return "NEW";return "";}
+    String cardBadge(Catalog.Item item,int progress){if(item.raw.optInt("upNextEpisode",0)>0)return "S"+item.raw.optInt("upNextSeason",1)+" E"+item.raw.optInt("upNextEpisode",1)+" NEXT";if(progress>=95)return "WATCHED";if(favorites().contains(item.id))return "WATCHLIST";String date=item.raw.optString("releaseDate","");
+        if(!date.isEmpty())try{
+            long day=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).parse(date).getTime();
+            long age=System.currentTimeMillis()-day;
+            if(age>=0&&age<=90L*86400000L)return "NEW RELEASE";
+        }catch(Exception ignored){}
+        return "";}
     void quickActions(Catalog.Item item){List<String> actions=new ArrayList<>(Arrays.asList("▶ Play","ℹ Details",favorites().contains(item.id)?"♡ Remove from watchlist":"♥ Add to watchlist",prefs.getInt("percent:"+item.id,0)>=95?"○ Mark unwatched":"✓ Mark watched","＋ Add to collection",Zero22.notInterested(prefs,item.id)?"Show in recommendations":"Not interested"));new AlertDialog.Builder(this).setTitle(item.title).setItems(actions.toArray(new String[0]),(d,n)->{if(n==0)watch(item);else if(n==1)details(item);else if(n==2)toggleFavorite(item);else if(n==3){if(item.type.equals("series"))markSeriesWatched(item);else{boolean watched=prefs.getInt("percent:"+item.id,0)<95;prefs.edit().putInt("percent:"+item.id,watched?100:0).putLong("position:"+item.id,watched?1:0).putLong("duration:"+item.id,watched?1:0).apply();render();}}else if(n==4)addCollection(item);else{Zero22.setNotInterested(prefs,item.id,!Zero22.notInterested(prefs,item.id));render();}}).setNegativeButton("Close",null).show();}
     void moodDialog(){String[] labels={"😂 Funny","😱 Scary","🤯 Mind-bending","❤️ Romance","🔥 Action","👨‍👩‍👧 Family","⏱ Under 100 minutes","⭐ Highly rated","🎲 Completely random"};int[] genres={35,27,878,10749,28,10751,0,0,-1};new AlertDialog.Builder(this).setTitle("What should I watch?").setItems(labels,(d,n)->{if(genres[n]==-1){surpriseMovie();return;}int runtime=n==6?100:0;double rating=n==7?7.5:0;status.setText("Finding "+labels[n].substring(2)+" picks…");io.execute(()->{try{JSONObject data=ContentApi.moodData(tmdbKey(),"movie",genres[n],runtime,rating,1);List<Catalog.Item> rows=ContentApi.tmdbRows(data.getJSONArray("results"),"movie",false);ui.post(()->{if(isDestroyed())return;category="Mood";catalog=rows;scroll.scrollTo(0,0);render();status.setText(labels[n]+" · TMDB discovery");});}catch(Exception e){ui.post(()->message("Could not load those picks right now."));}});}).setNegativeButton("Cancel",null).show();}
     void homePanelOrderSettings(){LinearLayout panel=column();panel.setPadding(dp(10),dp(8),dp(10),dp(8));AlertDialog[] holder=new AlertDialog[1];Runnable[] rebuild=new Runnable[1];rebuild[0]=()->{panel.removeAllViews();for(String id:Zero22.homeOrder(prefs)){int index=Arrays.asList(HomePanels.IDS).indexOf(id);if(index<0)continue;LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);TextView label=text(HomePanels.LABELS[index],14,INK);row.addView(label,new LinearLayout.LayoutParams(0,dp(44),1));Button up=button("↑",()->{Zero22.moveHomePanel(prefs,id,-1);rebuild[0].run();});Button down=button("↓",()->{Zero22.moveHomePanel(prefs,id,1);rebuild[0].run();});row.addView(up,new LinearLayout.LayoutParams(dp(48),dp(42)));row.addView(down,new LinearLayout.LayoutParams(dp(48),dp(42)));panel.addView(row);}};rebuild[0].run();ScrollView scroll=new ScrollView(this);scroll.addView(panel);holder[0]=new AlertDialog.Builder(this).setTitle("Homepage order").setView(scroll).setPositiveButton("Done",(d,n)->{if(category.equals("Home"))render();}).setNeutralButton("Reset",(d,n)->{prefs.edit().remove("homePanelOrder").apply();if(category.equals("Home"))render();}).create();holder[0].show();}
@@ -386,6 +404,8 @@ public class MainActivity extends Activity {
     }
     List<Catalog.Item> carouselSourceItems(List<Catalog.Item> all){
         List<Catalog.Item> source=new ArrayList<>();String mode=carouselSource();
+        if(category.equals("Home")&&!homeHeroItems.isEmpty()&&!mode.equals("continue")&&!mode.equals("watchlist"))
+            return new ArrayList<>(homeHeroItems);
         if(mode.equals("watchlist")){
             for(String id:favorites()){
                 String saved=prefs.getString("saved:"+id,"");
@@ -411,6 +431,7 @@ public class MainActivity extends Activity {
     }
     void confirmResetApplication(){AlertDialog reset=new AlertDialog.Builder(this).setTitle("Reset application and settings?").setMessage("This restores ZeroPlay settings, watchlist, history, collections and API preferences to their defaults. Downloaded media files are kept.").setPositiveButton("Reset",(d,n)->{stopPreview();prefs.edit().clear().commit();message("ZeroPlay reset to defaults");recreate();}).setNegativeButton("No, Go Back",null).create();reset.setOnShowListener(d->{reset.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.rgb(255,95,95));reset.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(ACCENT);});reset.show();}
     private SmartHomeRecommendations.Session homeRecommendationSession;
+    private List<Catalog.Item> homeHeroItems=new ArrayList<>();
     private final Map<String,List<Catalog.Item>> homeExtras=new HashMap<>();private final Set<String> homeExtraLoading=new HashSet<>();
     void homeExtraRows(int token){for(int i=HomePanels.EXTRA_START;i<HomePanels.IDS.length;i++)if(homePanel(HomePanels.IDS[i]))homeExtraRow(HomePanels.IDS[i],token);}
     void homeExtraRow(String id,int token){int index=Arrays.asList(HomePanels.IDS).indexOf(id);if(index<HomePanels.EXTRA_START)return;String label=HomePanels.LABELS[index];List<Catalog.Item> rows=homeExtras.get(id);if(rows!=null){List<Catalog.Item> selected=homeRecommendationSession==null?rows:homeRecommendationSession.claim("extra:"+id,rows,18);posterRow(label,selected,token);if(homeRecommendationSession!=null)homeRecommendationSession.commit(prefs);return;}if(!homeExtraLoading.add(id))return;io.execute(()->{List<Catalog.Item> loaded;try{JSONObject data=id.equals("anime")?ContentApi.animeData(tmdbKey(),"tv",1):ContentApi.genreData(tmdbKey(),"movie",HomePanels.genre(id),1);loaded=ContentApi.tmdbRows(data.getJSONArray("results"),id.equals("anime")?"tv":"movie",false);}catch(Exception e){loaded=new ArrayList<>();}List<Catalog.Item> ready=loaded;ui.post(()->{homeExtraLoading.remove(id);homeExtras.put(id,ready);if(!isDestroyed()&&category.equals("Home"))render();});});}
@@ -512,7 +533,17 @@ public class MainActivity extends Activity {
         heroTick=new Runnable(){public void run(){if(!foreground||token!=renderVersion||!category.equals("Home"))return;if(!hero.hasFocus()&&!detailsOpen&&scroll.getScrollY()<hero.getHeight()/2){heroIndex=(heroIndex+1)%picks.size();paint[0].run();}ui.postDelayed(this,8000);}};ui.postDelayed(heroTick,8000);
     }
     List<Catalog.Item> localItems(){LinkedHashMap<String,Catalog.Item> items=new LinkedHashMap<>();for(Catalog.Item item:browse)items.put(item.id,item);for(Map.Entry<String,?> entry:prefs.getAll().entrySet())if(entry.getKey().startsWith("saved:")&&entry.getValue() instanceof String)try{Catalog.Item item=new Catalog.Item(new JSONObject((String)entry.getValue()));items.put(item.id,item);}catch(Exception ignored){}return new ArrayList<>(items.values());}
-    List<Catalog.Item> continuing(){List<Catalog.Item> rows=new ArrayList<>();for(Catalog.Item item:localItems())if(prefs.getLong("position:"+item.id,0)>0&&prefs.getInt("percent:"+item.id,0)<95)rows.add(item);Collections.sort(rows,(a,b)->Long.compare(prefs.getLong("watchedAt:"+b.id,0),prefs.getLong("watchedAt:"+a.id,0)));return rows;}
+    List<Catalog.Item> continuing(){
+        LinkedHashMap<String,Catalog.Item> unique=new LinkedHashMap<>();
+        for(Catalog.Item item:localItems()){
+            int percent=prefs.getInt("percent:"+item.id,0);
+            if(prefs.getLong("position:"+item.id,0)>0&&percent>1&&percent<95&&!item.poster.isEmpty())
+                unique.put(item.id,item);
+        }
+        List<Catalog.Item> rows=new ArrayList<>(unique.values());
+        rows.sort((a,b)->Long.compare(prefs.getLong("watchedAt:"+b.id,0),prefs.getLong("watchedAt:"+a.id,0)));
+        return rows;
+    }
     void resume(Catalog.Item item){int season=prefs.getInt("resumeSeason:"+item.id,-1),episode=prefs.getInt("resumeEpisode:"+item.id,0);if(item.type.equals("series")&&season>=0&&episode>0)try{chooseStreams(item,ContentApi.movieSources(item.id.substring(item.id.lastIndexOf('-')+1),"tv",season,episode),item.id+":s"+season+"e"+episode);return;}catch(JSONException ignored){}watch(item);}
     void sectionLabel(LinearLayout parent,String name){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);View accent=new View(this);accent.setBackgroundColor(ACCENT);row.addView(accent,new LinearLayout.LayoutParams(dp(3),dp(24)));TextView title=text(name,BuildConfig.TV?22:20,INK);bold(title);title.setPadding(dp(10),0,0,0);row.addView(title);parent.addView(row);space(parent,12);}
     void upcomingRow(List<Catalog.Item> rows,int token){if(rows.isEmpty())return;sectionLabel(content,"Coming soon");HorizontalScrollView rail=new HorizontalScrollView(this);rail.setHorizontalScrollBarEnabled(false);LinearLayout cards=new LinearLayout(this);for(Catalog.Item item:rows.subList(0,Math.min(15,rows.size()))){FrameLayout card=new FrameLayout(this);card.setBackground(shape(SURFACE,0));card.setClipToOutline(true);card.setFocusable(true);card.setClickable(true);card.setContentDescription(item.title+", releasing "+item.raw.optString("releaseDate"));card.setOnClickListener(v->details(item));card.setOnHoverListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_HOVER_ENTER)focusPreview(item,card);else if(event.getAction()==MotionEvent.ACTION_HOVER_EXIT)stopPreview();return false;});card.setOnFocusChangeListener((v,f)->v.setBackground(shape(SURFACE,f?ACCENT:0)));ImageView image=new ImageView(this);image.setScaleType(ImageView.ScaleType.CENTER_CROP);card.addView(image,new FrameLayout.LayoutParams(-1,-1));String url=item.raw.optString("backdrop");if(url.isEmpty())url=item.poster;if(!url.isEmpty())picture(url,image,token);View shade=new View(this);shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x00000000,tint(0xEE)}));card.addView(shade,new FrameLayout.LayoutParams(-1,-1));LinearLayout label=column();label.setPadding(dp(12),dp(8),dp(12),dp(10));TextView name=text(item.title,14,INK);bold(name);name.setMaxLines(1);name.setEllipsize(TextUtils.TruncateAt.END);label.addView(name);label.addView(text("Movie · "+item.year,11,MUTED));card.addView(label,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));TextView date=text(releaseLabel(item.raw.optString("releaseDate")),11,BG);bold(date);date.setPadding(dp(8),dp(4),dp(8),dp(4));date.setBackground(shape(ACCENT,0));FrameLayout.LayoutParams tag=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);tag.setMargins(0,dp(8),dp(8),0);card.addView(date,tag);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(240),dp(145));cp.setMargins(0,0,dp(12),0);cards.addView(card,cp);}rail.addView(cards);content.addView(rail);space(content,24);}
