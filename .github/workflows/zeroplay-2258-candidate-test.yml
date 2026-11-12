@@ -123,14 +123,22 @@ jobs:
       - name: Install Windows dependencies
         working-directory: windows
         run: npm ci --no-audit --no-fund
-      - name: Preserve stable Windows stack, add status UI, set 2.2.5.7
+      - name: Preserve Windows playback stack and set proper 2.2.5.8 TEST version
+        shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           node scripts/apply-2.2.4-volume-boost.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Volume patch failed' }
           node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Audio patch failed' }
           node scripts/apply-custom-livetv-windows-test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Live TV compatibility patch failed' }
           node scripts/apply-smart-status-windows-2.2.5.7.cjs
-          node -e "const fs=require('fs'),p='windows/package.json',j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Unexpected Windows baseline');j.version='2.2.5-7';j.build.buildVersion='2.2.5.7';j.build.win.artifactName='ZeroPlay-2.2.5.7-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
-          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.5-7')!=='2.2.5.7')throw Error('Windows public version mapping failed')"
+          if ($LASTEXITCODE -ne 0) { throw 'Stream status compatibility patch failed' }
+          node scripts/prepare-2258-windows-test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows test package preparation failed' }
+          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.5-8')!=='2.2.5.8')throw Error('Candidate version mapping failed')"
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate version check failed' }
       - name: Test Discovery 2.0 and Zero Crimson branding
         shell: pwsh
         run: |
@@ -147,7 +155,7 @@ jobs:
         run: |
           npm test
           node --test test/smart-status-2.2.5.7.test.cjs
-          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.5\\.7$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.5.7')"
+          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.5\\.8$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.5.8')"
       - name: Build self-contained visible ZeroPlayUpdater.exe
         shell: pwsh
         run: |
@@ -158,13 +166,17 @@ jobs:
           Write-Host "ZeroPlayUpdater.exe built: $($helper.Length) bytes"
       - name: Package Windows x64 ZIP including updater
         working-directory: windows
-        run: npm run build -- --publish never
+        shell: pwsh
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'electron-builder failed' }
+
       - name: Check actual Windows ZIP contains separate updater helper
         shell: pwsh
         run: |
           $helper = Get-Item windows/dist/win-unpacked/ZeroPlayUpdater.exe -ErrorAction Stop
           if($helper.Length -lt 1000000){throw 'Updater not packaged beside ZeroPlay.exe'}
-          $zip = Get-Item windows/dist/ZeroPlay-2.2.5.7-Windows-x64.zip -ErrorAction Stop
+          $zip = Get-Item windows/dist/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip -ErrorAction Stop
           if($zip.Length -lt 5000000){throw 'Windows portable ZIP missing or empty'}
           Add-Type -AssemblyName System.IO.Compression
           $archive = [System.IO.Compression.ZipFile]::OpenRead($zip.FullName)
@@ -181,12 +193,12 @@ jobs:
           $process=Start-Process -FilePath $exe -ArgumentList '--ui-smoke-test','--disable-gpu' -PassThru
           if(-not $process.WaitForExit(60000)){ $process.Kill(); throw 'ZeroPlay packaged UI startup timed out' }
           if($process.ExitCode -ne 0){ throw "ZeroPlay packaged UI failed with exit code $($process.ExitCode)" }
-          Write-Host 'Packaged Windows 2.2.5.7 startup passed.'
+          Write-Host 'Packaged Windows 2.2.5.8 TEST startup passed.'
       - name: Copy verified Windows test ZIP
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force windows/delivery | Out-Null
-          Copy-Item windows/dist/ZeroPlay-2.2.5.7-Windows-x64.zip windows/delivery/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip -Force
+          Copy-Item windows/dist/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip windows/delivery/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip -Force
           (Get-FileHash windows/delivery/ZeroPlay-2.2.5.8-TEST-Windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content windows/delivery/SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
