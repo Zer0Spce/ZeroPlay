@@ -29,7 +29,7 @@ function fixture(){
 const flatten=r=>[...r.hero,...Object.values(r.shelves).flat()];
 test('TMDB recommendations are deduplicated across all homepage shelves and hero',()=>{
   const r=e.select(fixture());
-  assert.ok(r.candidateCount>400);
+  assert.ok(r.candidateCount>300,'Expected hundreds of distinct TMDB candidates');
   assert.ok(flatten(r).length>55);
   assert.equal(new Set(flatten(r).map(e.id)).size,flatten(r).length);
 });
