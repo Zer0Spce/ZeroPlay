@@ -123,18 +123,14 @@ jobs:
       - name: Install Windows dependencies
         working-directory: windows
         run: npm ci --no-audit --no-fund
-      - name: Preserve Windows playback stack and set proper 2.2.5.8 TEST version
+      - name: Verify v2.2.5.7 source and prepare 2.2.5.8 test package
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          node scripts/apply-2.2.4-volume-boost.cjs
-          if ($LASTEXITCODE -ne 0) { throw 'Volume patch failed' }
-          node scripts/apply-2.2.4.1-audio-hotfix.cjs
-          if ($LASTEXITCODE -ne 0) { throw 'Audio patch failed' }
-          node scripts/apply-custom-livetv-windows-test.cjs
-          if ($LASTEXITCODE -ne 0) { throw 'Live TV compatibility patch failed' }
-          node scripts/apply-smart-status-windows-2.2.5.7.cjs
-          if ($LASTEXITCODE -ne 0) { throw 'Stream status compatibility patch failed' }
+          # Baseline commit already contains 2.2.5.7 Windows source changes.
+          # Do NOT reapply legacy scripts: they target older pre-release markers.
+          node --test windows/test/smart-status-2.2.5.7.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw '2.2.5.7 source verification failed' }
           node scripts/prepare-2258-windows-test.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Windows test package preparation failed' }
           node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.5-8')!=='2.2.5.8')throw Error('Candidate version mapping failed')"
