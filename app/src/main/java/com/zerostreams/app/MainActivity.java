@@ -282,6 +282,45 @@ public class MainActivity extends Activity {
         }
         homeRecommendationSession.commit(prefs);
     }
+    boolean matchesGenre(Catalog.Item item,int genre){
+        JSONArray list=item.raw.optJSONArray("genreIds");
+        if(list!=null)for(int i=0;i<list.length();i++)if(list.optInt(i)==genre)return true;
+        return false;
+    }
+    List<Catalog.Item> discoveryThrillers(List<Catalog.Item> all){
+        List<Catalog.Item> out=new ArrayList<>();
+        for(Catalog.Item x:all)if(x.type.equals("movie")&&matchesGenre(x,53)&&
+            x.raw.optDouble("rating",0)>=7&&x.raw.optInt("voteCount",0)>=180)out.add(x);
+        return out;
+    }
+    List<Catalog.Item> discoveryRecent(List<Catalog.Item> all){
+        List<Catalog.Item> out=new ArrayList<>();long now=System.currentTimeMillis();
+        java.text.SimpleDateFormat fmt=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT);
+        for(Catalog.Item x:all)if(x.type.equals("movie")){
+            try{
+                long date=fmt.parse(x.raw.optString("releaseDate","")).getTime();
+                if(date<=now&&now-date<=365L*86400000L)out.add(x);
+            }catch(Exception ignored){}
+        }
+        return out;
+    }
+    List<Catalog.Item> discoveryDifferent(List<Catalog.Item> all){
+        List<Catalog.Item> out=new ArrayList<>();
+        Set<Integer> known=homeRecommendationSession.genres.keySet();
+        for(Catalog.Item x:all)if(x.type.equals("movie")||x.type.equals("series")){
+            JSONArray genres=x.raw.optJSONArray("genreIds");boolean overlapping=false;
+            if(genres!=null)for(int i=0;i<genres.length();i++)
+                if(known.contains(genres.optInt(i)))overlapping=true;
+            if(!overlapping)out.add(x);
+        }
+        return out;
+    }
+    List<Catalog.Item> discoveryClassics(List<Catalog.Item> all){
+        List<Catalog.Item> out=new ArrayList<>();
+        int year=Calendar.getInstance().get(Calendar.YEAR)-8;
+        for(Catalog.Item x:all)if(x.type.equals("movie")&&x.year>0&&x.year<=year)out.add(x);
+        return out;
+    }
     void loadAiringToday(){if(airingLoading||tmdbKey().isEmpty())return;airingLoading=true;io.execute(()->{List<Catalog.Item> rows;try{rows=ContentApi.airingToday(tmdbKey());}catch(Exception e){rows=new ArrayList<>();}List<Catalog.Item> ready=rows;ui.post(()->{airingLoading=false;airingToday=ready;if(!isDestroyed()&&category.equals("Home"))render();});});}
     void peopleSection(){if(peopleSearch==null||peopleSearch.length()==0)return;sectionLabel(content,"People");HorizontalScrollView rail=new HorizontalScrollView(this);rail.setHorizontalScrollBarEnabled(false);LinearLayout cards=new LinearLayout(this);for(int i=0;i<Math.min(peopleSearch.length(),12);i++){JSONObject person=peopleSearch.optJSONObject(i);if(person==null||person.optInt("id")<=0)continue;String name=person.optString("name","Person"),known=person.optString("known_for_department","");Button b=button(name+(known.isEmpty()?"":" · "+known),()->startActivity(new Intent(this,PersonFilmographyActivity.class).putExtra("personId",person.optInt("id")).putExtra("personName",name)));b.setContentDescription("Open "+name+" profile");LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(BuildConfig.TV?220:180),dp(52));lp.setMargins(0,0,dp(10),0);cards.addView(b,lp);}rail.addView(cards);content.addView(rail);space(content,18);}
     String cardBadge(Catalog.Item item,int progress){if(item.raw.optInt("upNextEpisode",0)>0)return "S"+item.raw.optInt("upNextSeason",1)+" E"+item.raw.optInt("upNextEpisode",1)+" NEXT";if(progress>=95)return "WATCHED";if(favorites().contains(item.id))return "WATCHLIST";String date=item.raw.optString("releaseDate","");
