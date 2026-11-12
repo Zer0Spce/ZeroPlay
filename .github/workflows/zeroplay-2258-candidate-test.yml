@@ -1,4 +1,4 @@
-name: ZeroPlay 2.2.5.8 Candidate — Recommendations and Sunset Palette (TEST ONLY)
+name: ZeroPlay 2.2.5.8 Candidate — Discovery 2.0 & Zero Crimson (TEST ONLY)
 on:
   push:
     branches:
@@ -57,7 +57,7 @@ jobs:
           fs.writeFileSync(file,s);
           NODE
           node --test tests/android-native-live-ppv-v2.2.5.6.test.cjs
-      - name: Test palette and recommendation engine integration
+      - name: Test Discovery 2.0 and Zero Crimson integration
         run: |
           node --check windows/ui/fresh-recommendations.js
           node --check windows/ui/fresh-home.js
@@ -131,7 +131,7 @@ jobs:
           node scripts/apply-smart-status-windows-2.2.5.7.cjs
           node -e "const fs=require('fs'),p='windows/package.json',j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Unexpected Windows baseline');j.version='2.2.5-7';j.build.buildVersion='2.2.5.7';j.build.win.artifactName='ZeroPlay-2.2.5.7-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
           node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.5-7')!=='2.2.5.7')throw Error('Windows public version mapping failed')"
-      - name: Test new discovery and brand palette
+      - name: Test Discovery 2.0 and Zero Crimson branding
         shell: pwsh
         run: |
           node --check windows/ui/fresh-recommendations.js
