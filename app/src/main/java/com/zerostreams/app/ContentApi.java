@@ -71,13 +71,14 @@ final class ContentApi {
     static List<Catalog.Item> searchMovies(String query,String key,int page) throws Exception {
         return tmdbRows(tmdb("/search/multi",key,"&query="+URLEncoder.encode(query.trim(),"UTF-8")+"&include_adult=false&page="+page).getJSONArray("results"),"",true);
     }
-    static List<Catalog.Item> browseMovies(String key,String section,int page) throws Exception {
+    static List<Catalog.Item> browseMovies(String key,String section,int page) throws Exception {return browseMovies(key,section,page,0);}
+    static List<Catalog.Item> browseMovies(String key,String section,int page,int homeRotation) throws Exception {
         if(section.equals("Movies"))return tmdbRows(tmdb("/movie/popular",key,"&page="+page).getJSONArray("results"),"movie",false);
         if(section.equals("Series"))return tmdbRows(tmdb("/tv/popular",key,"&page="+page).getJSONArray("results"),"tv",false);
         LinkedHashMap<String,Catalog.Item> rows=new LinkedHashMap<>();
         String[][] endpoints={{"/trending/all/week","","trending"},{"/trending/all/day","","trending"},{"/movie/popular","movie","popular"},{"/tv/popular","tv","popular"},{"/movie/now_playing","movie","nowPlaying"},{"/movie/top_rated","movie","recommended"},{"/movie/upcoming","movie","upcoming"}};
         Exception failure=null;String today=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date());
-        for(int i=0;i<endpoints.length;i++){String[] endpoint=endpoints[i];try{for(Catalog.Item item:tmdbRows(tmdb(endpoint[0],key,"&page="+SmartHomeRecommendations.rotatingPage(System.currentTimeMillis(),i,i<2?3:4)).getJSONArray("results"),endpoint[1],false)){
+        for(int i=0;i<endpoints.length;i++){String[] endpoint=endpoints[i];try{for(Catalog.Item item:tmdbRows(tmdb(endpoint[0],key,"&page="+SmartHomeRecommendations.rotatingPage(System.currentTimeMillis(),i+homeRotation,i<2?3:4)).getJSONArray("results"),endpoint[1],false)){
             if(endpoint[2].equals("upcoming")&&item.raw.optString("releaseDate").compareTo(today)<=0)continue;
             item.raw.put(endpoint[2],true);Catalog.Item existing=rows.get(item.id);
             if(existing!=null)existing.raw.put(endpoint[2],true);else rows.put(item.id,item);
