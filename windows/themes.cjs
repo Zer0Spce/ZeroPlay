@@ -1,6 +1,6 @@
 'use strict';
 const themes={
- dark:{name:'Zero Sunset · 2.2.5.8 Test',bg:'#181A2F',surface:'#242E49',sidebar:'#181A2F',card:'#37415C',button:'#242E49',focus:'#FDA481',accent:'#FDA481',selected:'#54162B',ink:'#FFF7F1',muted:'#D4C9D3',highlight:'#FDA481',dialog:'#242E49'},
+ dark:{name:'Zero Sunset',bg:'#181A2F',surface:'#242E49',sidebar:'#181A2F',card:'#37415C',button:'#242E49',focus:'#FDA481',accent:'#FDA481',selected:'#54162B',ink:'#FFF7F1',muted:'#D4C9D3',highlight:'#FDA481',dialog:'#242E49'},
  light:{name:'Zero Light',bg:'#f3f5f9',surface:'#ffffff',sidebar:'#e8edf4',card:'#ffffff',button:'#e5ecef',focus:'#0a715e',accent:'#0a715e',selected:'#d4ebe5',ink:'#182130',muted:'#536174',highlight:'#755309',dialog:'#ffffff'},
  ocean:{name:'Ocean',bg:'#081b29',surface:'#102c3d',sidebar:'#0c2333',card:'#153547',button:'#1a4155',focus:'#79e2bd',accent:'#79e2bd',selected:'#1c4c49',ink:'#effbff',muted:'#afcad7',highlight:'#bfe9c8',dialog:'#102c3d'},
  orchid:{name:'Orchid',bg:'#18132b',surface:'#29203d',sidebar:'#20182f',card:'#352748',button:'#453257',focus:'#efb3dc',accent:'#efb3dc',selected:'#573b60',ink:'#fff5fd',muted:'#cbbbda',highlight:'#adc2ff',dialog:'#29203d'},
