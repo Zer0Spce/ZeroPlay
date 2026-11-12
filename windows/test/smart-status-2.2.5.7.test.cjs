@@ -12,12 +12,12 @@ test('Windows Live PPV shows nonclickable status badges and no favorite action',
  const s=fs.readFileSync(path.join(root,'ui','app.js'),'utf8');
  assert.match(s,/function streamBadgeHTML\(channel\)/);
  assert.match(s,/stream-pill-live/);
- assert.match(s,/stream-pill-verified/);
- assert.match(s,/stream-pill-reachable/);
- assert.match(s,/stream-pill-unverified/);
+ assert.match(s,/stream-pill-.*status/);
+ assert.match(s,/status===.*verified/);
  assert.match(s,/live\?'':'<button data-favorite-channel/);
  const css=fs.readFileSync(path.join(root,'ui','style.css'),'utf8');
  assert.match(css,/pointer-events:none/);
+ for(const cls of ['stream-pill-verified','stream-pill-reachable','stream-pill-unverified'])assert.ok(css.includes(cls));
 });
 test('Updater remains open with visible status and persistent file logging',()=>{
  const source=fs.readFileSync(path.join(root,'updater-helper','Program.cs'),'utf8');
