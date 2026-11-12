@@ -58,7 +58,7 @@ jobs:
           node scripts/apply-2.2.4.1-audio-hotfix.cjs
           node scripts/apply-custom-livetv-windows-test.cjs
           node scripts/apply-smart-status-windows-2.2.5.7.cjs
-          node -e "const fs=require('fs'),p='windows/package.json',j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Unexpected Windows baseline');j.version='2.2.5-7';j.build.buildVersion='2.2.5.7';j.build.win.artifactName='ZeroPlay-2.2.5.7-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+          node -e "const fs=require('fs'),p='windows/package.json',j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.version!=='2.2.5-test1')throw Error('Unexpected Windows baseline');j.version='2.2.5-7';j.build.buildVersion='2.2.5.7';j.build.win.artifactName='ZeroPlay-2.2.5.7-Windows-x64.'+String.fromCharCode(36)+'{ext}';fs.writeFileSync(p,JSON.stringify(j,null,2));"
           if ($LASTEXITCODE -ne 0) { throw 'v2.2.5.7 Windows patch failed' }
       - name: Existing Windows and Figma UI regression tests
         working-directory: windows
