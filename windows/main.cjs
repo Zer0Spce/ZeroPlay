@@ -253,6 +253,19 @@ app.whenReady().then(async()=>{
   main.webContents.session.webRequest.onBeforeSendHeaders({urls:['https://www.youtube-nocookie.com/*','https://www.youtube.com/*']},(details,callback)=>callback({requestHeaders:{...details.requestHeaders,Referer:new URL(uiURL).origin+'/'}}));
   main.webContents.setWindowOpenHandler(()=>({action:'deny'}));main.webContents.on('will-navigate',event=>event.preventDefault());main.webContents.on('will-attach-webview',event=>event.preventDefault());
   main.once('ready-to-show',()=>{versions.confirmCurrent(app.getVersion());main.show();if(sportsCacheFailures.length&&!smoke)dialog.showMessageBox(main,{type:'warning',title:'Old Live Sports cache',message:'Some retired sports cache files could not be removed. Keep Microsoft Defender enabled and remove or quarantine any detected item in Protection History. The new sports player uses a memory-only browser session.'});});main.on('closed',closePlayer);await main.loadURL(uiURL);
+  if(process.argv.includes('--figma-one-smoke-test')){
+    try{
+      const result=await main.webContents.executeJavaScript("(async()=>{\n  const started=Date.now();\n  while((typeof state==='undefined'||!state?.settings||!window.zero?.api) && Date.now()-started<30000){\n    await new Promise(r=>setTimeout(r,250));\n  }\n  if(!state?.settings)throw Error('State did not initialize');\n  await change('settings',{...state.settings,uiLayout:'figma-one'});\n  await navigate('Home',true);\n  const hero=document.querySelector('#hero.one-hero');\n  const tiles=[...document.querySelectorAll('.one-category')];\n  const nav=document.querySelector('aside .brand');\n  if(document.documentElement.dataset.layout!=='figma-one'||!hero||\n     tiles.length!==5||!nav||!document.querySelector('.one-watch'))\n       throw Error('Figma One UI did not render correctly');\n  const backdrop=hero.querySelector('img.one-hero-image');\n  if(backdrop)await Promise.race([\n    backdrop.decode().catch(()=>{}),\n    new Promise(r=>setTimeout(r,9000))\n  ]);\n  await new Promise(r=>setTimeout(r,1600));\n  return {layout:document.documentElement.dataset.layout,\n    hero:hero.querySelector('.one-title h2')?.textContent,\n    categories:tiles.length,\n    wide:document.querySelectorAll('.one-card-wide').length,\n    portrait:document.querySelectorAll('.one-card-poster').length,\n    navButtons:document.querySelectorAll('aside button').length,\n    backdropLoaded:!!backdrop?.naturalWidth};\n})()");
+      fs.mkdirSync('dist',{recursive:true});
+      fs.writeFileSync('dist/figma-one-preview.png',(await main.webContents.capturePage()).toPNG());
+      console.log('ZERO_FIGMA_ONE_UI_SMOKE_PASS '+JSON.stringify(result));
+      app.exit(0);
+    }catch(error){
+      console.error('ZERO_FIGMA_ONE_UI_SMOKE_FAIL',error);
+      app.exit(2);
+    }
+    return;
+  }
   if(process.argv.includes('--ui-smoke-test')){
     try{
       const result=await main.webContents.executeJavaScript(
