@@ -39,7 +39,7 @@ test('recently shown titles are avoided when unseen titles exist',()=>{
   x.pools.trending.push(...Array.from({length:20},(_,i)=>movie(850+i)));
   const hero=e.select(x).hero;
   assert.ok(hero.length>0);
-  hero.forEach(x=>assert.ok(!Object.hasOwn(fixture().seen||{},e.id(x))));
+  hero.forEach(item=>assert.ok(!Object.hasOwn(x.seen,e.id(item)), 'Recently shown hero repeated: '+e.id(item)));
 });
 test('watched, not-interested, upcoming, and media without artwork excluded from recommended shelves',()=>{
   const x=fixture();
