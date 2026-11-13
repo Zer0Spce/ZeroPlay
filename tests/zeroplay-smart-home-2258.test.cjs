@@ -168,5 +168,9 @@ test('new default home sections, VOD source and provider cards are wired on Wind
   assert.match(native,/Latest VOD Releases/);
   assert.match(native,/discoveryVODPreset2258/);
   assert.match(native,/providerTileBackground/);
+  assert.match(native,/case "top10":/);
+  assert.match(api,/trendingToday/);
+  assert.match(native,/header\.addView\(refreshPicks,rp\)/);
+  assert.match(native,/if\(BuildConfig\.TV&&\(googleLayout\(\)\|\|flixLayout\(\)\)\)/);
   assert.match(read('windows/ui/layouts.js'),/dataset\.nav==='Home'\?'Home'/);
 });
