@@ -254,7 +254,9 @@ public class MainActivity extends Activity {
         homeRecommendationSession.reserve(resumes);
         homeRecommendationSession.reserve(upnext);
         homeRecommendationSession.reserveIds(favorites());
-        homeRecommendationSession.reserve(carouselSourceItems(clean));
+        // Reserve only the displayed hero picks, not the entire source pool.
+        // Otherwise the Top 10 Today row can be starved before it renders.
+        homeRecommendationSession.reserve(homeHeroItems);
         // Claim genuine digital releases early, so other shelves cannot consume their slots.
         List<Catalog.Item> digitalCandidates=new ArrayList<>();
         for(Catalog.Item item:clean)if(item.type.equals("movie")&&item.raw.optBoolean("digitalVOD",false))
