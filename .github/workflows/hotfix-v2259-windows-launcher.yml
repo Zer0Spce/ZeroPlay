@@ -1,0 +1,255 @@
+name: ZeroPlay 2.2.5.9 Windows Launcher Startup Crash In-Place Hotfix
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hotfix-v2259-windows-updater.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeroplay-2259-windows-launcher-release-hotfix
+  cancel-in-progress: false
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 110
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+      ZERO_2259_PRODUCTION: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Windows dependencies
+        working-directory: windows
+        run: npm ci --no-audit --no-fund
+      - name: Render approved playmark at Windows required 256px icon size
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-Type -AssemblyName System.Drawing
+          $sourcePath=(Resolve-Path windows/assets/zeroplay-app-icon.png).Path
+          $assets=(Resolve-Path windows/assets).Path
+          $source=[System.Drawing.Image]::FromFile($sourcePath)
+          try {
+            foreach ($size in @(16,24,32,48,64,128,256)) {
+              $destPath=Join-Path $assets "zeroplay-app-icon-$size.png"
+              $target=[System.Drawing.Bitmap]::new($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+              $graphics=[System.Drawing.Graphics]::FromImage($target)
+              try {
+                $graphics.Clear([System.Drawing.Color]::Transparent)
+                $graphics.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $graphics.CompositingQuality=[System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+                $graphics.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $graphics.DrawImage($source,0,0,$size,$size)
+                $target.Save($destPath,[System.Drawing.Imaging.ImageFormat]::Png)
+              } finally {
+                $graphics.Dispose()
+                $target.Dispose()
+              }
+              if ((Get-Item $destPath -ErrorAction Stop).Length -lt 200) { throw "Windows $size px icon rendering failed" }
+            }
+          } finally {
+            $source.Dispose()
+          }
+      - name: Verify v2.2.5.7 source and prepare 2.2.5.9 production package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Baseline commit already contains 2.2.5.7 Windows source changes.
+          # Do NOT reapply legacy scripts: they target older pre-release markers.
+          node --test windows/test/smart-status-2.2.5.7.test.cjs
+          # The old packaged --ui-smoke-test bypassed maybeLaunchCurrent entirely.
+          node --test windows/test/version-launcher-pending.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw '2.2.5.7 source verification failed' }
+          node scripts/prepare-2259-windows-release.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows production package preparation failed' }
+          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.5-9')!=='2.2.5.9')throw Error('Production version mapping failed')"
+          if ($LASTEXITCODE -ne 0) { throw 'Production version check failed' }
+      - name: Test Discovery 2.0 and Zero Crimson branding
+        shell: pwsh
+        run: |
+          node --check windows/ui/fresh-recommendations.js
+          if ($LASTEXITCODE -ne 0) { throw 'Discovery JS syntax check failed' }
+          node --check windows/ui/fresh-home.js
+          if ($LASTEXITCODE -ne 0) { throw 'Home integration syntax check failed' }
+          node --check windows/ui/app.js
+          if ($LASTEXITCODE -ne 0) { throw 'Windows UI syntax check failed' }
+          node --test tests/zeroplay-smart-home-2259.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Recommendation tests failed' }
+      - name: Run all Windows and Smart Stream Status regressions
+        working-directory: windows
+        run: |
+          npm test
+          node --test test/smart-status-2.2.5.7.test.cjs
+          node --test test/version-launcher-pending.test.cjs
+          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.5\\.8$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.5.9')"
+      - name: Build self-contained visible ZeroPlayUpdater.exe
+        shell: pwsh
+        run: |
+          dotnet publish windows/updater-helper/ZeroPlayUpdater.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o windows/updater-publish
+          Copy-Item windows/updater-publish/ZeroPlayUpdater.exe windows/ZeroPlayUpdater.exe -Force
+          $helper = Get-Item windows/ZeroPlayUpdater.exe -ErrorAction Stop
+          if ($helper.Length -lt 1000000) { throw 'Standalone updater helper unexpectedly small' }
+          Write-Host "ZeroPlayUpdater.exe built: $($helper.Length) bytes"
+      - name: Package Windows x64 ZIP including updater
+        working-directory: windows
+        shell: pwsh
+        run: |
+          npm run build -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'electron-builder failed' }
+
+      - name: Check actual Windows ZIP contains separate updater helper
+        shell: pwsh
+        run: |
+          $helper = Get-Item windows/dist/win-unpacked/ZeroPlayUpdater.exe -ErrorAction Stop
+          if($helper.Length -lt 1000000){throw 'Updater not packaged beside ZeroPlay.exe'}
+          $zip = Get-Item windows/dist/ZeroPlay-2.2.5.9-Windows-x64.zip -ErrorAction Stop
+          if($zip.Length -lt 5000000){throw 'Windows portable ZIP missing or empty'}
+          Add-Type -AssemblyName System.IO.Compression
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zip.FullName)
+          try {
+            $names = @($archive.Entries | ForEach-Object { $_.FullName })
+            if(-not ($names | Where-Object { $_ -match '(^|/)ZeroPlayUpdater[.]exe$' })){throw 'ZIP missing ZeroPlayUpdater.exe'}
+            if(-not ($names | Where-Object { $_ -match '(^|/)ZeroPlay[.]exe$' })){throw 'ZIP missing ZeroPlay.exe'}
+          } finally { $archive.Dispose() }
+          Add-Type -AssemblyName System.Drawing
+          $exe=(Get-Item windows/dist/win-unpacked/ZeroPlay.exe -ErrorAction Stop).FullName
+          $embeddedIcon=[System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+          if ($null -eq $embeddedIcon) { throw 'Windows executable has no embedded icon' }
+          $bitmap=$embeddedIcon.ToBitmap()
+          $red=0; $teal=0
+          try {
+            for($x=0;$x -lt $bitmap.Width;$x++){
+              for($y=0;$y -lt $bitmap.Height;$y++){
+                $pixel=$bitmap.GetPixel($x,$y)
+                if($pixel.A -lt 90){continue}
+                if($pixel.R -gt 110 -and $pixel.R -gt 1.45*$pixel.G -and $pixel.R -gt 1.35*$pixel.B){$red++}
+                if($pixel.G -gt 90 -and $pixel.G -gt 1.3*$pixel.R -and $pixel.B -gt 1.1*$pixel.R){$teal++}
+              }
+            }
+          } finally {$bitmap.Dispose();$embeddedIcon.Dispose()}
+          if($red -lt 8 -or $red -le $teal){throw "ZeroPlay.exe still has the old teal/non-red icon: red=$red teal=$teal"}
+          Write-Host "Verified red ZeroPlay icon EMBEDDED in ZeroPlay.exe: $red red pixels vs $teal teal pixels"
+          Write-Host 'Windows ZIP includes both ZeroPlay.exe and standalone updater.'
+      - name: Packaged Windows UI startup smoke
+        shell: pwsh
+        run: |
+          $exe=(Get-Item windows/dist/win-unpacked/ZeroPlay.exe -ErrorAction Stop).FullName
+          $process=Start-Process -FilePath $exe -ArgumentList '--ui-smoke-test','--disable-gpu' -PassThru
+          if(-not $process.WaitForExit(60000)){ $process.Kill(); throw 'ZeroPlay packaged UI startup timed out' }
+          if($process.ExitCode -ne 0){ throw "ZeroPlay packaged UI failed with exit code $($process.ExitCode)" }
+          Write-Host 'Packaged Windows 2.2.5.9 production startup passed.'
+      - name: Copy verified Windows production ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force windows/delivery | Out-Null
+          Copy-Item windows/dist/ZeroPlay-2.2.5.9-Windows-x64.zip windows/delivery/ZeroPlay-2.2.5.9-Windows-x64.zip -Force
+          (Get-FileHash windows/delivery/ZeroPlay-2.2.5.9-Windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content windows/delivery/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5.9-Windows
+          path: windows/delivery/ZeroPlay-2.2.5.9-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+  replace_windows_asset:
+    needs: windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    if: github.ref == 'refs/heads/main'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download independently tested Windows ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: ZeroPlay-2.2.5.9-Windows
+          path: new-asset
+      - name: Verify release metadata, launcher fix, regression test and new ZIP size
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Windows regression suite already ran in the dependency-prepared Windows build job.
+          node --test windows/test/version-launcher-pending.test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const source=fs.readFileSync('windows/updater.cjs','utf8');
+          const launcher=fs.readFileSync('windows/version-manager.cjs','utf8');
+          assert.match(launcher,/let child;\\s*try\\s*\\{\\s*child=spawnSelection\\(pointer\\)/);
+          assert.match(source,/function selectLatestWindowsRelease\\(releases\\)/);
+          assert.ok(source.includes('a?.name===`ZeroPlay-${version}-Windows-x64.zip`'));
+          NODE
+          test -f new-asset/ZeroPlay-2.2.5.9-Windows-x64.zip
+          test "$(stat -c%s new-asset/ZeroPlay-2.2.5.9-Windows-x64.zip)" -gt 5000000
+          gh api "repos/$REPO/releases/tags/v2.2.5.9" --jq '.draft, .prerelease, .tag_name, .target_commitish' | tee release-info.txt
+          grep -Fxq 'false' release-info.txt
+          grep -Fxq 'v2.2.5.9' release-info.txt
+          gh release view v2.2.5.9 --repo "$REPO" --json assets --jq '.assets[].name' > release-asset-names.txt
+          test "$(wc -l < release-asset-names.txt)" -eq 6
+          grep -Fxq 'ZeroPlay-2.2.5.9-Windows-x64.zip' release-asset-names.txt
+          grep -Fxq 'SHA256SUMS.txt' release-asset-names.txt
+          for apk in ZeroPlay-2.2.5.9-Android.apk ZeroPlay-2.2.5.9-Android-TV.apk ZeroPlay-2.2.5.9-Android-Lite.apk ZeroPlay-2.2.5.9-Android-TV-Lite.apk; do
+            grep -Fxq "$apk" release-asset-names.txt
+          done
+      - name: Backup original v2.2.5.9 Windows asset and checksum (rollback)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rollback checksum
+          gh release download v2.2.5.9 --repo "$REPO" \
+            --pattern 'ZeroPlay-2.2.5.9-Windows-x64.zip' --pattern 'SHA256SUMS.txt' --dir rollback
+          test -s rollback/ZeroPlay-2.2.5.9-Windows-x64.zip
+          test -s rollback/SHA256SUMS.txt
+          grep -F 'ZeroPlay-2.2.5.9-Windows-x64.zip' rollback/SHA256SUMS.txt | (cd rollback && sha256sum --check)
+          grep -Fq 'ZeroPlay-2.2.5.9-Windows-x64.zip' rollback/SHA256SUMS.txt
+          # Exactly the four existing Android checksums must be retained.
+          grep -E 'ZeroPlay-2[.]2[.]5[.]8-Android.*[.]apk$' rollback/SHA256SUMS.txt > checksum/android-only.txt
+          test "$(wc -l < checksum/android-only.txt)" -eq 4
+          test "$(wc -l < rollback/SHA256SUMS.txt)" -eq 5
+          sha256sum new-asset/ZeroPlay-2.2.5.9-Windows-x64.zip |
+            sed 's#new-asset/##' > checksum/windows-new.txt
+          cat checksum/android-only.txt checksum/windows-new.txt > checksum/SHA256SUMS.txt
+          test "$(wc -l < checksum/SHA256SUMS.txt)" -eq 5
+          (cd new-asset && sha256sum --check ../checksum/windows-new.txt)
+          cmp checksum/android-only.txt <(grep -E 'ZeroPlay-2[.]2[.]5[.]8-Android.*[.]apk$' checksum/SHA256SUMS.txt)
+      - name: Preserve original Windows asset for recovery
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-v2.2.5.9-Windows-PRE-launcher-fix-rollback
+          path: rollback/
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+      - name: Replace ONLY official Windows ZIP and SHA256SUMS in the existing release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v2.2.5.9 --repo "$REPO" new-asset/ZeroPlay-2.2.5.9-Windows-x64.zip --clobber
+          gh release upload v2.2.5.9 --repo "$REPO" checksum/SHA256SUMS.txt --clobber
+      - name: Verify public replacement, checksum integrity, and unchanged Android release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p verified
+          gh release download v2.2.5.9 --repo "$REPO" \
+            --pattern 'ZeroPlay-2.2.5.9-Windows-x64.zip' --pattern 'SHA256SUMS.txt' --dir verified
+          grep -F 'ZeroPlay-2.2.5.9-Windows-x64.zip' verified/SHA256SUMS.txt | (cd verified && sha256sum --check)
+          cmp checksum/SHA256SUMS.txt verified/SHA256SUMS.txt
+          cmp checksum/android-only.txt <(grep -E 'ZeroPlay-2[.]2[.]5[.]8-Android.*[.]apk$' verified/SHA256SUMS.txt)
+          test "$(gh release view v2.2.5.9 --repo "$REPO" --json assets --jq '.assets | length')" -eq 6
+          echo 'Verified: v2.2.5.9 Windows startup bug fixed in the ZIP; Android APKs untouched; checksums synchronized.'
