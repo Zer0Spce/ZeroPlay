@@ -261,3 +261,16 @@
 .hero .hero-title-line h2{margin:12px 0 8px;min-height:0;max-height:none;flex:0 1 auto;min-width:0}
 .hero .hero-provider-logo{display:block;flex:none;width:auto;max-width:70px;height:auto;max-height:23px;object-fit:contain;object-position:left center;opacity:.92;filter:drop-shadow(0 1px 2px #0008)}
 @media(max-width:700px){.hero .hero-title-line{gap:8px}.hero .hero-provider-logo{max-width:54px;max-height:18px}}
+
+/* ZeroPlay 2.2.6 TEST: compact, functional search controls and local suggestions. */
+.zero-search-filters{padding:16px 18px;margin-bottom:20px;border:1px solid #ffffff22;background:#17191edd;border-radius:13px}
+.zero-search-filter-head{display:flex;align-items:baseline;justify-content:space-between;gap:15px;margin-bottom:12px}
+.zero-search-filter-head small{color:var(--muted)}
+.zero-search-filter-row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.zero-search-filter-row label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);flex:1 1 130px}
+.zero-search-filter-row select{width:100%;min-height:39px;border-radius:8px;background:#202126;color:white}
+.zero-search-warning{font-size:12px;color:#ffb7a5}
+#search-form{position:relative}
+.zero-search-suggest:not([hidden]){position:absolute;z-index:80;left:0;right:0;top:calc(100% + 6px);display:flex;flex-direction:column;padding:5px;background:#1e2025;border:1px solid #4c4f58;border-radius:10px;box-shadow:0 12px 25px #0009}
+.zero-search-suggest button{background:transparent;text-align:left;border:0;font-size:13px;color:white;padding:9px 12px}
+.zero-search-suggest button:hover{background:#df253122}
