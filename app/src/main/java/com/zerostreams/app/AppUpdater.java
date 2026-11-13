@@ -64,6 +64,8 @@ final class AppUpdater implements Application.ActivityLifecycleCallbacks {
     }
 
     void check(boolean manual){
+        // QA app cannot fetch/install an official production APK in its test identity.
+        if(BuildConfig.APPLICATION_ID.endsWith(".test")){if(manual)toast("ZeroPlay TEST · production updates disabled");return;}
         if(checking){if(manual)toast("Already checking for updates…");return;}checking=true;
         io.execute(()->{try{
             Release release=latest();

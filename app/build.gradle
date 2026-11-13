@@ -7,8 +7,7 @@ android {
     defaultConfig {
         applicationId 'com.zerostreams.app'
         // CI-only side-by-side test identity. Keeps production package names unchanged.
-        manifestPlaceholders = [appLabel: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay TEST' : 'ZeroPlay',
-                                appLabelLite: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay Lite TEST' : 'ZeroPlay Lite']
+        manifestPlaceholders = [appLabel: 'ZeroPlay TEST', appLabelLite: 'ZeroPlay Lite TEST']
         minSdk 23
         targetSdk 35
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' }
@@ -24,13 +23,13 @@ android {
     productFlavors {
         mobile {
             dimension 'device'
-            applicationIdSuffix '.mobile' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.mobile.test' // Test-only; never production identity
             buildConfigField 'boolean', 'TV', 'false'
             buildConfigField 'boolean', 'LITE', 'false'
         }
         tv {
             dimension 'device'
-            applicationIdSuffix '.tv' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.tv.test' // Test-only; never production identity
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'false'
         }
@@ -43,13 +42,13 @@ android {
         }
         liteMobile {
             dimension 'device'
-            applicationIdSuffix '.lite.mobile' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.lite.mobile.test' // Test-only; never production identity
             buildConfigField 'boolean', 'TV', 'false'
             buildConfigField 'boolean', 'LITE', 'true'
         }
         liteTv {
             dimension 'device'
-            applicationIdSuffix '.lite.tv' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.lite.tv.test' // Test-only; never production identity
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'true'
         }

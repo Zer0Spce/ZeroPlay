@@ -269,7 +269,7 @@ app.whenReady().then(async()=>{
     try{
       const result=await main.webContents.executeJavaScript(
         'window.zero.state().then(data=>({version:data.version,rail:!!document.querySelector(\'[data-nav="Home"]\'),status:!!document.querySelector(\'#status\')}))');
-      if(!/^2\.2\.5\.9$/.test(result.version)||!result.rail||!result.status)
+      if(!/^2\.2\.6$/.test(result.version)||!result.rail||!result.status)
         throw Error('Desktop interface did not initialize: '+JSON.stringify(result));
       console.log('ZERO_WINDOWS_UI_SMOKE_PASS '+JSON.stringify(result));
       app.exit(0);
