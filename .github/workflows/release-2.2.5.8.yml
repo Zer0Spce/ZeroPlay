@@ -107,9 +107,9 @@ jobs:
               ZeroPlay-2.2.5.8-Android-TV-Lite.apk) expected_id='com.zerostreams.app.lite.tv' ;;
               *) echo 'Unexpected Android APK name'; exit 1 ;;
             esac
-            test "$actual_id" = "$expected_id" || { echo "Side-by-side test ID mismatch: $actual_id (expected $expected_id)"; exit 1; }
+            test "$actual_id" = "$expected_id" || { echo "Production package ID mismatch: $actual_id (expected $expected_id)"; exit 1; }
             case "$expected_id" in
-              *.lite.*.test) expected_label='ZeroPlay Lite' ;;
+              *.lite.*) expected_label='ZeroPlay Lite' ;;
               *) expected_label='ZeroPlay' ;;
             esac
             "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "application-label:'$expected_label'"
@@ -261,7 +261,7 @@ jobs:
           if(-not $process.WaitForExit(60000)){ $process.Kill(); throw 'ZeroPlay packaged UI startup timed out' }
           if($process.ExitCode -ne 0){ throw "ZeroPlay packaged UI failed with exit code $($process.ExitCode)" }
           Write-Host 'Packaged Windows 2.2.5.8 production startup passed.'
-      - name: Copy verified Windows test ZIP
+      - name: Copy verified Windows production ZIP
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force windows/delivery | Out-Null
