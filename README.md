@@ -1,38 +1,39 @@
 <p align="center"><img src="windows/assets/zeroplay-home-logo.png" alt="ZeroPlay official red Zero and white Play logo" width="650"></p>
 
-# 🎬 ZeroPlay 2.2.5.9
+# 🎬 ZeroPlay 2.2.6
 
 ### Movies. Series. Anime. Live TV. Sports. Your own space to watch.
 
-ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2.5.9** adds a rotating, provider-verified **Top 10 New Streaming Movies** carousel and Crimson Red VidStuck/ZXCStream embed accents, while retaining Discovery 2.0, the approved ZeroPlay icons and the repaired Windows updater. The stable 2.2.5.7 playback/updater foundation remains intact.
+ZeroPlay 2.2.6 focuses on playback reliability, discovery, update recovery, TV-series progress, performance and cleaner carousels across **Android, Android TV / Google TV and Windows**. The old player and library foundations remain intact.
 
-**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2.5.9 release notes](docs/releases/v2.2.5.9.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
+**[⬇️ Latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 Full 2.2.6 release notes](docs/releases/v2.2.6.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Screenshots](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
 
-> [!IMPORTANT]
-> **Windows users still on v2.2.5.7 or the original v2.2.5.8 ZIP:** Update manually once by extracting the latest ZIP into a fresh folder and launching `ZeroPlay.exe`. Those builds cannot reliably find GitHub updates; the corrected 2.2.5.8 Windows ZIP and v2.2.5.9 include the repaired updater.
+> **Existing users:** Official Android 2.2.6 builds preserve the standard production package IDs and signing, unlike separate TEST editions. If the updater in an older Windows build fails, extract the 2.2.6 ZIP manually.
 
 ## ⬇️ Choose your edition
 
 | Edition | Download | What you get |
 | --- | --- | --- |
-| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android.apk) | Full phone/tablet presentation and native player core. |
-| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
-| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
-| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
-| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
-| ✅ Checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/SHA256SUMS.txt) | Verify the published files. |
+| Android | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android.apk) | Phone/tablet |
+| Android TV / Google TV | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android-TV.apk) | Remote-friendly TV |
+| Android Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android-Lite.apk) | Lightweight mobile |
+| Android TV Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android-TV-Lite.apk) | Lightweight TV |
+| Windows x64 | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Windows-x64.zip) | Portable ZIP with standalone updater |
+| SHA256 checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/SHA256SUMS.txt) | Verify downloaded artifacts |
 
-Android requires Android 6.0 or newer. Full and Lite apps have separate package IDs and can be installed independently. Signed production updates retain the established signing identity for each package.
+Android requires Android 6.0+. Windows requires Windows 10/11 x64.
 
-## ⭐ What’s new in 2.2.5.9
+## ⭐ What's new in ZeroPlay 2.2.6
 
-**Top 10 New Streaming Movies · United States subscription listings from eight providers · Six-hour randomized carousel rotation · Crimson VidStuck/ZXCStream player accents · Existing Discovery 2.0, branded launchers and Windows updater preserved**
+**Nine approved items:** Windows Updater 3.0 & Crash Recovery; Startup/Update Regression Tests; Smart Playback Source 2.0; Top 10 Streaming Carousel 2.0; Streaming Provider Hub; TV Series Tracker; Smart Watchlist 2.0; Movie & TV Details 2.0; Performance Boost.
 
-[Full 2.2.5.9 release notes](docs/releases/v2.2.5.9.md)
+**Usability fixes:** The large red TOP 10 NEW STREAMING MOVIES · US headline is gone; each streaming-provider wordmark is a compact logo **above the movie title** on Windows and Android. Android TV Modern UI no longer shows temporary technical status text above its carousel. Android and Android TV actor filmography cards now open selected movie/show details by tap or remote OK.
 
-> **Top 10 Today** is enabled by default on Android, Android TV and Windows and can be disabled from Homepage panels / Home customization. **Coming Soon is hidden by default.**
+**Removed at owner's request:** Universal Search 2.0 and Live TV & PPV Guide 2.0. The original basic title search and Live TV / Live PPV / Live Sports remain functional.
 
-[![Actual released Windows 2.2 homepage](docs/screenshots/2.2/windows-home.png)](docs/screenshots/2.2/windows-home.png)
+[Complete release feature breakdown and changes](docs/releases/v2.2.6.md).
+
+[![ZeroPlay app screenshot](docs/screenshots/2.2/windows-home.png)](docs/screenshots/2.2/windows-home.png)
 
 ## ✨ Current feature inventory
 
