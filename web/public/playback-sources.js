@@ -7,10 +7,10 @@
     if(!['movie','tv'].includes(item?.type)||!Number.isSafeInteger(item.id)||item.id<1)throw Error('Invalid title');
     const season=Number.isInteger(position.season)&&position.season>=0?position.season:1,episode=Number.isInteger(position.episode)&&position.episode>0?position.episode:1;
     const suffix=`${item.type}/${item.id}`+(item.type==='tv'?`/${season}/${episode}`:'');const id=source(provider).id;
-    const host=id==='vidsrc-sh'?'vidsrc.sh':id==='vidrock'?'vidrock.to':id==='vidnest'?'vidnest.fun':id==='vidrift'?'embed.vidrift.net':id==='vidfast'?'vidfast.vc':id==='vidapi'?'vaplayer.ru':id==='embedwave'?'embedwave.cc':id==='zxcstream'?'zxcstream.cc':'vidstuck.cc';const u=id==='vidrock'||id==='vidnest'||id==='vidfast'?new URL(`https://${host}/${suffix}`):id==='zxcstream'?new URL(`https://${host}/player/${suffix}`):new URL(`https://${host}/embed/${suffix}`);if(id==='zxcstream'){u.searchParams.set('domainAd','zeroplay');u.searchParams.set('color','65E6CC');u.searchParams.set('autoplay','true');}
+    const host=id==='vidsrc-sh'?'vidsrc.sh':id==='vidrock'?'vidrock.to':id==='vidnest'?'vidnest.fun':id==='vidrift'?'embed.vidrift.net':id==='vidfast'?'vidfast.vc':id==='vidapi'?'vaplayer.ru':id==='embedwave'?'embedwave.cc':id==='zxcstream'?'zxcstream.cc':'vidstuck.cc';const u=id==='vidrock'||id==='vidnest'||id==='vidfast'?new URL(`https://${host}/${suffix}`):id==='zxcstream'?new URL(`https://${host}/player/${suffix}`):new URL(`https://${host}/embed/${suffix}`);if(id==='zxcstream'){u.searchParams.set('domainAd','zeroplay');u.searchParams.set('color','DF2531');u.searchParams.set('autoplay','true');}
     if(id==='vidapi')u.searchParams.set('ds_lang','en');
     if(id==='vidstuck'){
-      for(const [k,v]of Object.entries({branding:'ZeroPlay',color:'65E6CC',subtitle:'english',overlay:'true'}))u.searchParams.set(k,v);
+      for(const [k,v]of Object.entries({branding:'ZeroPlay',color:'DF2531',subtitle:'english',overlay:'true'}))u.searchParams.set(k,v);
       if(item.type==='tv')for(const k of ['nextEpisode','episodeSelector','autoplayNextEpisode'])u.searchParams.set(k,'true');
       if(Number.isFinite(position.timestamp)&&position.timestamp>30&&Number(position.percent)<95)u.searchParams.set('progress',String(Math.floor(position.timestamp)));
     }
