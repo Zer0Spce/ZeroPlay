@@ -6,8 +6,8 @@ import org.json.*;
 final class TmdbRequestCache2260 {
  private static final long TTL=300000L;
  private static final Map<String,Entry> CACHE=Collections.synchronizedMap(
-  new LinkedHashMap<String,Entry>(128,.75f,true){
-   protected boolean removeEldestEntry(Map.Entry<String,Entry> eldest){return size()>80;}
+  new LinkedHashMap<String,TmdbRequestCache2260.Entry>(128,.75f,true){
+   protected boolean removeEldestEntry(Map.Entry<String,TmdbRequestCache2260.Entry> eldest){return size()>80;}
   });
  private static final ConcurrentHashMap<String,FutureTask<String>> PENDING=new ConcurrentHashMap<>();
  static final class Entry{final String json;final long expires;Entry(String s,long e){json=s;expires=e;}}
