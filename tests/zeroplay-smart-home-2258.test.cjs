@@ -174,3 +174,28 @@ test('new default home sections, VOD source and provider cards are wired on Wind
   assert.match(native,/if\(BuildConfig\.TV&&\(googleLayout\(\)\|\|flixLayout\(\)\)\)/);
   assert.match(read('windows/ui/layouts.js'),/dataset\.nav==='Home'\?'Home'/);
 });
+
+
+test('Streaming providers render as large two-row desktop grid below real TMDB Trending Today',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const app=read('windows/ui/app.js'),
+    css=read('windows/ui/sunset-palette.css'),
+    visuals=read('windows/ui/home-visuals.js'),
+    native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+  assert.match(app,/class="provider-row zero-provider-grid"/);
+  assert.match(app,/rows\.slice\(0,8\)/);
+  assert.match(app,/logo_path,'w300'/);
+  assert.match(css,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css,/height:212px!important/);
+  assert.match(css,/height:168px!important/);
+  assert.match(css,/\.zero-provider-section \.provider span\{display:none!important\}/);
+  assert.match(visuals,/function positionProvidersBelowTrending\(trendingSection\)/);
+  assert.match(visuals,/trendingSection\.insertAdjacentElement\('afterend',slot\)/);
+  assert.match(visuals,/positionProvidersBelowTrending\(existing\)/);
+  assert.match(native,/int columns=BuildConfig\.TV\?4:2/);
+  assert.match(native,/if\(displayed>=8\)break/);
+  assert.match(native,/dp\(BuildConfig\.TV\?165:125\)/);
+  assert.match(native,/line\.addView\(tile,cp\)/);
+  assert.ok(!native.includes('rail.addView(cards);content.addView(rail)'),
+    'Android must not show the old one-row provider strip');
+});
