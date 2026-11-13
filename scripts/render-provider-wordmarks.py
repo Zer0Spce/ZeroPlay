@@ -1,37 +1,43 @@
 #!/usr/bin/env python3
-"""Render ZeroPlay's bundled streaming-provider SVG wordmarks for native Android.
-
-Windows Electron loads the same original vector files directly. Android's ImageView
-needs transparent PNGs; this conversion runs before signing the four test APKs.
+"""Convert the approved original SVG provider artwork into left-trimmed Android drawables.
+Windows SVG artwork is never modified.
 """
 from pathlib import Path
-import struct
+import io
 import cairosvg
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "windows" / "ui" / "provider-logos"
-DEST = ROOT / "app" / "src" / "main" / "assets" / "provider-logos"
+ASSETS = ROOT / "app" / "src" / "main" / "assets" / "provider-logos"
+DRAWABLES = ROOT / "app" / "src" / "main" / "res" / "drawable-nodpi"
 BRANDS = ("netflix", "hulu", "disney", "max", "apple", "paramount", "peacock", "youtube-tv")
 
 def main():
-    DEST.mkdir(parents=True, exist_ok=True)
+    ASSETS.mkdir(parents=True, exist_ok=True)
+    DRAWABLES.mkdir(parents=True, exist_ok=True)
     for brand in BRANDS:
-        source = SOURCE / (brand + ".svg")
-        dest = DEST / (brand + ".png")
-        if not source.is_file():
-            raise FileNotFoundError(str(source))
-        data = source.read_bytes()
+        svg = SOURCE / (brand + ".svg")
+        if not svg.is_file():
+            raise FileNotFoundError(str(svg))
+        data = svg.read_bytes()
         if b"<svg" not in data or b"</svg>" not in data:
-            raise ValueError("Missing/invalid SVG: " + str(source))
-        cairosvg.svg2png(bytestring=data, write_to=str(dest),
-                         output_width=512, output_height=256)
-        encoded = dest.read_bytes()
-        if encoded[:8] != b"\x89PNG\r\n\x1a\n" or len(encoded) < 250:
-            raise ValueError("Invalid/empty PNG: " + str(dest))
-        width, height = struct.unpack(">II", encoded[16:24])
-        if (width, height) != (512, 256):
-            raise ValueError("Wrong logo dimensions: " + str(dest))
-        print(f"Generated transparent Android wordmark: {brand} ({len(encoded)} bytes)")
+            raise ValueError("Invalid SVG: " + str(svg))
+        # Render at provider's native aspect ratio; do not put the title logo
+        # in a 512x256 transparent canvas (which makes a left-aligned image look centred).
+        raw = cairosvg.svg2png(bytestring=data, output_width=512)
+        rgba = Image.open(io.BytesIO(raw)).convert("RGBA")
+        bounds = rgba.getchannel("A").getbbox()
+        if bounds is None:
+            raise ValueError("Invisible streaming-provider artwork: " + brand)
+        cropped = rgba.crop(bounds)
+        if cropped.width < 16 or cropped.height < 8:
+            raise ValueError("Unexpectedly small artwork for " + brand)
+        drawable = DRAWABLES / ("zero_provider_" + brand.replace("-", "_") + ".png")
+        asset = ASSETS / (brand + ".png")
+        cropped.save(drawable, format="PNG")
+        cropped.save(asset, format="PNG")
+        print(f"Verified left-trimmed {brand} provider logo: {cropped.width}x{cropped.height}")
 
 if __name__ == "__main__":
     main()

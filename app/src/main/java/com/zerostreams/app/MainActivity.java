@@ -240,6 +240,10 @@ public class MainActivity extends Activity {
     }
     void refreshHomePicks(){
         SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());
+        carouselSourceCache.clear();
+        carouselSourceCycles.clear();
+        homeHeroItems.clear();
+        heroIndex=0;
         catalog=new ArrayList<>();
         browse=new ArrayList<>();
         load();
@@ -285,8 +289,9 @@ public class MainActivity extends Activity {
             digitalCandidates.add(item);
         List<Catalog.Item> vodPicks=homeRecommendationSession.claim("vod",digitalCandidates,18);
 
-        // Android TV automatically rotates picks at app launch, with no Refresh Picks UI.
+        // Preserve Continue Watching on TVs in its natural position after the featured carousel.
         for(String id:SmartHomeRecommendations.panelOrder(prefs,Zero22.homeOrder(prefs),homeRecommendationSession.seed)){
+            if(BuildConfig.TV&&id.equals("continue")){if(!resumes.isEmpty())posterRow("Continue watching",resumes,token);continue;}
             if(!homePanel(id))continue;
             switch(id){
             case "clock":homeTools(clean);break;
@@ -540,7 +545,13 @@ public class MainActivity extends Activity {
         String key=tmdbKey();
         io.execute(()->{
             List<Catalog.Item> loaded=new ArrayList<>();
-            try{loaded=ContentApi.carouselItems(key,mode);}catch(Exception ignored){}
+            try{
+                if(mode.equals("streaming")){
+                    String profile=Zero22.activeProfile(prefs).replaceAll("[^A-Za-z0-9_-]","_");
+                    int variation=prefs.getInt("zeroSmartHome:"+profile+":bump",0);
+                    loaded=StreamingTopTen.load(key,System.currentTimeMillis(),variation);
+                }else loaded=ContentApi.carouselItems(key,mode);
+            }catch(Exception ignored){}
             List<Catalog.Item> ready=loaded;
             ui.post(()->{
                 carouselSourceLoading.remove(mode);
@@ -735,26 +746,43 @@ public class MainActivity extends Activity {
         View shade=new View(this);shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{tint(0xF5),tint(0xB8),tint(0x68)}));hero.addView(shade,new FrameLayout.LayoutParams(-1,-1));
         View bottom=new View(this);bottom.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{tint(0x00),tint(flixLayout()?0xFA:0xEE)}));hero.addView(bottom,new FrameLayout.LayoutParams(-1,-1));if(flixLayout())shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{Color.argb(245,0,0,0),Color.argb(190,0,0,0),Color.argb(40,0,0,0)}));
         LinearLayout info=column();info.setGravity(Gravity.START);info.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);info.setPadding(dp(googleLayout()?36:24),dp(googleLayout()?34:24),dp(googleLayout()?30:20),dp(googleLayout()?34:20));FrameLayout.LayoutParams ip=new FrameLayout.LayoutParams(BuildConfig.TV?dp(googleLayout()?620:440):-1,-2,Gravity.START|Gravity.BOTTOM);if(BuildConfig.TV&&!googleLayout())ip.rightMargin=dp(245);hero.addView(info,ip);
-        ImageView providerBadge=new ImageView(this);providerBadge.setScaleType(ImageView.ScaleType.FIT_START);providerBadge.setAdjustViewBounds(true);providerBadge.setContentDescription("Streaming service");providerBadge.setVisibility(View.GONE);LinearLayout.LayoutParams badgeSlot=new LinearLayout.LayoutParams(dp(BuildConfig.TV?144:108),dp(BuildConfig.TV?44:32));badgeSlot.gravity=Gravity.START;badgeSlot.setMargins(0,0,0,dp(7));info.addView(providerBadge,badgeSlot);TextView providerFallback=text("",BuildConfig.TV?19:15,Color.WHITE);bold(providerFallback);providerFallback.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);providerFallback.setVisibility(View.GONE);info.addView(providerFallback);
+        ImageView providerBadge=new ImageView(this);providerBadge.setScaleType(ImageView.ScaleType.FIT_START);providerBadge.setAdjustViewBounds(true);providerBadge.setImageTintList(null);providerBadge.setContentDescription("Streaming service");providerBadge.setVisibility(View.GONE);LinearLayout.LayoutParams badgeSlot=new LinearLayout.LayoutParams(dp(BuildConfig.TV?144:108),dp(BuildConfig.TV?44:32));badgeSlot.gravity=Gravity.LEFT;badgeSlot.setMargins(0,0,0,dp(7));info.addView(providerBadge,badgeSlot);TextView providerFallback=text("",BuildConfig.TV?19:15,Color.WHITE);bold(providerFallback);providerFallback.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);providerFallback.setVisibility(View.GONE);info.addView(providerFallback);
         TextView title=text("",BuildConfig.TV?(flixLayout()?58:googleLayout()?50:37):flixLayout()?40:googleLayout()?36:29,INK);bold(title);title.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);title.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);title.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);title.setMaxLines(2);title.setEllipsize(TextUtils.TruncateAt.END);info.addView(title,new LinearLayout.LayoutParams(-1,dp(BuildConfig.TV?(googleLayout()?118:90):googleLayout()?88:72)));space(info,8);TextView facts=text("",13,INK);facts.setGravity(Gravity.START);facts.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);info.addView(facts);space(info,10);
         TextView description=text("",flixLayout()?16:googleLayout()?15:14,flixLayout()?Color.rgb(235,235,235):MUTED);description.setGravity(Gravity.START);description.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);description.setMaxLines(googleLayout()?2:3);description.setEllipsize(TextUtils.TruncateAt.END);info.addView(description,new LinearLayout.LayoutParams(-1,dp(googleLayout()?48:54)));space(info,16);
-        LinearLayout actions=new LinearLayout(this);Button play=button("Watch now",()->resume(picks.get(heroIndex)));actions.addView(play);Button more=button("More info",()->details(picks.get(heroIndex)));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-2,dp(44));mp.setMargins(dp(10),0,0,0);actions.addView(more,mp);Button heroSource=button("Source ▾",()->{});heroSource.setTag("compact-source");heroSource.setTextSize(12);heroSource.setPadding(dp(8),dp(5),dp(8),dp(5));heroSource.setOnClickListener(v->sourcePicker(picks.get(heroIndex),heroSource));LinearLayout.LayoutParams sourceGap=new LinearLayout.LayoutParams(-2,dp(44));sourceGap.setMargins(dp(8),0,0,0);actions.addView(heroSource,sourceGap);info.addView(actions);space(info,12);
+        LinearLayout actions=new LinearLayout(this);Button play=button("Watch now",()->resume(picks.get(heroIndex)));actions.addView(play);Button more=button("More info",()->details(picks.get(heroIndex)));LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-2,dp(44));mp.setMargins(dp(10),0,0,0);actions.addView(more,mp);if(BuildConfig.TV){Button refresh=button("↻ Refresh picks",this::refreshHomePicks);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-2,dp(44));rp.setMargins(dp(10),0,0,0);actions.addView(refresh,rp);}Button heroSource=button("Source ▾",()->{});heroSource.setTag("compact-source");heroSource.setTextSize(12);heroSource.setPadding(dp(8),dp(5),dp(8),dp(5));heroSource.setOnClickListener(v->sourcePicker(picks.get(heroIndex),heroSource));LinearLayout.LayoutParams sourceGap=new LinearLayout.LayoutParams(-2,dp(44));sourceGap.setMargins(dp(8),0,0,0);actions.addView(heroSource,sourceGap);info.addView(actions);space(info,12);
         LinearLayout indicators=new LinearLayout(this);List<Button> dots=new ArrayList<>();Runnable[] paint=new Runnable[1];
         Button previous=button("‹",()->{heroIndex=(heroIndex+picks.size()-1)%picks.size();paint[0].run();});indicators.addView(previous,new LinearLayout.LayoutParams(dp(36),dp(30)));
         for(int i=0;i<picks.size();i++){final int index=i;Button dot=button("•",()->{heroIndex=index;paint[0].run();});dot.setContentDescription("Featured title "+(i+1)+": "+picks.get(i).title);dots.add(dot);indicators.addView(dot,new LinearLayout.LayoutParams(dp(30),dp(30)));}
         indicators.addView(button("›",()->{heroIndex=(heroIndex+1)%picks.size();paint[0].run();}),new LinearLayout.LayoutParams(dp(36),dp(30)));info.addView(indicators);
         LinearLayout ranks=column();List<LinearLayout> rankCards=new ArrayList<>();if(BuildConfig.TV&&!googleLayout()){ranks.setPadding(dp(14),dp(18),dp(12),dp(18));for(int i=0;i<picks.size();i++){final int index=i;Catalog.Item item=picks.get(i);LinearLayout entry=new LinearLayout(this);entry.setGravity(Gravity.CENTER_VERTICAL);entry.setPadding(dp(8),dp(4),dp(8),dp(4));entry.setFocusable(true);entry.setClickable(true);entry.setContentDescription("Trending number "+(i+1)+", "+item.title);entry.setOnClickListener(v->{heroIndex=index;paint[0].run();});entry.setOnFocusChangeListener((v,f)->v.setBackground(shape(f?SURFACE:Color.TRANSPARENT,f?ACCENT:0)));TextView number=text(String.format(Locale.ROOT,"%02d",i+1),22,MUTED);bold(number);entry.addView(number,new LinearLayout.LayoutParams(dp(38),-2));ImageView thumb=new ImageView(this);thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);thumb.setBackground(shape(SURFACE,0));thumb.setClipToOutline(true);entry.addView(thumb,new LinearLayout.LayoutParams(dp(36),dp(50)));if(!item.poster.isEmpty())picture(item.poster,thumb,token);LinearLayout labels=column();labels.setPadding(dp(10),0,0,0);TextView name=text(item.title,13,INK);bold(name);name.setMaxLines(1);name.setEllipsize(TextUtils.TruncateAt.END);labels.addView(name);labels.addView(text("★ "+String.format(Locale.ROOT,"%.1f",item.raw.optDouble("rating")),12,ACCENT));entry.addView(labels,new LinearLayout.LayoutParams(0,-2,1));ranks.addView(entry,new LinearLayout.LayoutParams(-1,dp(58)));rankCards.add(entry);}hero.addView(ranks,new FrameLayout.LayoutParams(dp(245),-1,Gravity.END));}
-        paint[0]=()->{Catalog.Item item=picks.get(heroIndex);atmosphere(item,token);providerBadge.setVisibility(View.GONE);providerBadge.setImageDrawable(null);providerFallback.setVisibility(View.GONE);String brand=providerBrandKey(item.raw.optString("providerBrand"));String logoAsset=providerWordmarkAsset(brand);if(!logoAsset.isEmpty())try(java.io.InputStream input=getAssets().open("provider-logos/"+logoAsset)){Bitmap bitmap=BitmapFactory.decodeStream(input);if(bitmap!=null){providerBadge.setImageBitmap(bitmap);providerBadge.setVisibility(View.VISIBLE);providerBadge.setContentDescription("Available on "+brand);}}catch(Exception ignored){}if(providerBadge.getVisibility()!=View.VISIBLE){String logoUrl=item.raw.optString("providerLogo");if(logoUrl.startsWith("https://image.tmdb.org/t/p/")){providerBadge.setVisibility(View.VISIBLE);picture(logoUrl,providerBadge,token);}else if(!brand.isEmpty()){providerFallback.setText(brand.equals("youtube-tv")?"YouTube TV":brand.equals("max")?"HBO Max":brand.equals("apple")?"Apple TV+":brand.equals("disney")?"Disney+":brand.equals("paramount")?"Paramount+":Character.toUpperCase(brand.charAt(0))+brand.substring(1));providerFallback.setVisibility(View.VISIBLE);}}title.setText(item.title);facts.setText(meta(item));description.setText(item.description);String url=item.raw.optString("backdrop");if(url.isEmpty())url=item.poster;if(!url.isEmpty())picture(url,art,token);homepagePreview(item,hero);play.setText(prefs.getLong("position:"+item.id,0)>1000&&prefs.getInt("percent:"+item.id,0)<95?"Resume":"Watch now");for(int i=0;i<dots.size();i++){dots.get(i).setText(i==heroIndex?"━":"•");dots.get(i).setTextColor(i==heroIndex?ACCENT:MUTED);}};
+        paint[0]=()->{Catalog.Item item=picks.get(heroIndex);atmosphere(item,token);providerBadge.setVisibility(View.GONE);providerBadge.setImageDrawable(null);providerFallback.setVisibility(View.GONE);String brand=providerBrandKey(item.raw.optString("providerBrand"));String logoAsset=providerWordmarkAsset(brand);int drawable=providerCarouselDrawable(brand);if(drawable!=0){providerBadge.setImageResource(drawable);providerBadge.setVisibility(View.VISIBLE);providerBadge.setContentDescription("Available on "+brand);}else if(!logoAsset.isEmpty())try(java.io.InputStream input=getAssets().open("provider-logos/"+logoAsset)){Bitmap bitmap=BitmapFactory.decodeStream(input);if(bitmap!=null){providerBadge.setImageBitmap(bitmap);providerBadge.setVisibility(View.VISIBLE);providerBadge.setContentDescription("Available on "+brand);}}catch(Exception ignored){}if(providerBadge.getVisibility()!=View.VISIBLE){String logoUrl=item.raw.optString("providerLogo");if(logoUrl.startsWith("https://image.tmdb.org/t/p/")){providerBadge.setVisibility(View.VISIBLE);picture(logoUrl,providerBadge,token);}else if(!brand.isEmpty()){providerFallback.setText(brand.equals("youtube-tv")?"YouTube TV":brand.equals("max")?"HBO Max":brand.equals("apple")?"Apple TV+":brand.equals("disney")?"Disney+":brand.equals("paramount")?"Paramount+":Character.toUpperCase(brand.charAt(0))+brand.substring(1));providerFallback.setVisibility(View.VISIBLE);}}title.setText(item.title);facts.setText(meta(item));description.setText(item.description);String url=item.raw.optString("backdrop");if(url.isEmpty())url=item.poster;if(!url.isEmpty())picture(url,art,token);homepagePreview(item,hero);play.setText(prefs.getLong("position:"+item.id,0)>1000&&prefs.getInt("percent:"+item.id,0)<95?"Resume":"Watch now");for(int i=0;i<dots.size();i++){dots.get(i).setText(i==heroIndex?"━":"•");dots.get(i).setTextColor(i==heroIndex?ACCENT:MUTED);}};
         paint[0].run();float[] touch=new float[2];hero.setOnTouchListener((v,event)->{if(event.getActionMasked()==MotionEvent.ACTION_DOWN){touch[0]=event.getX();touch[1]=event.getY();return true;}if(event.getActionMasked()==MotionEvent.ACTION_UP){float dx=event.getX()-touch[0],dy=event.getY()-touch[1];if(Math.abs(dx)>dp(60)&&Math.abs(dx)>Math.abs(dy)*2){heroIndex=(heroIndex+(dx<0?1:picks.size()-1))%picks.size();paint[0].run();return true;}v.performClick();}return false;});
         int flixHeroHeight=BuildConfig.TV?Math.max(dp(520),getResources().getDisplayMetrics().heightPixels-dp(56)):dp(520);content.addView(hero,new LinearLayout.LayoutParams(-1,flixLayout()?flixHeroHeight:googleLayout()?dp(BuildConfig.TV?570:470):dp(440)));space(content,(googleLayout()||flixLayout())?8:24);
         heroTick=new Runnable(){public void run(){if(!foreground||token!=renderVersion||!category.equals("Home"))return;if(!hero.hasFocus()&&!detailsOpen&&scroll.getScrollY()<hero.getHeight()/2){heroIndex=(heroIndex+1)%picks.size();paint[0].run();}ui.postDelayed(this,8000);}};ui.postDelayed(heroTick,8000);
     }
-    List<Catalog.Item> localItems(){LinkedHashMap<String,Catalog.Item> items=new LinkedHashMap<>();for(Catalog.Item item:browse)items.put(item.id,item);for(Map.Entry<String,?> entry:prefs.getAll().entrySet())if(entry.getKey().startsWith("saved:")&&entry.getValue() instanceof String)try{Catalog.Item item=new Catalog.Item(new JSONObject((String)entry.getValue()));items.put(item.id,item);}catch(Exception ignored){}return new ArrayList<>(items.values());}
+    List<Catalog.Item> localItems(){
+        LinkedHashMap<String,Catalog.Item> items=new LinkedHashMap<>();
+        for(Catalog.Item item:browse)items.put(item.id,item);
+        for(Map.Entry<String,?> entry:prefs.getAll().entrySet())
+            if(entry.getKey().startsWith("saved:")&&entry.getValue() instanceof String)
+                try{Catalog.Item item=new Catalog.Item(new JSONObject((String)entry.getValue()));items.put(item.id,item);}catch(Exception ignored){}
+        // Restore recently played titles even when they have disappeared from the rotating TMDB discovery catalog.
+        try{
+            JSONArray played=new JSONArray(prefs.getString("watchHistory","[]"));
+            for(int i=0;i<played.length();i++){
+                JSONObject record=played.optJSONObject(i),raw=record==null?null:record.optJSONObject("item");
+                if(raw==null)continue;
+                Catalog.Item item=new Catalog.Item(raw);
+                items.putIfAbsent(item.id,item);
+            }
+        }catch(Exception ignored){}
+        return new ArrayList<>(items.values());
+    }
     List<Catalog.Item> continuing(){
         LinkedHashMap<String,Catalog.Item> unique=new LinkedHashMap<>();
         for(Catalog.Item item:localItems()){
             int percent=prefs.getInt("percent:"+item.id,0);
-            if(prefs.getLong("position:"+item.id,0)>0&&percent>1&&percent<95&&!item.poster.isEmpty())
+            if((prefs.getLong("position:"+item.id,0)>0||prefs.getLong("watchedAt:"+item.id,0)>0||prefs.getInt("resumeEpisode:"+item.id,0)>0)&&percent<95&&!item.poster.isEmpty())
                 unique.put(item.id,item);
         }
         List<Catalog.Item> rows=new ArrayList<>(unique.values());
@@ -820,6 +848,20 @@ public class MainActivity extends Activity {
     String providerWordmarkAsset(String provider){
         String brand=providerBrandKey(provider);
         return brand.isEmpty()?"":brand+".png";
+    }
+    // Drawable resources are compiled into every Android APK, unlike runtime-only image assets.
+    int providerCarouselDrawable(String brand){
+        switch(brand){
+            case "netflix":return R.drawable.zero_provider_netflix;
+            case "hulu":return R.drawable.zero_provider_hulu;
+            case "disney":return R.drawable.zero_provider_disney;
+            case "max":return R.drawable.zero_provider_max;
+            case "apple":return R.drawable.zero_provider_apple;
+            case "paramount":return R.drawable.zero_provider_paramount;
+            case "peacock":return R.drawable.zero_provider_peacock;
+            case "youtube-tv":return R.drawable.zero_provider_youtube_tv;
+            default:return 0;
+        }
     }
     void providerCards(LinearLayout cards,JSONArray data,int token,String type,String region){
         cards.removeAllViews();
