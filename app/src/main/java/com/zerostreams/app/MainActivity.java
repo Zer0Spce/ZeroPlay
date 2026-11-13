@@ -605,7 +605,62 @@ public class MainActivity extends Activity {
         if(cached!=null){providerCards(cards,cached,token,type,region);return;}cards.addView(text("Loading providers…",14,MUTED));if(!providerLoading.add(cacheKey))return;
         io.execute(()->{try{JSONArray data=ContentApi.providers(tmdbKey(),type,region);ui.post(()->{providerLoading.remove(cacheKey);providerCache.put(cacheKey,data);if(!isDestroyed()&&category.equals("Home")&&providerType.equals(type)&&prefs.getString("providerRegion","PH").equals(region)&&activeProviderCards!=null){activeProviderCards.removeAllViews();providerCards(activeProviderCards,data,renderVersion,type,region);}});}catch(Exception e){ui.post(()->{providerLoading.remove(cacheKey);if(token==renderVersion){cards.removeAllViews();cards.addView(text("Provider list unavailable. Try refreshing.",14,MUTED));}});}});
     }
-    void providerCards(LinearLayout cards,JSONArray data,int token,String type,String region){List<JSONObject> rows=new ArrayList<>();for(int i=0;i<data.length();i++)if(data.optJSONObject(i)!=null)rows.add(data.optJSONObject(i));Collections.sort(rows,(a,b)->Integer.compare(providerPriority(a.optString("provider_name")),providerPriority(b.optString("provider_name"))));for(int i=0;i<Math.min(12,rows.size());i++){JSONObject row=rows.get(i);LinearLayout tile=column();tile.setGravity(Gravity.CENTER);tile.setPadding(dp(12),dp(12),dp(12),dp(12));tile.setBackground(shape(SURFACE,0));tile.setFocusable(true);tile.setClickable(true);tile.setContentDescription(row.optString("provider_name"));tile.setOnFocusChangeListener((v,f)->v.setBackground(shape(SURFACE,f?ACCENT:0)));tile.setOnClickListener(v->{providerId=row.optInt("provider_id");providerName=row.optString("provider_name");providerType=type;resetPaging();category="Provider";query="";search.setText("");category="Provider";catalog=new ArrayList<>();browsePage=1;scroll.scrollTo(0,0);load();});ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);tile.addView(logo,new LinearLayout.LayoutParams(dp(64),dp(64)));String url=ContentApi.image(row.optString("logo_path"),"w185");if(!url.isEmpty())picture(url,logo,token);space(tile,8);TextView name=text(row.optString("provider_name"),12,INK);name.setMaxLines(1);name.setEllipsize(TextUtils.TruncateAt.END);name.setGravity(Gravity.CENTER);tile.addView(name,new LinearLayout.LayoutParams(-1,-2));LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(165),dp(118));cp.setMargins(0,0,dp(12),0);cards.addView(tile,cp);}}
+    GradientDrawable providerTileBackground(String name,boolean focused){
+        String normalized=name.toLowerCase(Locale.ROOT);
+        int top=Color.rgb(40,41,48),bottom=Color.rgb(24,25,31);
+        if(normalized.contains("netflix")){top=Color.rgb(74,30,38);bottom=Color.rgb(26,23,29);}
+        else if(normalized.contains("prime")||normalized.contains("amazon")){top=Color.rgb(20,66,105);bottom=Color.rgb(15,31,54);}
+        else if(normalized.contains("hulu")){top=Color.rgb(21,70,55);bottom=Color.rgb(13,31,34);}
+        else if(normalized.contains("disney")){top=Color.rgb(21,61,94);bottom=Color.rgb(13,30,48);}
+        else if(normalized.contains("paramount")){top=Color.rgb(23,53,100);bottom=Color.rgb(18,30,58);}
+        else if(normalized.contains("apple")){top=Color.rgb(55,59,67);bottom=Color.rgb(23,26,34);}
+        else if(normalized.contains("max")||normalized.contains("hbo")){top=Color.rgb(50,33,100);bottom=Color.rgb(24,22,49);}
+        GradientDrawable background=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{top,bottom});
+        background.setCornerRadius(dp(18));
+        background.setStroke(dp(focused?3:1),focused?ACCENT:Color.rgb(67,69,80));
+        return background;
+    }
+    void providerCards(LinearLayout cards,JSONArray data,int token,String type,String region){
+        List<JSONObject> rows=new ArrayList<>();
+        for(int i=0;i<data.length();i++)if(data.optJSONObject(i)!=null)rows.add(data.optJSONObject(i));
+        rows.sort((a,b)->Integer.compare(providerPriority(a.optString("provider_name")),providerPriority(b.optString("provider_name"))));
+        Set<String> brands=new HashSet<>();
+        int count=0;
+        for(JSONObject row:rows){
+            String provider=row.optString("provider_name");
+            String known=provider.toLowerCase(Locale.ROOT).replaceAll("(standard|with ads|basic)","").trim();
+            if(!brands.add(known))continue;
+            if(count++>=12)break;
+            LinearLayout tile=column();
+            tile.setGravity(Gravity.CENTER);
+            tile.setPadding(dp(12),dp(8),dp(12),dp(10));
+            tile.setBackground(providerTileBackground(provider,false));
+            tile.setClipToOutline(true);
+            tile.setElevation(dp(3));
+            tile.setFocusable(true);tile.setClickable(true);
+            tile.setContentDescription("Browse "+provider);
+            tile.setOnFocusChangeListener((v,focused)->v.setBackground(providerTileBackground(provider,focused)));
+            tile.setOnClickListener(v->{
+                providerId=row.optInt("provider_id");
+                providerName=provider;
+                providerType=type;
+                resetPaging();category="Provider";query="";search.setText("");
+                catalog=new ArrayList<>();browsePage=1;scroll.scrollTo(0,0);load();
+            });
+            ImageView logo=new ImageView(this);
+            logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            tile.addView(logo,new LinearLayout.LayoutParams(dp(82),dp(76)));
+            String url=ContentApi.image(row.optString("logo_path"),"w185");
+            if(!url.isEmpty())picture(url,logo,token);
+            TextView name=text(provider,12,INK);
+            name.setGravity(Gravity.CENTER);name.setMaxLines(1);
+            name.setEllipsize(TextUtils.TruncateAt.END);
+            tile.addView(name,new LinearLayout.LayoutParams(-1,-2));
+            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(186),dp(124));
+            cp.setMargins(0,0,dp(16),0);
+            cards.addView(tile,cp);
+        }
+    }
     int providerPriority(String name){String n=name.toLowerCase(Locale.ROOT);String[] preferred={"netflix","disney","apple tv","amazon prime","hbo","max","paramount","crunchyroll"};for(int i=0;i<preferred.length;i++)if(n.contains(preferred[i]))return i;return 20;}
     void providerRegion(){String[] codes={"PH","US","GB","CA","AU","IN","JP"};new AlertDialog.Builder(this).setTitle("Provider region").setItems(new String[]{"Philippines","United States","United Kingdom","Canada","Australia","India","Japan"},(d,n)->{prefs.edit().putString("providerRegion",codes[n]).apply();providerCache.clear();render();}).show();}
     void plan(Catalog.Item item){Set<String> ids=savedIds("planned");boolean added=ids.add(item.id);if(!added)ids.remove(item.id);prefs.edit().putStringSet("planned",ids).putString("saved:"+item.id,item.raw.toString()).apply();message(added?"Added to plan to watch":"Removed from plan to watch");}
