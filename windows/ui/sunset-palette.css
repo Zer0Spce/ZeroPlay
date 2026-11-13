@@ -147,41 +147,93 @@
 :root[data-layout="youtube"]:not([data-rail-expanded="true"]) aside .zeroplay-wordmark{
   display:none!important;
 }
-/* Actual TMDB/JustWatch provider logos on dark, large streaming cards. */
-:root[data-theme="dark"] .provider-row{
-  display:flex;gap:16px;overflow-x:auto;padding:8px 3px 16px;scroll-snap-type:x proximity;
+/* Streaming provider showcase — four large logo-led cards per row, no mini rail.
+   Keep provider metadata and click routing; only presentation changes. */
+.zero-provider-section{margin:26px 0 34px!important;width:100%;min-width:0}
+.zero-provider-section .section-head{margin-bottom:20px!important}
+.zero-provider-section .zero-provider-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:22px!important;
+  width:100%!important;
+  overflow:visible!important;
+  padding:0 0 12px!important;
+  scroll-snap-type:none!important;
+  scrollbar-width:none!important;
 }
-:root[data-theme="dark"] .provider{
-  flex:0 0 186px;width:186px;height:116px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:8px;padding:14px!important;scroll-snap-align:start;
-  position:relative;isolation:isolate;overflow:hidden;
-  border:1px solid #36363f!important;border-radius:19px!important;
-  background:linear-gradient(145deg,#303038,#17171d)!important;
-  box-shadow:0 8px 18px #0005, inset 0 1px #ffffff16;
+.zero-provider-section .provider{
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-width:0!important;
+  height:212px!important;
+  padding:16px 20px!important;
+  flex:none!important;
+  overflow:hidden!important;
+  isolation:isolate;
+  position:relative;
+  border:1px solid #ffffff1f!important;
+  border-radius:24px!important;
+  background:linear-gradient(145deg,var(--tile-start,#272d39),var(--tile-end,#141921))!important;
+  box-shadow:0 9px 24px #0006, inset 0 1px #ffffff1c!important;
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
 }
-:root[data-theme="dark"] .provider::before{
-  content:"";position:absolute;inset:0;z-index:-1;opacity:.28;
-  background:radial-gradient(circle at 70% 20%,var(--provider-glow,#a61229),transparent 65%);
+.zero-provider-section .provider::before{
+  content:"";
+  position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(circle at 40% 22%,#ffffff17,transparent 68%);
+  pointer-events:none;
 }
-:root[data-theme="dark"] .provider[data-provider-brand="netflix"]{--provider-glow:#f50028}
-:root[data-theme="dark"] .provider[data-provider-brand="prime"]{--provider-glow:#009bd7}
-:root[data-theme="dark"] .provider[data-provider-brand="disney"]{--provider-glow:#007ad7}
-:root[data-theme="dark"] .provider[data-provider-brand="hulu"]{--provider-glow:#00e383}
-:root[data-theme="dark"] .provider[data-provider-brand="max"]{--provider-glow:#735aff}
-:root[data-theme="dark"] .provider[data-provider-brand="apple"]{--provider-glow:#8190a3}
-:root[data-theme="dark"] .provider[data-provider-brand="paramount"]{--provider-glow:#0066ff}
-:root[data-theme="dark"] .provider[data-provider-brand="peacock"]{--provider-glow:#f9bd50}
-:root[data-theme="dark"] .provider img{
-  width:70px;height:70px;max-width:84%;flex-shrink:0;
-  object-fit:contain;display:block;margin:0!important;
-  border-radius:12px;box-shadow:0 2px 14px #0002;
+.zero-provider-section .provider img{
+  display:block!important;
+  width:min(100%,210px)!important;
+  height:168px!important;
+  max-width:100%!important;
+  min-width:0!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  border-radius:14px!important;
+  margin:0!important;
+  box-shadow:none!important;
+  transform:none!important;
 }
-:root[data-theme="dark"] .provider span{
-  font-size:12px;line-height:15px;font-weight:750;color:#fff;
-  max-width:156px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;
+.zero-provider-section .provider span{display:none!important}
+.zero-provider-section .provider[data-provider-brand="netflix"]{--tile-start:#fcfbf9;--tile-end:#e6e5e4}
+.zero-provider-section .provider[data-provider-brand="prime"]{--tile-start:#176dff;--tile-end:#073db1}
+.zero-provider-section .provider[data-provider-brand="hulu"]{--tile-start:#062d27;--tile-end:#07191d}
+.zero-provider-section .provider[data-provider-brand="disney"]{--tile-start:#0674ae;--tile-end:#00b5bf}
+.zero-provider-section .provider[data-provider-brand="paramount"]{--tile-start:#1b75fb;--tile-end:#053ad0}
+.zero-provider-section .provider[data-provider-brand="peacock"]{--tile-start:#222638;--tile-end:#09111e}
+.zero-provider-section .provider[data-provider-brand="max"]{--tile-start:#2103fa;--tile-end:#080a77}
+.zero-provider-section .provider[data-provider-brand="apple"]{--tile-start:#263246;--tile-end:#0a111b}
+.zero-provider-section .provider[data-provider-brand="other"]{--tile-start:#343644;--tile-end:#1a1b26}
+.zero-provider-section .provider:hover,
+.zero-provider-section .provider:focus-visible{
+  outline:3px solid #f42a42!important;outline-offset:2px;
+  transform:translateY(-3px) scale(1.01)!important;
+  box-shadow:0 13px 30px #0009!important;
 }
-:root[data-theme="dark"] .provider:hover,:root[data-theme="dark"] .provider:focus-visible{
-  border-color:#ff4053!important;outline:2px solid #ff4053;
-  outline-offset:1px;transform:translateY(-2px);
+.zero-provider-section .zero-provider-note{
+  display:block;margin-top:5px;
+  color:var(--muted);font-size:11px;line-height:1.5;
+}
+@media(max-width:1160px){
+  .zero-provider-section .zero-provider-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .zero-provider-section .provider{height:190px!important}
+  .zero-provider-section .provider img{height:150px!important}
+}
+@media(max-width:800px){
+  .zero-provider-section .zero-provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+  .zero-provider-section .provider{height:172px!important;border-radius:18px!important;padding:10px!important}
+  .zero-provider-section .provider img{height:142px!important}
+}
+@media(max-width:440px){
+  .zero-provider-section .zero-provider-grid{gap:10px!important}
+  .zero-provider-section .provider{height:142px!important}
+  .zero-provider-section .provider img{height:118px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .zero-provider-section .provider{transition:none!important}
 }
