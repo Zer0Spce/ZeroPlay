@@ -15,12 +15,12 @@ final class PlaybackSources {
             :provider.equals("vidrock")||provider.equals("vidnest")||provider.equals("vidfast")
             ?"https://"+host+"/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")
             :provider.equals("zxcstream")
-            ?"https://"+host+"/player/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")+"?domainAd=zeroplay&color=65E6CC&autoplay=true"
+            ?"https://"+host+"/player/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")+"?domainAd=zeroplay&color=DF2531&autoplay=true"
             :"https://"+host+"/embed/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"");
         // ZeroPlay owns automatic next-episode switching on Android. Keep the provider's
         // episode selector/next button, but do not let the embed auto-advance at the same
         // time or both systems can race and land on an invalid/double-advanced episode.
-        if(provider.equals("vidstuck"))return value+"?branding=ZeroPlay&color=65E6CC&subtitle=english&overlay=true"+(type.equals("tv")?"&nextEpisode=true&episodeSelector=true":"");
+        if(provider.equals("vidstuck"))return value+"?branding=ZeroPlay&color=DF2531&subtitle=english&overlay=true"+(type.equals("tv")?"&nextEpisode=true&episodeSelector=true":"");
         if(provider.equals("vidsrc-sh"))return value+"?ds_lang=en";
         return value;
     }
