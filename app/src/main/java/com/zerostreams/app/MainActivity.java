@@ -504,7 +504,8 @@ public class MainActivity extends Activity {
             if(source.isEmpty())source.addAll(all);
         }else{
             List<Catalog.Item> cached=carouselSourceCache.get(mode);
-            if(cached!=null)source.addAll(cached);else ensureCarouselSource(mode);
+            if(cached!=null)source.addAll(cached);
+            if(cached==null||carouselSourceCycles.getOrDefault(mode,-1L)!=System.currentTimeMillis()/21600000L)ensureCarouselSource(mode);
         }
         LinkedHashMap<String,Catalog.Item> unique=new LinkedHashMap<>();
         for(Catalog.Item item:source){
