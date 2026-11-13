@@ -141,14 +141,26 @@
     const state=await snapshot(),region=state?.settings?.region||'PH',panels=state?.settings?.homePanels;
     const enabled=Array.isArray(panels)&&panels.includes('top10')||((!Array.isArray(panels)||!panels.includes('top10'))&&localStorage.getItem('zeroplay-top10-optout')!=='1');
     if(!enabled){document.querySelector('.zero-top10')?.remove();return;}
-    let items=topCache.get(region);
+    const now=Date.now(),ttl=90*60*1000;
+    const stored=topCache.get(region);
+    let items=stored&&now-stored.at<ttl?stored.items:null;
     if(!items){
-      try{const data=await window.zero.api('/trending/all/day');items=(data?.results||[]).map(normalize).filter(item=>item&&item.poster).slice(0,10);topCache.set(region,items);}catch{items=[];}
+      try{
+        const data=await window.zero.api('/trending/all/day');
+        const cutoff=new Date(now-3*365*86400000).toISOString().slice(0,10);
+        items=(data?.results||[]).map(normalize)
+          .filter(item=>item&&item.poster&&(item.type!=='movie'||
+            (item.date>=cutoff&&(!item.originalLanguage||item.originalLanguage==='en')&&
+              (!item.originCountry?.length||item.originCountry.includes('US')))))
+          .slice(0,10);
+        topCache.set(region,{at:now,items});
+      }catch{items=[];}
     }
     if(!items.length)return;
     const existing=document.querySelector('.zero-top10');
-    if(existing?.dataset.region===region)return;
+    if(existing?.dataset.region===region&&Number(existing.dataset.refreshed||0)===topCache.get(region)?.at)return;
     existing?.remove();const section=top10Section(items,region);section.dataset.region=region;
+    section.dataset.refreshed=String(topCache.get(region)?.at||now);
     hero.insertAdjacentElement('afterend',section);
   }
 
@@ -175,6 +187,14 @@
 
   function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>decorate().catch(()=>{scheduled=false;}));}
 
+  // Refresh Picks must also invalidate the independent TMDB Trending Today carousel.
+  document.addEventListener('click',event=>{
+    if(event.target.closest?.('[data-fresh-picks]')){
+      topCache.clear();
+      document.querySelector('.zero-top10')?.remove();
+      stateCache=null;
+    }
+  },true);
   document.addEventListener('change',event=>{
     const input=event.target;
     if(input?.matches?.('#home-panels input[value="upcoming"]')){
