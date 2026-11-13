@@ -6,7 +6,7 @@ const path=require('node:path');
 const e=require('../windows/ui/fresh-recommendations.js');
 const now=Date.parse('2026-11-12T12:00:00Z');
 function movie(id,options={}){
-  return {id,type:'movie',title:'Film '+id,date:'2020-03-01',rating:7.7,
+  return {id,type:'movie',title:'Film '+id,date:'2026-07-01',rating:7.7,
     voteCount:900,popularity:45,poster:'/p'+id,backdrop:'/b'+id,
     genreIds:[28],...options};
 }
@@ -21,7 +21,9 @@ function fixture(){
       series:Array.from({length:45},(_,i)=>movie(i+200,{type:'tv'})),
       now:Array.from({length:45},(_,i)=>movie(i+260)),
       gems:Array.from({length:45},(_,i)=>movie(i+320)),
-      classics:Array.from({length:45},(_,i)=>movie(i+390,{date:'2005-02-02'})),
+      vod:Array.from({length:24},(_,i)=>movie(i+620,{date:'2026-10-01',originalLanguage:'en',
+        originCountry:['US'],voteCount:50})),
+      classics:Array.from({length:45},(_,i)=>movie(i+390,{date:'2018-02-02'})),
       airing:Array.from({length:25},(_,i)=>movie(i+470,{type:'tv'}))
     }
   };
@@ -125,4 +127,46 @@ test('new four discovery categories are available on desktop and native Android'
     assert.ok(app.includes(category),category+' missing in Windows');
     assert.ok(native.includes('case "'+category+'"'),category+' missing in Android');
   }
+});
+
+test('new homepage avoids old or non-Hollywood titles except a limited modern Classics shelf',()=>{
+  const x=fixture();
+  x.pools.popular.unshift(movie(9550,{date:'1988-10-01'}),
+    movie(9551,{originalLanguage:'ko'}),movie(9552,{originCountry:['FR']}));
+  const r=e.select(x);
+  const general=[...r.hero,...Object.entries(r.shelves).filter(([name])=>name!=='classics')
+    .flatMap(([,list])=>list)].map(e.id);
+  for(const id of ['movie:9550','movie:9551','movie:9552'])assert.ok(!general.includes(id),id);
+  assert.ok(r.shelves.classics.every(item=>Number(item.date.slice(0,4))>=2014));
+});
+test('Latest VOD Releases never substitutes theater-only or classic releases',()=>{
+  const x=fixture();
+  x.pools.vod=[movie(8001,{date:'2026-10-01'}),movie(8002,{date:'2025-01-01'})];
+  const ids=e.select(x).shelves.vod.map(e.id);
+  assert.ok(ids.includes('movie:8001'));
+  assert.ok(!ids.includes('movie:8002'));
+  const noDigital=fixture();delete noDigital.pools.vod;
+  assert.equal(e.select(noDigital).shelves.vod.length,0);
+});
+test('new default home sections, VOD source and provider cards are wired on Windows and Android',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const html=read('windows/ui/index.html'),app=read('windows/ui/app.js'),
+    css=read('windows/ui/sunset-palette.css'),main=read('windows/main.cjs'),
+    discovery=read('windows/ui/fresh-home.js'),
+    native=read('app/src/main/java/com/zerostreams/app/MainActivity.java'),
+    api=read('app/src/main/java/com/zerostreams/app/ContentApi.java');
+  assert.match(html,/class="refresh-recommendations home-refresh-button" data-fresh-picks/);
+  assert.match(css,/:not\(\[data-rail-expanded="true"\]\) aside \.brand/);
+  assert.ok(!app.includes('zero-fresh-controls'));
+  assert.match(app,/row\('Latest VOD Releases',zeroHomeDeck\.shelves\.vod/);
+  assert.match(app,/data-provider-brand/);
+  assert.match(main,/discoveryVODPreset2258/);
+  assert.match(main,/homePanelIds=.*'thrillers','recent','different','classics'/);
+  assert.match(discovery,/with_release_type:'4'/);
+  assert.match(discovery,/release_date\.gte/);
+  assert.match(api,/with_release_type=4/);
+  assert.match(native,/Latest VOD Releases/);
+  assert.match(native,/discoveryVODPreset2258/);
+  assert.match(native,/providerTileBackground/);
+  assert.match(read('windows/ui/layouts.js'),/data-nav==='Home'\?'Home'/);
 });
