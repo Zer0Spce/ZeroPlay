@@ -188,7 +188,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw '2.2.5.7 source verification failed' }
           node scripts/prepare-2260-windows-release.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Windows production package preparation failed' }
-          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.5-9')!=='2.2.6')throw Error('Production version mapping failed')"
+          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.6')!=='2.2.6')throw Error('Production version mapping failed')"
           if ($LASTEXITCODE -ne 0) { throw 'Production version check failed' }
       - name: Test Discovery 2.0 and Zero Crimson branding
         shell: pwsh
