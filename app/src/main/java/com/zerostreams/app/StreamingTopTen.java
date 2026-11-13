@@ -78,8 +78,13 @@ final class StreamingTopTen {
         long noise=Integer.toUnsignedLong((x.id+":"+seed).hashCode());
         return freshness*.30+popularity*.28+confidence*.12+(noise/4294967295.0)*.30;
     }
-    static List<Catalog.Item> withProvider(List<Catalog.Item> movies,String provider){
-        for(Catalog.Item item:movies)try{item.raw.put("providerBrand",provider);}catch(JSONException ignored){}
+    static List<Catalog.Item> withProvider(List<Catalog.Item> movies,String provider,String logoPath){
+        String logo=logoPath.matches("/[A-Za-z0-9_.-]+")?
+            "https://image.tmdb.org/t/p/w92"+logoPath:"";
+        for(Catalog.Item item:movies)try{
+            item.raw.put("providerBrand",provider);
+            if(!logo.isEmpty())item.raw.put("providerLogo",logo);
+        }catch(JSONException ignored){}
         return movies;
     }
     static List<Catalog.Item> load(String key,long time) throws Exception {
@@ -87,6 +92,7 @@ final class StreamingTopTen {
         JSONArray providers=catalog.optJSONArray("results");
         String[] serviceNames={"netflix","hulu","disney","max","apple","paramount","peacock","youtube-tv"};
         Map<String,Integer> serviceIds=new LinkedHashMap<>();
+        Map<String,String> serviceLogos=new HashMap<>();
         for(int n=0;n<(providers==null?0:providers.length());n++){
             JSONObject row=providers.optJSONObject(n);if(row==null)continue;
             String name=brand(row.optString("provider_name"));int id=row.optInt("provider_id");
@@ -94,6 +100,7 @@ final class StreamingTopTen {
             JSONObject country=row.optJSONObject("display_priorities");
             if(country!=null&&!country.has("US"))continue;
             serviceIds.put(name,id);
+            serviceLogos.put(name,row.optString("logo_path",""));
         }
         if(serviceIds.isEmpty())return new ArrayList<>();
         String today=date(time),cutoff=date(time-420L*86400000L);
@@ -107,7 +114,7 @@ final class StreamingTopTen {
             try{
                 JSONArray rows=ContentApi.tmdb("/discover/movie",key,filters+"&with_watch_providers="+provider+"&page="+page)
                     .optJSONArray("results");
-                if(rows!=null)movies.addAll(withProvider(ContentApi.tmdbRows(rows,"movie",false),name));
+                if(rows!=null)movies.addAll(withProvider(ContentApi.tmdbRows(rows,"movie",false),name,serviceLogos.getOrDefault(name,"")));
             }catch(Exception failed){error=failed;}
         }
         if(movies.isEmpty()&&error!=null)throw error;
