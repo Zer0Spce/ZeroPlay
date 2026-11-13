@@ -305,7 +305,7 @@ test('Android launcher has charcoal adaptive and legacy icons, never a white lau
   assert.ok(oldIcon.includes('@color/zeroplay_launcher_charcoal'));
   assert.ok(adaptive.includes('<adaptive-icon'));
   assert.ok(adaptive.includes('@color/zeroplay_launcher_charcoal'));
-  assert.ok(adaptive.includes('@drawable/zeroplay_appicon'));
+  assert.ok(adaptive.includes('@drawable/zeroplay_launcher_foreground'));
   assert.ok(!adaptive.includes('#FFFFFF'));
 });
 
@@ -323,4 +323,34 @@ test('Android TV refreshes its recommendations at launch without a Refresh Picks
   const resume=native.slice(native.indexOf('@Override protected void onResume()'),
     native.indexOf('@Override protected void onPause()'));
   assert.ok(!resume.includes('SmartHomeRecommendations.refresh('));
+});
+
+test('Android vector launcher prevents pixelated, off-center TV graphics',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const fg=read('app/src/main/res/drawable/zeroplay_launcher_foreground.xml');
+  const banner=read('app/src/main/res/drawable/tv_banner.xml');
+  const legacy=read('app/src/main/res/mipmap/zeroplay_launcher.xml');
+  const adaptive=read('app/src/main/res/mipmap-anydpi-v26/zeroplay_launcher.xml');
+  const round=read('app/src/main/res/mipmap-anydpi-v26/zeroplay_launcher_round.xml');
+  const manifest=read('app/src/main/AndroidManifest.xml');
+  // Scalable vectors, not the old 160x160 px PNG resampled by a TV launcher.
+  assert.match(fg,/<vector /);
+  assert.match(fg,/android:viewportWidth="108"/);
+  assert.match(fg,/android:translateX="16\\.18"/);
+  assert.match(fg,/android:translateY="15\\.20"/);
+  assert.match(fg,/android:scaleX="0\\.488"/);
+  assert.match(fg,/android:fillColor="#ec111b"/);
+  assert.match(fg,/android:fillColor="#fbfbfb"/);
+  assert.match(banner,/<vector /);
+  assert.match(banner,/android:viewportWidth="320"/);
+  assert.match(banner,/android:viewportHeight="180"/);
+  assert.match(banner,/android:fillColor="#202126"/);
+  assert.match(banner,/android:translateX="67\\.00"/);
+  assert.match(banner,/android:translateY="-5\\.40"/);
+  assert.match(manifest,/android:banner="@drawable\\/tv_banner"/);
+  for(const file of [adaptive,round,legacy]){
+    assert.ok(file.includes('@drawable/zeroplay_launcher_foreground'));
+    assert.ok(!file.includes('@drawable/zeroplay_appicon'),'old low-resolution PNG must not reach launcher');
+  }
+  assert.ok(!banner.includes('android:fillColor="#242426"'),'old hand-drawn banner should be replaced');
 });
