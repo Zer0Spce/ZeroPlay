@@ -19,6 +19,6 @@ test('TV title image is left anchored app artwork, never a centered video logo',
 });
 test('Windows is version only, internal 2.2.6-3 public 2.2.6.3',()=>{
  const s=read('windows/main.cjs'),p=read('scripts/prepare-2263-windows-release.cjs');
- assert.match(s,/2\\\.2\\\.6\\\.3\$\/\.test\(result\.version\)/);
+ assert.ok(s.includes(String.raw`2\.2\.6\.3$/.test(result.version)`));
  assert.match(p,/pkg\.version='2\.2\.6-3'/);
 });

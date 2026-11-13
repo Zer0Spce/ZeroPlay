@@ -28,5 +28,5 @@ test('TV-only Refresh picks appears beside carousel actions and changes source c
 });
 test('Windows UI and movie/provider functionality remain untouched',()=>{
  const main=read('windows/main.cjs');
- assert.match(main,/2\\\.2\\\.6\\\.2\$\/\.test\(result\.version\)/);
+ assert.ok(main.includes(String.raw`2\.2\.6\.3$/.test(result.version)`));
 });
