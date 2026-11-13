@@ -184,7 +184,7 @@ test('Streaming providers use original wide local logos and horizontal carousel 
   const workflow=read('.github/workflows/zeroplay-2258-candidate-test.yml');
   assert.ok(app.includes('function providerWordmark(row)'));
   assert.ok(app.includes('class="provider-row zero-provider-strip"'));
-  assert.ok(app.includes('rows.slice(0,12)'));
+  assert.ok(app.includes('const cards=rows.map(row=>'));
   assert.ok(app.includes('data-provider-scroll="1"'));
   assert.ok(app.includes('rail.scrollBy({left:'));
   assert.ok(css.includes('overflow-x:auto!important'));
@@ -202,8 +202,51 @@ test('Streaming providers use original wide local logos and horizontal carousel 
   assert.ok(workflow.includes('Render original wide streaming-provider logos for all Android APKs'));
   assert.ok(workflow.includes('scripts/render-provider-wordmarks.py'));
   assert.ok(read('scripts/render-provider-wordmarks.py').includes('cairosvg.svg2png'));
-  for(const brand of ['netflix','prime','hulu','disney','paramount','peacock','max','apple']){
+  for(const brand of ['netflix','hulu','disney','max','apple','paramount','peacock','youtube-tv']){
     const asset=read('windows/ui/provider-logos/'+brand+'.svg');
     assert.ok(asset.includes('<svg')&&asset.includes('</svg>'));
   }
+});
+
+test('Exactly eight major provider tiles in requested order, including unlisted regions',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const app=read('windows/ui/app.js');
+  const native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+  const renderer=read('scripts/render-provider-wordmarks.py');
+  const expected=['Netflix','Hulu','Disney+','HBO Max','Apple TV','Paramount+','Peacock','YouTube TV'];
+  const list=app.slice(app.indexOf('const MAJOR_STREAMING_PROVIDERS=Object.freeze(['),
+    app.indexOf('function providerBrand(',app.indexOf('const MAJOR_STREAMING_PROVIDERS=')));
+  const displayed=[...list.matchAll(/\{brand:'[^']+',name:'([^']+)'\}/g)].map(x=>x[1]);
+  assert.deepEqual(displayed,expected);
+  assert.ok(app.includes('return MAJOR_STREAMING_PROVIDERS.map(item=>'));
+  assert.ok(app.includes('data-provider-unavailable='));
+  assert.ok(read('windows/ui/provider-logos/youtube-tv.svg').includes('<svg'));
+  assert.ok(native.includes('final String[] labels={"Netflix","Hulu","Disney+","HBO Max","Apple TV","Paramount+","Peacock","YouTube TV"}'));
+  assert.ok(native.includes('final String[] brandKeys={"netflix","hulu","disney","max","apple","paramount","peacock","youtube-tv"}'));
+  assert.ok(native.includes('for(int i=0;i<brandKeys.length;i++)'));
+  assert.ok(native.includes('if(listedId<=0)'));
+  assert.ok(renderer.includes('"youtube-tv"'));
+  assert.ok(!renderer.includes('"prime",'));
+});
+
+test('Provider carousel hides scrollbars but keeps Top 10-style wheel, drag and keyboard scrolling',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const css=read('windows/ui/sunset-palette.css'),app=read('windows/ui/app.js'),
+    native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+  const cssStart=css.indexOf('.zero-provider-section .zero-provider-strip{'),
+    cssEnd=css.indexOf('.zero-provider-section .provider{',cssStart);
+  assert.ok(cssStart>=0&&cssEnd>cssStart);
+  const railCSS=css.slice(cssStart,cssEnd);
+  assert.ok(railCSS.includes('overflow-x:auto!important'));
+  assert.ok(railCSS.includes('scrollbar-width:none!important'));
+  assert.ok(railCSS.includes('::-webkit-scrollbar{display:none!important'));
+  assert.ok(railCSS.includes('touch-action:pan-x!important'));
+  assert.ok(railCSS.includes('cursor:grab!important'));
+  assert.ok(app.includes('function installProviderRailScrolling()'));
+  for(const event of ['wheel','pointerdown','pointermove','pointerup','keydown','focusin']){
+    assert.ok(app.includes("rail.addEventListener('"+event+"'"),event);
+  }
+  assert.ok(app.includes('installProviderRailScrolling();'));
+  assert.ok(native.includes('providerRail.setHorizontalScrollBarEnabled(false)'));
+  assert.ok(native.includes('HorizontalScrollView providerRail'));
 });
