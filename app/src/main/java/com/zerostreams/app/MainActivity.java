@@ -625,11 +625,15 @@ public class MainActivity extends Activity {
     String releaseLabel(String date){try{java.text.SimpleDateFormat parser=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT);parser.setLenient(false);return new java.text.SimpleDateFormat("MMM d",Locale.getDefault()).format(parser.parse(date));}catch(Exception e){return "Coming soon";}}
     void providerSection(int token){
         sectionLabel(content,"Streaming providers");LinearLayout toggle=new LinearLayout(this);toggle.addView(button("Movies",()->{providerType="movie";render();}));toggle.addView(button("TV shows",()->{providerType="tv";render();}));toggle.addView(button("Region: "+prefs.getString("providerRegion","PH"),this::providerRegion));content.addView(toggle);space(content,12);
-        // A static responsive tile grid replaces the cramped horizontal provider strip.
+        // Compact single-row carousel with normal horizontal swiping / TV remote focus.
+        HorizontalScrollView providerRail=new HorizontalScrollView(this);
+        providerRail.setFillViewport(false);
+        providerRail.setHorizontalScrollBarEnabled(true);
         LinearLayout cards=new LinearLayout(this);
-        cards.setOrientation(LinearLayout.VERTICAL);
+        cards.setOrientation(LinearLayout.HORIZONTAL);
         activeProviderCards=cards;
-        content.addView(cards,new LinearLayout.LayoutParams(-1,-2));
+        providerRail.addView(cards,new HorizontalScrollView.LayoutParams(-2,-2));
+        content.addView(providerRail,new LinearLayout.LayoutParams(-1,-2));
         content.addView(text("Availability data by JustWatch · browse only; playback uses VidStuck",11,MUTED));
         space(content,24);
         String type=providerType,region=prefs.getString("providerRegion","PH"),cacheKey=type+region;JSONArray cached=providerCache.get(cacheKey);
@@ -638,49 +642,53 @@ public class MainActivity extends Activity {
     }
     GradientDrawable providerTileBackground(String name,boolean focused){
         String n=name.toLowerCase(Locale.ROOT);
-        int start=Color.rgb(45,49,65),end=Color.rgb(22,25,34);
-        // Bright recognizable branded tiles, like the approved provider-grid reference.
-        if(n.contains("netflix")){start=Color.rgb(252,251,250);end=Color.rgb(225,223,222);}
-        else if(n.contains("prime")||n.contains("amazon")){start=Color.rgb(22,109,249);end=Color.rgb(7,60,177);}
-        else if(n.contains("hulu")){start=Color.rgb(7,56,44);end=Color.rgb(4,24,27);}
-        else if(n.contains("disney")){start=Color.rgb(10,111,180);end=Color.rgb(0,171,187);}
-        else if(n.contains("paramount")){start=Color.rgb(33,115,249);end=Color.rgb(5,49,190);}
-        else if(n.contains("peacock")){start=Color.rgb(36,41,54);end=Color.rgb(7,15,25);}
-        else if(n.equals("max")||n.contains("hbo")){start=Color.rgb(42,4,241);end=Color.rgb(10,11,112);}
-        else if(n.contains("apple")){start=Color.rgb(42,50,67);end=Color.rgb(10,15,25);}
-        GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{start,end});
-        bg.setCornerRadius(dp(22));
-        bg.setStroke(dp(focused?3:1),focused?Color.rgb(245,43,64):Color.argb(50,255,255,255));
+        int top=Color.rgb(39,44,60),bottom=Color.rgb(16,20,29);
+        if(n.contains("netflix")){top=Color.rgb(25,26,33);bottom=Color.rgb(9,11,16);}
+        else if(n.contains("prime")||n.contains("amazon")){top=Color.rgb(22,91,177);bottom=Color.rgb(5,42,105);}
+        else if(n.contains("hulu")){top=Color.rgb(9,44,42);bottom=Color.rgb(6,23,28);}
+        else if(n.contains("disney")){top=Color.rgb(10,80,139);bottom=Color.rgb(2,47,85);}
+        else if(n.contains("paramount")){top=Color.rgb(28,116,225);bottom=Color.rgb(12,67,174);}
+        else if(n.contains("peacock")){top=Color.rgb(47,54,71);bottom=Color.rgb(13,19,32);}
+        else if(n.equals("max")||n.contains("hbo")){top=Color.rgb(23,34,145);bottom=Color.rgb(9,12,70);}
+        else if(n.contains("apple")){top=Color.rgb(36,47,66);bottom=Color.rgb(8,16,28);}
+        GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{top,bottom});
+        bg.setCornerRadius(dp(18));
+        bg.setStroke(dp(focused?3:1),focused?Color.rgb(245,43,64):Color.argb(45,255,255,255));
         return bg;
     }
+    String providerWordmarkAsset(String provider){
+        String n=provider.toLowerCase(Locale.ROOT);
+        if(n.contains("netflix"))return "netflix.png";
+        if(n.contains("prime video")||n.contains("amazon prime"))return "prime.png";
+        if(n.equals("hulu")||n.startsWith("hulu "))return "hulu.png";
+        if(n.contains("disney"))return "disney.png";
+        if(n.contains("paramount"))return "paramount.png";
+        if(n.contains("peacock"))return "peacock.png";
+        if(n.equals("max")||n.contains("hbo max"))return "max.png";
+        if(n.contains("apple tv"))return "apple.png";
+        return "";
+    }
     void providerCards(LinearLayout cards,JSONArray data,int token,String type,String region){
-        cards.setOrientation(LinearLayout.VERTICAL);
+        cards.setOrientation(LinearLayout.HORIZONTAL);
         List<JSONObject> rows=new ArrayList<>();
         for(int i=0;i<data.length();i++)if(data.optJSONObject(i)!=null)rows.add(data.optJSONObject(i));
-        rows.sort((a,b)->Integer.compare(providerPriority(a.optString("provider_name")),providerPriority(b.optString("provider_name"))));
-        Set<String> brands=new HashSet<>();
-        int displayed=0;
-        LinearLayout line=null;
-        int columns=BuildConfig.TV?4:2;
+        rows.sort((a,b)->Integer.compare(providerPriority(a.optString("provider_name")),
+            providerPriority(b.optString("provider_name"))));
+        Set<String> seen=new HashSet<>();
+        int count=0;
         for(JSONObject row:rows){
             String provider=row.optString("provider_name","");
-            String normalized=provider.toLowerCase(Locale.ROOT).replaceAll("(standard|with ads|basic)","").trim();
-            if(provider.isEmpty()||!brands.add(normalized))continue;
-            if(displayed>=8)break;
-            if(displayed%columns==0){
-                line=new LinearLayout(this);
-                line.setOrientation(LinearLayout.HORIZONTAL);
-                line.setGravity(Gravity.CENTER_VERTICAL);
-                LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
-                lp.setMargins(0,0,0,dp(BuildConfig.TV?14:10));
-                cards.addView(line,lp);
-            }
+            if(provider.isEmpty())continue;
+            String duplicateKey=providerWordmarkAsset(provider);
+            if(duplicateKey.isEmpty())duplicateKey=provider.toLowerCase(Locale.ROOT)
+                .replaceAll("(standard|with ads|basic)","").trim();
+            if(!seen.add(duplicateKey))continue;
+            if(count++>=12)break;
             LinearLayout tile=column();
             tile.setGravity(Gravity.CENTER);
-            tile.setPadding(dp(8),dp(8),dp(8),dp(8));
+            tile.setPadding(dp(12),dp(12),dp(12),dp(12));
             tile.setBackground(providerTileBackground(provider,false));
-            tile.setClipToOutline(true);
-            tile.setElevation(dp(4));
+            tile.setClipToOutline(true);tile.setElevation(dp(3));
             tile.setFocusable(true);tile.setClickable(true);
             tile.setContentDescription("Browse "+provider);
             tile.setOnFocusChangeListener((v,focused)->v.setBackground(providerTileBackground(provider,focused)));
@@ -691,19 +699,34 @@ public class MainActivity extends Activity {
                 resetPaging();category="Provider";query="";search.setText("");
                 catalog=new ArrayList<>();browsePage=1;scroll.scrollTo(0,0);load();
             });
-            ImageView logo=new ImageView(this);
-            logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            logo.setContentDescription(provider+" logo");
-            tile.addView(logo,new LinearLayout.LayoutParams(
-                dp(BuildConfig.TV?165:125),dp(BuildConfig.TV?154:121)));
-            String url=ContentApi.image(row.optString("logo_path"),"w300");
-            if(!url.isEmpty())picture(url,logo,token);
-            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(BuildConfig.TV?208:162),1f);
-            cp.setMargins(dp(6),0,dp(6),0);
-            line.addView(tile,cp);
-            displayed++;
+            boolean loaded=false;
+            String asset=providerWordmarkAsset(provider);
+            if(!asset.isEmpty())try(java.io.InputStream input=getAssets().open("provider-logos/"+asset)){
+                android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(input);
+                if(bitmap!=null){
+                    ImageView logo=new ImageView(this);
+                    logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                    logo.setContentDescription(provider+" wordmark");
+                    logo.setImageBitmap(bitmap);
+                    tile.addView(logo,new LinearLayout.LayoutParams(
+                        dp(BuildConfig.TV?172:146),dp(BuildConfig.TV?84:72)));
+                    loaded=true;
+                }
+            }catch(Exception ignored){}
+            if(!loaded){
+                // No square TMDB icon fallback: keep a clean readable text wordmark.
+                TextView name=text(provider,BuildConfig.TV?21:17,INK);
+                name.setGravity(Gravity.CENTER);
+                name.setTypeface(null,Typeface.BOLD);
+                name.setMaxLines(2);
+                tile.addView(name,new LinearLayout.LayoutParams(-1,-2));
+            }
+            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(
+                dp(BuildConfig.TV?238:202),dp(BuildConfig.TV?138:116));
+            cp.setMargins(0,0,dp(14),dp(5));
+            cards.addView(tile,cp);
         }
-        if(displayed==0)cards.addView(text("No streaming providers listed for this region.",14,MUTED));
+        if(count==0)cards.addView(text("No providers listed for this region.",14,MUTED));
     }
     int providerPriority(String name){String n=name.toLowerCase(Locale.ROOT);String[] preferred={"netflix","disney","apple tv","amazon prime","hbo","max","paramount","crunchyroll"};for(int i=0;i<preferred.length;i++)if(n.contains(preferred[i]))return i;return 20;}
     void providerRegion(){String[] codes={"PH","US","GB","CA","AU","IN","JP"};new AlertDialog.Builder(this).setTitle("Provider region").setItems(new String[]{"Philippines","United States","United Kingdom","Canada","Australia","India","Japan"},(d,n)->{prefs.edit().putString("providerRegion",codes[n]).apply();providerCache.clear();render();}).show();}
