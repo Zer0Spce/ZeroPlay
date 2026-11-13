@@ -191,7 +191,7 @@ jobs:
           const source=fs.readFileSync('windows/updater.cjs','utf8');
           const launcher=fs.readFileSync('windows/version-manager.cjs','utf8');
           assert.match(launcher,/let child;\s*try\s*\{\s*child=spawnSelection\(pointer\)/);
-          assert.match(source,/function selectLatestWindowsRelease\\(releases\\)/);
+          assert.ok(source.includes('function selectLatestWindowsRelease(releases)'));
           assert.ok(source.includes('a?.name===`ZeroPlay-${version}-Windows-x64.zip`'));
           NODE
           test -f new-asset/ZeroPlay-2.2.5.9-Windows-x64.zip
