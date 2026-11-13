@@ -20,3 +20,30 @@ test('Windows updater delegates installation to ZeroPlayUpdater.exe',()=>{const 
 test('standalone helper owns ZIP extraction and version activation',()=>{const source=fs.readFileSync(path.join(__dirname,'..','updater-helper','Program.cs'),'utf8');assert.match(source,/ZipFile\.ExtractToDirectory/);assert.match(source,/current\.json/);assert.match(source,/ZeroPlayUpdater-error\.txt/);});
 test('stable launcher has confirmation and rollback handshake',()=>{const source=fs.readFileSync(path.join(__dirname,'..','version-manager.cjs'),'utf8');assert.match(source,/pending:true/);assert.match(source,/confirmCurrent/);assert.match(source,/sameVersion/);assert.match(source,/rollback/);assert.match(source,/current\.json/);});
 test('Windows hero trailer follows heroPicks rather than trending',()=>{const source=fs.readFileSync(path.join(__dirname,'..','ui','experience.js'),'utf8');assert.match(source,/heroPicks\(\)/);assert.doesNotMatch(source,/homeData\.trending\|\|\[\]\)\.filter\(i=>i\.backdrop\)\.slice\(0,6\)\[heroIndex\]/);});
+
+test('updater discovers official Windows 2.2.5.8 ZIP even when Android-only releases are newer',()=>{
+ const release=(tag,assets,extra={})=>({tag_name:tag,draft:false,prerelease:false,assets:assets.map(name=>({name,browser_download_url:'https://github.com/Zer0Spce/ZeroPlay/releases/download/'+tag+'/'+name})),...extra});
+ const valid=release('v2.2.5.8',['ZeroPlay-2.2.5.8-Windows-x64.zip','ZeroPlay-2.2.5.8-Android.apk','SHA256SUMS.txt']);
+ const found=updater.selectLatestWindowsRelease([
+  release('v2.2.5.9',['ZeroPlay-2.2.5.9-Android.apk']),
+  release('v9.9.9-TEST',['ZeroPlay-9.9.9-Windows-x64.zip']),
+  release('v9.9.8',['ZeroPlay-9.9.8-Windows-x64.zip'],{draft:true}),
+  valid,
+  release('v2.2.5.7',['ZeroPlay-2.2.5.7-Windows-x64.zip'])
+ ]);
+ assert.equal(found.tag_name,'v2.2.5.8');
+ assert.equal(found.asset.name,'ZeroPlay-2.2.5.8-Windows-x64.zip');
+ assert.equal(found.checksumAsset.name,'SHA256SUMS.txt');
+ assert.throws(()=>updater.selectLatestWindowsRelease([release('v2.2.5.9',['ZeroPlay-2.2.5.9-Android.apk'])]),/No stable ZeroPlay release with a Windows ZIP/);
+});
+test('Windows release selection cannot accidentally accept wrong package names',()=>{
+ const release={tag_name:'v2.2.5.8',draft:false,prerelease:false,assets:[{name:'ZeroPlay-2.2.5.8-Windows-x64.zip.exe'},{name:'ZeroPlay-2.2.5.7-Windows-x64.zip'}]};
+ assert.throws(()=>updater.selectLatestWindowsRelease([release]),/No stable ZeroPlay release with a Windows ZIP/);
+});
+
+test('updater button explains GitHub errors instead of showing only a silent exclamation mark',()=>{
+ const ui=fs.readFileSync(path.join(__dirname,'..','preload.cjs'),'utf8');
+ assert.match(ui,/zero-update-error-notice/);
+ assert.match(ui,/Download manually from github\.com\/Zer0Spce\/ZeroPlay\/releases\/latest/);
+ assert.match(ui,/error\?\.message/);
+});
