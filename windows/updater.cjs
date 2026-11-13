@@ -11,7 +11,36 @@ function stateFile(){return path.join(app.getPath('userData'),'updater.json');}
 function readState(){try{return JSON.parse(fs.readFileSync(stateFile(),'utf8'));}catch{return {};}}
 function writeState(value){const target=stateFile(),temp=target+'.tmp';fs.writeFileSync(temp,JSON.stringify(value));fs.renameSync(temp,target);}
 function releaseView(release){return {current:versions.publicVersion(app.getVersion()),version:String(release.tag_name||'').replace(/^v/i,''),tag:release.tag_name||'',name:release.name||release.tag_name||'ZeroPlay update',changelog:release.body||'No changelog was provided.',published:release.published_at||'',assetName:release.asset?.name||'',size:Number(release.asset?.size)||0};}
-async function latest(){const response=await fetch(API,{headers:{Accept:'application/vnd.github+json','User-Agent':'ZeroPlay-Windows-Updater'},signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('Could not check GitHub for updates ('+response.status+').');const releases=await response.json();const release=Array.isArray(releases)?releases.find(r=>!r.draft&&!r.prerelease&&!testRelease(r)&&Array.isArray(r.assets)&&r.assets.some(a=>/^ZeroPlay-.*-Windows-x64\\.zip$/i.test(a.name||''))):null;if(!release)throw Error('No stable ZeroPlay release is available.');const version=String(release.tag_name||'').replace(/^v/i,'');const asset=(release.assets||[]).find(x=>x.name===`ZeroPlay-${version}-Windows-x64.zip`)||(release.assets||[]).find(x=>/^ZeroPlay-.*-Windows-x64\.zip$/i.test(x.name||''));if(!asset)throw Error('The latest stable release does not contain a Windows portable ZIP.');const checksumAsset=(release.assets||[]).find(x=>/^SHA256SUMS\.txt$/i.test(x.name||''))||null;return {...release,asset,checksumAsset};}
+// Match the official release ZIP by its exact tag-derived filename. A former
+// doubly-escaped regex rejected every Windows ZIP and broke checks in 2.2.5.7/8.
+function selectLatestWindowsRelease(releases){
+  const release=Array.isArray(releases)?releases.find(r=>{
+    if(!r||r.draft||r.prerelease||testRelease(r)||!Array.isArray(r.assets))return false;
+    const version=String(r.tag_name||'').replace(/^v/i,'');
+    if(!/^\d+(?:\.\d+){1,3}$/.test(version))return false;
+    return r.assets.some(a=>a?.name===`ZeroPlay-${version}-Windows-x64.zip`);
+  }):null;
+  if(!release)throw Error('No stable ZeroPlay release with a Windows ZIP is available on GitHub.');
+  const version=String(release.tag_name).replace(/^v/i,'');
+  const asset=release.assets.find(a=>a?.name===`ZeroPlay-${version}-Windows-x64.zip`);
+  const checksumAsset=release.assets.find(a=>/^SHA256SUMS\.txt$/i.test(a?.name||''))||null;
+  return {...release,asset,checksumAsset};
+}
+async function latest(){
+  let response;
+  try{
+    response=await fetch(API,{headers:{Accept:'application/vnd.github+json','User-Agent':'ZeroPlay-Windows-Updater'},signal:AbortSignal.timeout(15000)});
+  }catch(error){
+    throw Error('Could not connect to GitHub to check for updates: '+String(error?.message||error));
+  }
+  if(!response.ok){
+    if(response.status===403||response.status===429)throw Error('GitHub rate limit or access restriction ('+response.status+'). Please try later or download the release manually.');
+    throw Error('Could not check GitHub for updates (HTTP '+response.status+').');
+  }
+  let releases;
+  try{releases=await response.json();}catch{throw Error('GitHub returned invalid release information.');}
+  return selectLatestWindowsRelease(releases);
+}
 function trustedMain(event){if(!mainWindow||mainWindow.isDestroyed()||event.sender!==mainWindow.webContents)throw Error('Untrusted updater request');}
 function trustedUpdate(event){if(!updateWindow||updateWindow.isDestroyed()||event.sender!==updateWindow.webContents)throw Error('Untrusted updater window');}
 function closeUpdate(){if(updateWindow&&!updateWindow.isDestroyed())updateWindow.close();updateWindow=null;}
@@ -23,4 +52,4 @@ async function installVersion(release){if(downloadBusy)throw Error('An update is
 async function startInstall(event){trustedUpdate(event);if(!currentRelease)throw Error('No update is selected.');const result=await installVersion(currentRelease);closeUpdate();setTimeout(()=>{try{app.exit(0);}catch{process.exit(0);}},250);return result;}
 function bindMain(win){if(mainWindow||win.isDestroyed())return;mainWindow=win;win.on('closed',()=>{if(mainWindow===win)mainWindow=null;});win.once('ready-to-show',()=>{if(!process.argv.includes('--smoke-test'))setTimeout(()=>check({manual:false}).catch(()=>{}),1800);});}
 function install(){if(installed)return;installed=true;app.on('browser-window-created',(_event,win)=>{if(!mainWindow&&win.getTitle()==='ZeroPlay')bindMain(win);});ipcMain.handle('update-check',async event=>{trustedMain(event);return check({manual:true});});ipcMain.handle('update-window-action',async(event,action)=>{trustedUpdate(event);if(action==='cancel'){closeUpdate();return {ok:true};}if(action==='skip'){if(currentRelease){const s=readState();s.skippedVersion=releaseView(currentRelease).version;writeState(s);}closeUpdate();return {ok:true};}if(action==='install')return startInstall(event);throw Error('Unsupported updater action');});}
-module.exports={install,newer,cleanVersion,releaseView,expectedSha256,testRelease};
+module.exports={install,newer,cleanVersion,releaseView,expectedSha256,testRelease,selectLatestWindowsRelease};
