@@ -21,7 +21,7 @@ function previous(profile,seed){
   if(current.seed===seed)for(const id of current.ids||[])delete seen[id];
   return seen;
 }
-async function gather(load,state){
+async function gather(load,state,loadProviderCatalog){
   const profile=profileOf(state),c=cycle(profile);
   const page=(base,range)=>base+(c.base+c.bump)%range;
   const endYear=new Date().getFullYear()-12;
@@ -73,6 +73,25 @@ async function gather(load,state){
   for(const entry of done)if(entry.status==='fulfilled'){
     const [name,rows]=entry.value;(pools[name] ||= []).push(...rows);
   }
+
+  // Strict US flatrate selections from only the eight approved streaming providers.
+  let streaming=[];
+  try {
+    const catalog=await loadProviderCatalog('/watch/providers/movie',{watch_region:'US'});
+    const services=window.ZeroStreamingCarousel.providers(catalog?.results);
+    if(services.length){
+      const with_watch_providers=services.map(p=>p.provider_id).join('|');
+      const filters={watch_region:'US',with_watch_providers,with_watch_monetization_types:'flatrate',
+        'primary_release_date.gte':daysAgo(420),'primary_release_date.lte':today,
+        sort_by:'primary_release_date.desc','vote_count.gte':10};
+      const pages=[1,2,3+(c.base+c.bump)%3];
+      const responses=await Promise.allSettled(pages.map(page=>
+        load('/discover/movie',{...filters,page},'movie')));
+      const movies=responses.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
+      streaming=window.ZeroStreamingCarousel.topTen(movies,c.seed,today);
+    }
+  }catch(error){console.warn('US streaming carousel unavailable',error?.message||error);}
+  pools.streaming=streaming;
   return {profile,seed:c.seed,pools};
 }
 function prepare(base,additions,state){
@@ -83,7 +102,7 @@ function prepare(base,additions,state){
     pools,now:Date.now(),seed:additions.seed,seen:previous(additions.profile,additions.seed),
     positions:state.positions||{},history:state.history||[],
     favorites:state.favorites||[],notInterested:state.notInterested||[],
-    carouselSource:state.settings.carouselSource||'top'
+    carouselSource:'streaming'
   });
   const seen=engine.prune(getJSON(PREFIX+additions.profile+':seen',{}));
   for(const k of selected.used)seen[k]=Date.now();
