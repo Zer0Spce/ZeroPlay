@@ -172,10 +172,17 @@
   grid-template-columns:none!important;
   gap:16px!important;overflow-x:auto!important;overflow-y:hidden!important;
   width:100%!important;padding:4px 4px 14px!important;
-  scroll-snap-type:x mandatory!important;
-  scrollbar-width:thin!important;scrollbar-color:#777b86 #292a30!important;
+  scroll-snap-type:x proximity!important;
+  overscroll-behavior-x:contain!important;
+  scroll-behavior:smooth!important;
+  touch-action:pan-x!important;
+  cursor:grab!important;
+  scrollbar-width:none!important;
+  -ms-overflow-style:none!important;
   -webkit-overflow-scrolling:touch;
 }
+.zero-provider-section .zero-provider-strip::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+.zero-provider-section .zero-provider-strip[data-dragging="1"]{cursor:grabbing!important;scroll-behavior:auto!important;user-select:none!important}
 .zero-provider-section .provider{
   display:flex!important;flex:0 0 234px!important;
   box-sizing:border-box!important;align-items:center!important;
