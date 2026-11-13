@@ -20,7 +20,7 @@ test('website Top 10 Today is loaded from the daily trend and opens details',()=
   assert.match(js,/TOP 10 TODAY/);
   assert.match(css,/\.zero-web-top10-rank/);
   assert.match(css,/\.zero-web-top10-poster/);
-  assert.match(sw,/zeroplay-web-2\.2\.6\.1-crimson/);
+  assert.match(sw,/zeroplay-web-2\.2\.6\.2-crimson/);
   assert.match(sw,/top10-today\.js\?v=20261016a/);
   assert.equal(catalog.endpoint('/trending/all/day'),true);
   assert.equal(catalog.endpoint('/trending/all/week'),true);

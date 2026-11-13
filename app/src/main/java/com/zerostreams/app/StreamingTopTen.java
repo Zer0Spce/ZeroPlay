@@ -87,7 +87,8 @@ final class StreamingTopTen {
         }catch(JSONException ignored){}
         return movies;
     }
-    static List<Catalog.Item> load(String key,long time) throws Exception {
+    static List<Catalog.Item> load(String key,long time) throws Exception {return load(key,time,0);}
+    static List<Catalog.Item> load(String key,long time,int variation) throws Exception {
         JSONObject catalog=ContentApi.tmdb("/watch/providers/movie",key,"&watch_region=US");
         JSONArray providers=catalog.optJSONArray("results");
         String[] serviceNames={"netflix","hulu","disney","max","apple","paramount","peacock","youtube-tv"};
@@ -110,7 +111,7 @@ final class StreamingTopTen {
         List<Catalog.Item> movies=new ArrayList<>();Exception error=null;
         for(String name:serviceNames){
             Integer provider=serviceIds.get(name);if(provider==null)continue;
-            int page=1+Math.floorMod((int)(time/21600000L+provider),2);
+            int page=1+Math.floorMod((int)(time/21600000L+provider+variation),2);
             try{
                 JSONArray rows=ContentApi.tmdb("/discover/movie",key,filters+"&with_watch_providers="+provider+"&page="+page)
                     .optJSONArray("results");
@@ -118,6 +119,6 @@ final class StreamingTopTen {
             }catch(Exception failed){error=failed;}
         }
         if(movies.isEmpty()&&error!=null)throw error;
-        return select(movies,time/21600000L,time);
+        return select(movies,time/21600000L+variation,time);
     }
 }
