@@ -259,7 +259,7 @@
 /* 2.2.6: Small provider logo above title; keep the full movie artwork unobstructed. */
 .hero .hero-title-line{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .hero .hero-title-line h2{margin:3px 0 8px;min-height:0;max-height:none;min-width:0}
-.hero .hero-provider-logo{display:block;width:auto;max-width:108px;height:auto;max-height:32px;object-fit:contain;object-position:left center;opacity:.96;filter:drop-shadow(0 1px 3px #0009)}
+.hero .hero-provider-logo{display:block;width:auto;max-width:140px;height:auto;max-height:36px;object-fit:contain;object-position:left center;margin:8px 0 6px;opacity:.96;filter:drop-shadow(0 1px 3px #0009)}
 @media(max-width:700px){.hero .hero-title-line{gap:3px}.hero .hero-provider-logo{max-width:88px;max-height:26px}}
 
 /* ZeroPlay 2.2.6 TEST: compact, functional search controls and local suggestions. */
@@ -304,3 +304,9 @@
 .zero-detail-providers strong{font-size:12px;font-weight:600;color:var(--muted)}
 .zero-detail-providers img{display:block;width:auto;height:auto;max-width:66px;max-height:21px;object-fit:contain;filter:drop-shadow(0 1px 2px #000a)}
 .zero-detail-availability{color:var(--muted);font-size:11px}
+
+/* ZeroPlay 2.2.6.4 TEST: guaranteed top-right carousel refresh, above the trailer layer. */
+.hero{position:relative}
+.hero .hero-refresh-picks{position:absolute;top:17px;right:20px;z-index:100;display:block!important;visibility:visible!important;opacity:1!important;padding:12px 16px;border-radius:9px;border:1px solid #ff808a;background:#df2531;color:#fff;font-weight:700;box-shadow:0 3px 14px #0008;cursor:pointer}
+.hero .hero-refresh-picks:hover,.hero .hero-refresh-picks:focus-visible{background:#fa3447;outline:2px solid #fff;outline-offset:2px}
+.hero .hero-provider-logo{flex:none;align-self:flex-start}
