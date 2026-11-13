@@ -45,6 +45,8 @@
     for(const source of Object.values(pools))for(const item of Array.isArray(source)?source:[]){
       if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||
         Number(item.id)<=0||(!item.poster&&!item.backdrop))continue;
+      if(item.type==='movie'&&(item.originalLanguage&&item.originalLanguage!=='en'||
+          Array.isArray(item.originCountry)&&item.originCountry.length>0&&!item.originCountry.includes('US')))continue;
       const key=id(item);
       if(ignored.has(key)||watched.has(key)||saved.has(key))continue;
       if(!all.has(key))all.set(key,item);
@@ -58,10 +60,13 @@
     const liked=new Set([...genreWeights.keys()]);
     const recentCutoff=now-SUPPRESSION_DAYS*DAY;
     const released=x=>!x.date||x.date<=today;
-    const movie=x=>x.type==='movie'&&released(x);
+    const threeYears=new Date(now-3*365*DAY).toISOString().slice(0,10);
+    const sixMonths=new Date(now-180*DAY).toISOString().slice(0,10);
+    const movie=x=>x.type==='movie'&&released(x)&&Boolean(x.date)&&x.date>=threeYears;
     const tv=x=>x.type==='tv'&&released(x);
+    const recentMedia=x=>x.type==='movie'?movie(x):tv(x);
     const enough=x=>quality(x)>=6.25&&(Number(x.voteCount)||0)>=70;
-    const strong=x=>released(x)&&Boolean(x.backdrop)&&Number(x.voteCount)>=
+    const strong=x=>recentMedia(x)&&Boolean(x.backdrop)&&Number(x.voteCount)>=
       (x.type==='movie'?250:150)&&quality(x)>=6.6&&(Number(x.popularity)||0)>=8;
     function pool(names,rule=()=>true){
       const entries=new Map();
@@ -106,19 +111,24 @@
     let hero=[];
     if(!['watchlist','continue'].includes(carouselSource)){
       hero=take('hero:'+carouselSource,heroSources,strong,6,true);
-      if(!hero.length)hero=take('hero-fallback',heroSources,x=>released(x)&&Boolean(x.backdrop)&&enough(x),6,true);
+      if(!hero.length)hero=take('hero-fallback',heroSources,x=>recentMedia(x)&&Boolean(x.backdrop)&&enough(x),6,true);
     }
     const shelves={};
+    // Digital type-4 release date supplied by TMDB's region-aware discover endpoint.
+    // Do not silently substitute theatrical or generic popularity lists.
+    shelves.vod=take('vod',['vod'],x=>x.type==='movie'&&released(x)&&
+      Boolean(x.date)&&x.date>=sixMonths&&(!x.originalLanguage||x.originalLanguage==='en')&&
+      Number(x.voteCount)>=10,18,true);
     shelves.because=liked.size?
       take('because',['similar','trending','recommended','popular','series','top'],
-        x=>released(x)&&enough(x)&&(x.genreIds||[]).some(g=>liked.has(g))):[];
+        x=>recentMedia(x)&&enough(x)&&(x.genreIds||[]).some(g=>liked.has(g))):[];
     shelves.hidden=take('hidden',['gems','classics','top','popular'],x=>movie(x)&&
       quality(x)>=6.8&&Number(x.voteCount)>=180&&Number(x.popularity)<300);
     shelves.tonight=take('tonight',['recommended','top','trending','popular','gems'],
       x=>movie(x)&&enough(x));
     shelves.recommended=take('recommended',['recommended','popular','top','trending','gems'],
       x=>movie(x)&&enough(x));
-    shelves.trending=take('trending',['day','trending','series','popular'],x=>released(x)&&enough(x));
+    shelves.trending=take('trending',['day','trending','series','popular'],x=>recentMedia(x)&&enough(x));
     shelves.popular=take('popular',['popular','trending','top'],x=>movie(x)&&enough(x));
     shelves.series=take('series',['series','trending','day'],x=>tv(x)&&enough(x));
     shelves.now=take('now',['now','day','popular'],x=>movie(x)&&enough(x));
@@ -130,10 +140,12 @@
     shelves.recent=take('recent',['now','day','popular','new'],x=>movie(x)&&
       Boolean(x.date)&&x.date>=lastYear&&enough(x));
     const favoriteGenres=new Set([...liked]);
-    shelves.different=take('different',['world','classics','gems','day','trending'],x=>released(x)&&
+    shelves.different=take('different',['streaming','gems','day','trending','popular'],x=>recentMedia(x)&&
       enough(x)&&(!favoriteGenres.size||!(x.genreIds||[]).some(g=>favoriteGenres.has(g))));
-    shelves.classics=take('classics',['classics','top'],x=>movie(x)&&Number((x.date||'').slice(0,4))>0&&
-      Number((x.date||'').slice(0,4))<=new Date(now).getFullYear()-8&&enough(x));
+    // A short modern-classics window, not old films from the 1970s/1980s.
+    shelves.classics=take('classics',['classics'],x=>x.type==='movie'&&released(x)&&
+      Number((x.date||'').slice(0,4))>=new Date(now).getFullYear()-12&&
+      Number((x.date||'').slice(0,4))<=new Date(now).getFullYear()-5&&enough(x));
     return {hero,shelves,candidateCount:all.size,used:[...used],seed};
   }
   function rotatingPanels(order,seed,custom=false){
