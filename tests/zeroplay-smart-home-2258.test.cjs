@@ -277,7 +277,11 @@ test('Android TEST remains isolated and production preserves original app identi
   const manifest=read('app/src/main/AndroidManifest.xml');
   const workflow=read('.github/workflows/zeroplay-2258-candidate-test.yml');
   // 2.2.6's dedicated QA branch deliberately requires .test even without an env variable.
-  if(gradle.includes("applicationIdSuffix '.mobile.test'")){
+  if(gradle.includes("applicationIdSuffix '.mobile.test225'")){
+    for(const suffix of ['.tv.test225','.lite.mobile.test225','.lite.tv.test225'])
+      assert.ok(gradle.includes("applicationIdSuffix '"+suffix+"'"),'isolated test package '+suffix);
+    assert.ok(gradle.includes("appLabel: 'ZeroPlay 225 TEST'"));
+  }else if(gradle.includes("applicationIdSuffix '.mobile.test'")){
     assert.ok(gradle.includes("applicationIdSuffix '.tv.test'"));
     assert.ok(gradle.includes("applicationIdSuffix '.lite.mobile.test'"));
     assert.ok(gradle.includes("applicationIdSuffix '.lite.tv.test'"));
