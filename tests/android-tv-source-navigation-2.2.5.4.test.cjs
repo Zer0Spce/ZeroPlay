@@ -41,7 +41,7 @@ if(windows.includes("sourceIntelligence.best(")){
   has(windows,"playbackSource==='embedwave'?'vidnest'","offline source skipped by Windows recovery");
 }
 if(player.includes('PlaybackHealth.next(prefs,current)')){
-  const health=fs.readFileSync(path.join(__dirname,'..','app','src','main','java','com','zerostreams','app','PlaybackHealth.java'),'utf8');
+  const health=fs.readFileSync('app/src/main/java/com/zerostreams/app/PlaybackHealth.java','utf8');
   has(player,'PlaybackHealth.next(prefs,current)','Android recovery uses verified provider health ranking');
   assert.match(health,/AUTOMATIC=Collections.unmodifiableList/);
   assert.match(health,/"vidstuck","zxcstream","embedwave","vidnest","vidrift","vidfast","vidapi"/);
