@@ -250,3 +250,41 @@ test('Provider carousel hides scrollbars but keeps Top 10-style wheel, drag and 
   assert.ok(native.includes('providerRail.setHorizontalScrollBarEnabled(false)'));
   assert.ok(native.includes('HorizontalScrollView providerRail'));
 });
+
+test('Provider availability defaults to US and upgrades legacy Windows PH defaults once',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const main=read('windows/main.cjs');
+  const android=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+  assert.ok(main.includes("settings:{region:'US',gain:1"));
+  assert.ok(main.includes("providerRegionDefaultUS2258"));
+  assert.ok(main.includes("if(!state.settings.region||state.settings.region==='PH')state.settings.region='US'"));
+  assert.ok(android.includes('prefs.getString("providerRegion","US")'));
+  assert.ok(!android.includes('prefs.getString("providerRegion","PH")'));
+});
+test('Windows executable receives multi-resolution ZeroPlay red icon, not only a title-bar PNG',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const script=read('scripts/prepare-2258-windows-test.cjs');
+  const workflow=read('.github/workflows/zeroplay-2258-candidate-test.yml');
+  assert.ok(script.includes('const sizes=[16,24,32,48,64,128,256]'));
+  assert.ok(script.includes("pkg.build.win.icon='assets/zeroplay-playmark.ico'"));
+  assert.ok(script.includes('pkg.build.win.signAndEditExecutable=true'));
+  assert.ok(workflow.includes('ExtractAssociatedIcon($exe)'));
+  assert.ok(workflow.includes('ZeroPlay.exe still has the old teal/non-red icon'));
+});
+test('Android TEST can install beside 2.2.5.7 without replacing production app or data',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const gradle=read('app/build.gradle');
+  const manifest=read('app/src/main/AndroidManifest.xml');
+  const workflow=read('.github/workflows/zeroplay-2258-candidate-test.yml');
+  assert.ok(gradle.includes("ZERO_ANDROID_TEST_SIDE_BY_SIDE"));
+  assert.ok(gradle.includes("'.test' : ''"));
+  assert.ok(gradle.includes("appLabel: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay TEST' : 'ZeroPlay'"));
+  assert.ok(manifest.includes('android:label="${appLabel}"'));
+  assert.ok(manifest.includes('android:authorities="${applicationId}.files"'));
+  assert.ok(workflow.includes("ZERO_ANDROID_TEST_SIDE_BY_SIDE: '1'"));
+  for(const pkg of ['com.zerostreams.app.mobile.test','com.zerostreams.app.tv.test',
+    'com.zerostreams.app.lite.mobile.test','com.zerostreams.app.lite.tv.test']){
+    assert.ok(workflow.includes(pkg),'missing package check: '+pkg);
+  }
+  assert.ok(workflow.includes("application-label:'ZeroPlay TEST'"));
+});
