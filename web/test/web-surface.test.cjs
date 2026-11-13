@@ -2,11 +2,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'../..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('website is labeled as ZeroPlay 2.2.6.2 Web',()=>{
+test('website is labeled as ZeroPlay 2.2.6.3 Web',()=>{
   const html=read('web/public/index.html');
   const browser=read('web/public/browser.js');
-  assert.match(html,/ZeroPlay 2\.2\.6\.2/);
-  assert.match(browser,/version:'2\.2\.6\.2 Web'/);
+  assert.match(html,/ZeroPlay 2\.2\.6\.3/);
+  assert.match(browser,/version:'2\.2\.6\.3 Web'/);
 });
 
 test('website does not expose Live TV, PPV or Live Sports',()=>{
@@ -22,7 +22,7 @@ test('website movies and series append more cards below the current grid',()=>{
   const infinite=read('web/public/infinite-scroll.js');
   const sw=read('web/public/sw.js');
   assert.match(html,/infinite-scroll\.js\?v=20261013c/);
-  assert.match(sw,/zeroplay-web-2\.2\.6\.2-crimson/);
+  assert.match(sw,/zeroplay-web-2\.2\.6\.3-crimson/);
   assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
   assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
   assert.match(infinite,/async function appendCatalogPage/);

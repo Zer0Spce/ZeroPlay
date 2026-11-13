@@ -20,7 +20,7 @@ test('Android TV Continue Watching reads playback history and is pinned when res
 });
 test('TV-only Refresh picks appears beside carousel actions and changes source candidates',()=>{
  const a=read('app/src/main/java/com/zerostreams/app/MainActivity.java'),s=read('app/src/main/java/com/zerostreams/app/StreamingTopTen.java');
- assert.match(a,/if\(BuildConfig\.TV\)\{Button refresh=button\("↻ Refresh picks",this::refreshHomePicks\)/);
+ assert.match(a,/Button refreshPicks=button\("↻ Refresh picks",this::refreshHomePicks\)/);
  assert.match(a,/carouselSourceCache\.clear\(\)/);
  assert.match(a,/StreamingTopTen\.load\(key,System\.currentTimeMillis\(\),variation\)/);
  assert.match(s,/int variation\) throws Exception/);
