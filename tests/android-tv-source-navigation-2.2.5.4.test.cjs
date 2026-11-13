@@ -40,5 +40,13 @@ if(windows.includes("sourceIntelligence.best(")){
   has(windows,"'embedwave','vidnest'","offline source excluded from automatic best-source selection");
   has(windows,"playbackSource==='embedwave'?'vidnest'","offline source skipped by Windows recovery");
 }
-has(player,'current.equals("embedwave")?"vidnest"','offline source skipped by Android recovery');
+if(player.includes('PlaybackHealth.next(prefs,current)')){
+  const health=fs.readFileSync(path.join(__dirname,'..','app','src','main','java','com','zerostreams','app','PlaybackHealth.java'),'utf8');
+  has(player,'PlaybackHealth.next(prefs,current)','Android recovery uses verified provider health ranking');
+  assert.match(health,/AUTOMATIC=Collections.unmodifiableList/);
+  assert.match(health,/"vidstuck","zxcstream","embedwave","vidnest","vidrift","vidfast","vidapi"/);
+  assert.doesNotMatch(health,/AUTOMATIC[^;]*"vidrock"/);
+  assert.doesNotMatch(health,/AUTOMATIC[^;]*"vidsrc-sh"/);
+  assert.doesNotMatch(health,/AUTOMATIC[^;]*"rawcast"/);
+}else has(player,'current.equals("embedwave")?"vidnest"','offline source skipped by Android recovery');
 console.log('Android TV per-source navigation and Vidrock.to offline regression checks passed');
