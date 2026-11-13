@@ -46,7 +46,7 @@
     for(const source of Object.values(pools))for(const item of Array.isArray(source)?source:[]){
       if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||
         Number(item.id)<=0||(!item.poster&&!item.backdrop))continue;
-      if(item.type==='movie'&&(item.originalLanguage&&item.originalLanguage!=='en'||
+      if(item.type==='movie'&&!streamingAllowed.has(id(item))&&(item.originalLanguage&&item.originalLanguage!=='en'||
           Array.isArray(item.originCountry)&&item.originCountry.length>0&&!item.originCountry.includes('US')))continue;
       const key=id(item);
       if(ignored.has(key)||((watched.has(key)||saved.has(key))&&!streamingAllowed.has(key)))continue;
