@@ -107,7 +107,11 @@ jobs:
               *) echo 'Unexpected Android APK name'; exit 1 ;;
             esac
             test "$actual_id" = "$expected_id" || { echo "Side-by-side test ID mismatch: $actual_id (expected $expected_id)"; exit 1; }
-            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "application-label:'ZeroPlay TEST'"
+            case "$expected_id" in
+              *.lite.*.test) expected_label='ZeroPlay Lite TEST' ;;
+              *) expected_label='ZeroPlay TEST' ;;
+            esac
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "application-label:'$expected_label'"
           done
       - name: Android lint for all public editions
         run: gradle --continue :app:lintMobileRelease :app:lintTvRelease :app:lintLiteMobileRelease :app:lintLiteTvRelease
