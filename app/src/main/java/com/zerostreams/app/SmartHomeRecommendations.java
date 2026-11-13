@@ -39,9 +39,24 @@ final class SmartHomeRecommendations {
             return date.isEmpty()||date.compareTo(new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date(now)))<=0;
         }
         private boolean strong(Catalog.Item x) {
-            if(!released(x)||x.raw.optString("backdrop","").isEmpty())return false;
+            if(!released(x)||!recentHollywood(x)||x.raw.optString("backdrop","").isEmpty())return false;
             double votes=x.raw.optDouble("voteCount",0);
             return votes>=(x.type.equals("movie")?250:150)&&quality(x)>=6.6&&x.raw.optDouble("popularity",0)>=8;
+        }
+        private boolean recentHollywood(Catalog.Item x){
+            if(!x.type.equals("movie"))return true;
+            if(!"en".equals(x.raw.optString("originalLanguage","en")))return false;
+            JSONArray origins=x.raw.optJSONArray("originCountry");
+            if(origins!=null&&origins.length()>0){
+                boolean american=false;
+                for(int i=0;i<origins.length();i++)if("US".equals(origins.optString(i)))american=true;
+                if(!american)return false;
+            }
+            String date=x.raw.optString("releaseDate","");
+            Calendar oldest=Calendar.getInstance(TimeZone.getTimeZone("UTC"),Locale.ROOT);
+            oldest.add(Calendar.YEAR,-3);
+            String cutoff=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(oldest.getTime());
+            return !date.isEmpty()&&date.compareTo(cutoff)>=0;
         }
         private double score(Catalog.Item x,String shelf) {
             long h=2166136261L;String s=seed+":"+shelf+":"+x.id;
@@ -60,8 +75,21 @@ final class SmartHomeRecommendations {
                    item.poster.isEmpty()||used.contains(item.id))continue;
                 if(item.type.equals("live")||item.type.equals("manga"))continue;
                 if(!shelf.equals("upcoming")&&!released(item))continue;
+                if(item.type.equals("movie")){
+                    if(!"en".equals(item.raw.optString("originalLanguage","en")))continue;
+                    JSONArray origin=item.raw.optJSONArray("originCountry");
+                    boolean hasOrigins=origin!=null&&origin.length()>0,american=false;
+                    if(origin!=null)for(int i=0;i<origin.length();i++)if("US".equals(origin.optString(i)))american=true;
+                    if(hasOrigins&&!american)continue;
+                    if(shelf.equals("classics")){
+                        int year=Calendar.getInstance().get(Calendar.YEAR);
+                        if(item.year<year-12||item.year>year-5)continue;
+                    }else if(!shelf.equals("upcoming")&&!recentHollywood(item))continue;
+                }
+                if(shelf.equals("vod")&&!item.raw.optBoolean("digitalVOD",false))continue;
                 if(isHero&&!strong(item))continue;
                 if(!isHero&&!allowUnrated&&!shelf.equals("upcoming")&&
+                   !(shelf.equals("vod")&&item.raw.optDouble("voteCount",0)>=10)&&
                    (item.raw.optDouble("voteCount",0)<70||quality(item)<6.25))continue;
                 distinct.put(item.id,item);
             }
@@ -161,17 +189,24 @@ final class SmartHomeRecommendations {
         return 1+Math.floorMod((int)(now/SIX_HOURS)+extra,count);
     }
     static List<String> panelOrder(SharedPreferences prefs,List<String> panels,String seed) {
-        if(!prefs.getString("homePanelOrder","").isEmpty())return panels;
-        List<String> pinned=Arrays.asList("featured","continue","upnext","watchlist","top10");
-        List<String> rotating=Arrays.asList("because","tonight","hidden","recommended","thrillers",
-            "recent","different","classics","trending","popular","series","now","airing");
-        List<String> ordered=new ArrayList<>();
-        for(String id:pinned)if(panels.contains(id))ordered.add(id);
-        List<String> dynamic=new ArrayList<>();
-        for(String id:rotating)if(panels.contains(id))dynamic.add(id);
-        dynamic.sort((a,b)->Integer.compare((seed+":"+a).hashCode(),(seed+":"+b).hashCode()));
-        ordered.addAll(dynamic);
-        for(String id:panels)if(!ordered.contains(id))ordered.add(id);
-        return ordered;
+        List<String> order=new ArrayList<>(panels);
+        if(prefs.getString("homePanelOrder","").isEmpty()){
+            List<String> pinned=Arrays.asList("featured","continue","upnext","watchlist","top10");
+            List<String> rotating=Arrays.asList("because","tonight","hidden","recommended","thrillers",
+                "recent","different","classics","trending","popular","series","now","airing");
+            order.clear();
+            for(String id:pinned)if(panels.contains(id))order.add(id);
+            List<String> dynamic=new ArrayList<>();
+            for(String id:rotating)if(panels.contains(id))dynamic.add(id);
+            dynamic.sort((a,b)->Integer.compare((seed+":"+a).hashCode(),(seed+":"+b).hashCode()));
+            order.addAll(dynamic);
+            for(String id:panels)if(!order.contains(id))order.add(id);
+        }
+        if(order.remove("providers")){
+            int anchor=order.indexOf("top10");
+            if(anchor<0)anchor=order.indexOf("featured");
+            order.add(anchor<0?0:anchor+1,"providers");
+        }
+        return order;
     }
 }
