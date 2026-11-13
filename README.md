@@ -1,34 +1,34 @@
 <p align="center"><img src="windows/assets/zeroplay-home-logo.png" alt="ZeroPlay official red Zero and white Play logo" width="650"></p>
 
-# 🎬 ZeroPlay 2.2.5.8
+# 🎬 ZeroPlay 2.2.5.9
 
 ### Movies. Series. Anime. Live TV. Sports. Your own space to watch.
 
-ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2.5.8** brings Discovery 2.0, Zero Crimson branding, the approved ZeroPlay icon across platforms, a centered Android TV launcher icon and updated streaming-provider browsing. The stable 2.2.5.7 playback/updater foundation remains intact.
+ZeroPlay brings TMDB discovery, a local library, multiple playback sources and customizable interfaces to **Android phones/tablets, Android TV / Google TV, Windows and Web**. Version **2.2.5.9** adds a rotating, provider-verified **Top 10 New Streaming Movies** carousel and Crimson Red VidStuck/ZXCStream embed accents, while retaining Discovery 2.0, the approved ZeroPlay icons and the repaired Windows updater. The stable 2.2.5.7 playback/updater foundation remains intact.
 
-**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2.5.8 release notes](docs/releases/v2.2.5.8.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
+**[⬇️ Get the latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 2.2.5.9 release notes](docs/releases/v2.2.5.9.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Genuine screenshot gallery](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
 
 > [!IMPORTANT]
-> **Windows 2.0–2.0.3 users: update manually once.** Download the current Windows ZIP, extract it into a fresh folder and launch `ZeroPlay.exe`. Those old versions contain the broken updater. Versions 2.1 and newer include the repaired in-app update flow.
+> **Windows users still on v2.2.5.7 or the original v2.2.5.8 ZIP:** Update manually once by extracting the latest ZIP into a fresh folder and launching `ZeroPlay.exe`. Those builds cannot reliably find GitHub updates; the corrected 2.2.5.8 Windows ZIP and v2.2.5.9 include the repaired updater.
 
 ## ⬇️ Choose your edition
 
 | Edition | Download | What you get |
 | --- | --- | --- |
-| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.8/ZeroPlay-2.2.5.8-Android.apk) | Full phone/tablet presentation and native player core. |
-| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.8/ZeroPlay-2.2.5.8-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
-| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.8/ZeroPlay-2.2.5.8-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
-| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.8/ZeroPlay-2.2.5.8-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
-| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.8/ZeroPlay-2.2.5.8-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
-| ✅ Checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.8/SHA256SUMS.txt) | Verify the published files. |
+| 📱 Android | [Full Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android.apk) | Full phone/tablet presentation and native player core. |
+| 📺 Android TV / Google TV | [Full TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android-TV.apk) | Remote-friendly browsing, Hybrid / D-pad / Mouse player navigation. |
+| 🪶 Android Lite | [Lite Android APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android-Lite.apk) | Less artwork and presentation work for slower devices. |
+| 🪶📺 Android TV Lite | [Lite TV APK](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Android-TV-Lite.apk) | Lightweight presentation with the same 2.2 Hybrid/player core. |
+| 🖥️ Windows 10 / 11 x64 | [Portable Windows ZIP](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/ZeroPlay-2.2.5.9-Windows-x64.zip) | Extract and run `ZeroPlay.exe`; no installer. |
+| ✅ Checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.5.9/SHA256SUMS.txt) | Verify the published files. |
 
 Android requires Android 6.0 or newer. Full and Lite apps have separate package IDs and can be installed independently. Signed production updates retain the established signing identity for each package.
 
-## ⭐ What’s new in 2.2.5.8
+## ⭐ What’s new in 2.2.5.9
 
-**Discovery 2.0 · Smart rotating recommendations · Zero Crimson · Official app icon and wordmark · Eight streaming providers · United States default provider region · Recent digital VOD · Android TV launch refresh and centered logo · Visible Windows updater**
+**Top 10 New Streaming Movies · United States subscription listings from eight providers · Six-hour randomized carousel rotation · Crimson VidStuck/ZXCStream player accents · Existing Discovery 2.0, branded launchers and Windows updater preserved**
 
-[Full 2.2.5.8 release notes](docs/releases/v2.2.5.8.md)
+[Full 2.2.5.9 release notes](docs/releases/v2.2.5.9.md)
 
 > **Top 10 Today** is enabled by default on Android, Android TV and Windows and can be disabled from Homepage panels / Home customization. **Coming Soon is hidden by default.**
 
