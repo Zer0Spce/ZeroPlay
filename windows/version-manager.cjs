@@ -5,11 +5,13 @@ function pointerPath(){return path.join(rootDir(),'current.json');}
 // Updater 3.0: reject unsafe/stale launcher pointers before a process is spawned.
 function validSelection(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return false;
-  if(typeof value.version!=='string'||!/^\\d+\\.\\d+(?:[.\\-]\\d+){0,2}$/.test(value.version))return false;
-  if(typeof value.path!=='string'||value.path.length>240||value.path.includes('\\0'))return false;
-  const normalized=value.path.replace(/\\\\/g,'/');
+  if(typeof value.version!=='string'||! /^[0-9]+[.][0-9]+(?:[.-][0-9]+){0,2}$/.test(value.version))return false;
+  if(typeof value.path!=='string'||value.path.length>240||value.path.includes(String.fromCharCode(0)))return false;
+  const normalized=value.path.split(String.fromCharCode(92)).join('/');
   if(normalized==='ZeroPlay.exe')return true;
-  return /^versions\\/[0-9]+(?:[.\\-][0-9]+){1,3}\\/ZeroPlay[.]exe$/i.test(normalized);
+  const parts=normalized.split('/');
+  return parts.length===3&&parts[0]==='versions'&&
+    /^[0-9]+(?:[.-][0-9]+){1,3}$/.test(parts[1])&&parts[2]==='ZeroPlay.exe';
 }
 function validatedPointer(value){
   if(!validSelection(value)||typeof value.pending!=='boolean')return null;
