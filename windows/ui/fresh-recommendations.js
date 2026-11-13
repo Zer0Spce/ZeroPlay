@@ -104,14 +104,15 @@
       for(const x of chosen)used.add(id(x));
       return chosen;
     }
-    const heroSources=carouselSource==='recommended'?['recommended','top','trending','popular','day']:
+    const heroSources=carouselSource==='streaming'?['streaming']:
+      carouselSource==='recommended'?['recommended','top','trending','popular','day']:
       carouselSource==='popular'?['popular','trending','day','recommended']:
       carouselSource==='now'?['now','day','trending','popular']:
       ['day','trending','popular','recommended','series','now'];
     let hero=[];
     if(!['watchlist','continue'].includes(carouselSource)){
-      hero=take('hero:'+carouselSource,heroSources,strong,6,true);
-      if(!hero.length)hero=take('hero-fallback',heroSources,x=>recentMedia(x)&&Boolean(x.backdrop)&&enough(x),6,true);
+      hero=carouselSource==='streaming'?take('hero:streaming',heroSources,x=>x.type==='movie'&&Boolean(x.backdrop)&&released(x),10,false):take('hero:'+carouselSource,heroSources,strong,6,true);
+      if(!hero.length&&carouselSource!=='streaming')hero=take('hero-fallback',heroSources,x=>recentMedia(x)&&Boolean(x.backdrop)&&enough(x),6,true);
     }
     const shelves={};
     // Digital type-4 release date supplied by TMDB's region-aware discover endpoint.
