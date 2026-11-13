@@ -1,4 +1,5 @@
 name: ZeroPlay 2.2.6 — Full Production Release
+# Revalidated both isolated QA and established signed production Android app IDs.
 on:
   push:
     branches:

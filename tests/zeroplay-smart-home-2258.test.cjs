@@ -271,7 +271,7 @@ test('Windows executable receives multi-resolution ZeroPlay red icon, not only a
   assert.ok(workflow.includes('ExtractAssociatedIcon($exe)'));
   assert.ok(workflow.includes('ZeroPlay.exe still has the old teal/non-red icon'));
 });
-test('Android TEST can install beside 2.2.5.7 without replacing production app or data',()=>{
+test('Android TEST remains isolated and production preserves original app identities',()=>{
   const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
   const gradle=read('app/build.gradle');
   const manifest=read('app/src/main/AndroidManifest.xml');
@@ -282,6 +282,11 @@ test('Android TEST can install beside 2.2.5.7 without replacing production app o
     assert.ok(gradle.includes("applicationIdSuffix '.lite.mobile.test'"));
     assert.ok(gradle.includes("applicationIdSuffix '.lite.tv.test'"));
     assert.ok(gradle.includes("appLabel: 'ZeroPlay TEST'"));
+  }else if(gradle.includes("applicationIdSuffix '.mobile'")){
+    for(const suffix of ['.tv','.lite.mobile','.lite.tv'])
+      assert.ok(gradle.includes("applicationIdSuffix '"+suffix+"'"),'production '+suffix);
+    assert.ok(gradle.includes("appLabel: 'ZeroPlay'"));
+    assert.ok(gradle.includes("appLabelLite: 'ZeroPlay Lite'"));
   }else{
     assert.ok(gradle.includes("ZERO_ANDROID_TEST_SIDE_BY_SIDE"));
     assert.ok(gradle.includes("'.test' : ''"));
