@@ -27,7 +27,7 @@ const dataRoot=require('./data-directory.cjs').dataDirectory(app.getPath('appDat
 const homePanelIds=['clock','featured','top10','continue','upnext','because','watchlist','tonight','hidden','upcoming','providers','recommended','trending','popular','series','now','airing','action','comedy','horror','animation','anime','adventure','crime','documentary','drama','family','fantasy','history','music','mystery','romance','scifi','thriller','war','western','tvmovie','thrillers','recent','different','classics'];
 function normalizeHomePanelOrder(value){const out=[];for(const id of Array.isArray(value)?value:[])if(homePanelIds.includes(id)&&!out.includes(id))out.push(id);for(const id of homePanelIds)if(!out.includes(id))out.push(id);return out;}
 const channelKey=(section,c)=>require('node:crypto').createHash('sha256').update(section+'|'+c.name+'|'+c.group).digest('hex');
-const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'PH',gain:1,theme:'dark',uiLayout:'youtube',source:'vidstuck',rawcastPlayback:false,uiAnimations:true,focusInfo:true,focusTrailer:true,homepageTrailer:true,previewDelay:2000,carouselSource:'top',homePanels:['clock','featured','top10','providers','continue','upnext','because','watchlist','tonight','hidden','trending','recommended','thrillers','recent','different','classics','popular','series','now','airing'],homePanelOrder:homePanelIds.slice(),performanceMode:false,artQuality:'auto',autoSourceRecovery:false,autoBestSource:true,autoplayNext:true,skipIntroSeconds:90,skipRecapSeconds:45},customKey:''});
+const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'US',gain:1,theme:'dark',uiLayout:'youtube',source:'vidstuck',rawcastPlayback:false,uiAnimations:true,focusInfo:true,focusTrailer:true,homepageTrailer:true,previewDelay:2000,carouselSource:'top',homePanels:['clock','featured','top10','providers','continue','upnext','because','watchlist','tonight','hidden','trending','recommended','thrillers','recent','different','classics','popular','series','now','airing'],homePanelOrder:homePanelIds.slice(),performanceMode:false,artQuality:'auto',autoSourceRecovery:false,autoBestSource:true,autoplayNext:true,skipIntroSeconds:90,skipRecapSeconds:45},customKey:''});
 function personalSnapshot(){return {favorites:state.favorites||[],planned:state.planned||[],history:state.history||[],positions:state.positions||{},searches:state.searches||[],collections:state.collections||{},notInterested:state.notInterested||[]};}
 function applyPersonal(value={}){state.favorites=Array.isArray(value.favorites)?value.favorites:[];state.planned=Array.isArray(value.planned)?value.planned:[];state.history=Array.isArray(value.history)?value.history:[];state.positions=value.positions&&typeof value.positions==='object'?value.positions:{};state.searches=Array.isArray(value.searches)?value.searches:[];state.collections=value.collections&&typeof value.collections==='object'?value.collections:{};state.notInterested=Array.isArray(value.notInterested)?value.notInterested:[];}
 function ensureProfiles(){if(!state.profiles||typeof state.profiles!=='object'||Array.isArray(state.profiles))state.profiles={};if(!state.activeProfile)state.activeProfile='Default';}
@@ -170,7 +170,13 @@ async function openLive(section,index,offline){
 app.whenReady().then(async()=>{
   app.setAppUserModelId('com.zerostreams.windows');Menu.setApplicationMenu(null);
   file=path.join(app.getPath('userData'),smoke?'smoke-state.json':'library.json');state=defaults();
-  try{const saved=JSON.parse(fs.readFileSync(file,'utf8'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}if(!state.settings.discoveryVODPreset2258){
+  try{const saved=JSON.parse(fs.readFileSync(file,'utf8'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}if(!state.settings.providerRegionDefaultUS2258){
+    // 2.2.5.8: previous releases seeded PH even when nobody selected a country.
+    // Move that old default to US once; preserve any other explicit region choice.
+    if(!state.settings.region||state.settings.region==='PH')state.settings.region='US';
+    state.settings.providerRegionDefaultUS2258=true;
+  }
+  if(!state.settings.discoveryVODPreset2258){
     const preferred=['tonight','hidden','trending','top10','thrillers','recent','different','classics','providers','now'];
     const base=Array.isArray(state.settings.homePanels)?state.settings.homePanels:[];
     state.settings.homePanels=[...new Set([...base,...preferred])];
