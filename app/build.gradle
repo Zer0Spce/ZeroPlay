@@ -6,7 +6,7 @@ android {
     externalNativeBuild { cmake { path file('src/main/cpp/CMakeLists.txt'); version '3.22.1' } }
     defaultConfig {
         applicationId 'com.zerostreams.app'
-        // CI-only side-by-side test identity. Keeps production package names unchanged.
+        // v2.2.6 test branch: ALL Android flavors are isolated, even without CI flags.
         manifestPlaceholders = [appLabel: 'ZeroPlay TEST', appLabelLite: 'ZeroPlay Lite TEST']
         minSdk 23
         targetSdk 35
@@ -35,7 +35,7 @@ android {
         }
         privateTv {
             dimension 'device'
-            applicationIdSuffix '.tv' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.tv.test' // QA private TV flavor must remain isolated too
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'false'
             buildConfigField 'String', 'DEFAULT_TSP_KEY', groovy.json.JsonOutput.toJson(System.getenv('TSP_API_KEY') ?: '')
