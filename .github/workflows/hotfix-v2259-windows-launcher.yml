@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/hotfix-v2259-windows-updater.yml'
+      - '.github/workflows/hotfix-v2259-windows-launcher.yml'
   workflow_dispatch:
 permissions:
   contents: write
@@ -190,7 +190,7 @@ jobs:
           const fs=require('node:fs'),assert=require('node:assert/strict');
           const source=fs.readFileSync('windows/updater.cjs','utf8');
           const launcher=fs.readFileSync('windows/version-manager.cjs','utf8');
-          assert.match(launcher,/let child;\\s*try\\s*\\{\\s*child=spawnSelection\\(pointer\\)/);
+          assert.match(launcher,/let child;\s*try\s*\{\s*child=spawnSelection\(pointer\)/);
           assert.match(source,/function selectLatestWindowsRelease\\(releases\\)/);
           assert.ok(source.includes('a?.name===`ZeroPlay-${version}-Windows-x64.zip`'));
           NODE
@@ -218,7 +218,7 @@ jobs:
           grep -F 'ZeroPlay-2.2.5.9-Windows-x64.zip' rollback/SHA256SUMS.txt | (cd rollback && sha256sum --check)
           grep -Fq 'ZeroPlay-2.2.5.9-Windows-x64.zip' rollback/SHA256SUMS.txt
           # Exactly the four existing Android checksums must be retained.
-          grep -E 'ZeroPlay-2[.]2[.]5[.]8-Android.*[.]apk$' rollback/SHA256SUMS.txt > checksum/android-only.txt
+          grep -E 'ZeroPlay-2[.]2[.]5[.]9-Android.*[.]apk$' rollback/SHA256SUMS.txt > checksum/android-only.txt
           test "$(wc -l < checksum/android-only.txt)" -eq 4
           test "$(wc -l < rollback/SHA256SUMS.txt)" -eq 5
           sha256sum new-asset/ZeroPlay-2.2.5.9-Windows-x64.zip |
@@ -226,7 +226,7 @@ jobs:
           cat checksum/android-only.txt checksum/windows-new.txt > checksum/SHA256SUMS.txt
           test "$(wc -l < checksum/SHA256SUMS.txt)" -eq 5
           (cd new-asset && sha256sum --check ../checksum/windows-new.txt)
-          cmp checksum/android-only.txt <(grep -E 'ZeroPlay-2[.]2[.]5[.]8-Android.*[.]apk$' checksum/SHA256SUMS.txt)
+          cmp checksum/android-only.txt <(grep -E 'ZeroPlay-2[.]2[.]5[.]9-Android.*[.]apk$' checksum/SHA256SUMS.txt)
       - name: Preserve original Windows asset for recovery
         uses: actions/upload-artifact@v4
         with:
@@ -250,6 +250,6 @@ jobs:
             --pattern 'ZeroPlay-2.2.5.9-Windows-x64.zip' --pattern 'SHA256SUMS.txt' --dir verified
           grep -F 'ZeroPlay-2.2.5.9-Windows-x64.zip' verified/SHA256SUMS.txt | (cd verified && sha256sum --check)
           cmp checksum/SHA256SUMS.txt verified/SHA256SUMS.txt
-          cmp checksum/android-only.txt <(grep -E 'ZeroPlay-2[.]2[.]5[.]8-Android.*[.]apk$' verified/SHA256SUMS.txt)
+          cmp checksum/android-only.txt <(grep -E 'ZeroPlay-2[.]2[.]5[.]9-Android.*[.]apk$' verified/SHA256SUMS.txt)
           test "$(gh release view v2.2.5.9 --repo "$REPO" --json assets --jq '.assets | length')" -eq 6
           echo 'Verified: v2.2.5.9 Windows startup bug fixed in the ZIP; Android APKs untouched; checksums synchronized.'
