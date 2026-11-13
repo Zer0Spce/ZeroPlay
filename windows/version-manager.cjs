@@ -29,7 +29,16 @@ function activate(version,versionDir,localVersion){const previous=currentSelecti
 function confirmCurrent(version){if(!process.argv.includes('--version-child'))return false;const pointer=readPointer();if(!pointer?.pending||!sameVersion(pointer.version,version))return false;pointer.pending=false;pointer.confirmedAt=new Date().toISOString();atomicWrite(pointer);return true;}
 function spawnSelection(selection,extra=[]){const exe=absoluteSelection(selection);if(!exe||!fs.existsSync(exe))throw Error('Selected ZeroPlay version is missing: '+String(selection?.path||''));const child=spawn(exe,['--version-child',...extra],{cwd:path.dirname(exe),env:{...process.env,ZERO_LAUNCHER_ROOT:rootDir()},detached:true,stdio:'ignore',windowsHide:false});return child;}
 function rollback(pointer){const previous=pointer?.previous||baseSelection();atomicWrite({...previous,pending:false,rolledBackAt:new Date().toISOString()});return previous;}
-function maybeLaunchCurrent(app){if(!app.isPackaged||process.argv.includes('--smoke-test')||process.argv.includes('--ui-smoke-test')||process.argv.includes('--version-child'))return false;const pointer=readPointer(),target=absoluteSelection(pointer);if(!pointer||!target||!fs.existsSync(target)||path.resolve(target)===path.resolve(process.execPath))return false;if(isNewerVersion(app.getVersion(),pointer.version))return false; // Do not reopen a broken older cached release when the user's portable EXE is newer.let child;try{child=spawnSelection(pointer);child.unref();}catch{return false;}
+function maybeLaunchCurrent(app){if(!app.isPackaged||process.argv.includes('--smoke-test')||process.argv.includes('--ui-smoke-test')||process.argv.includes('--version-child'))return false;const pointer=readPointer(),target=absoluteSelection(pointer);if(!pointer||!target||!fs.existsSync(target)||path.resolve(target)===path.resolve(process.execPath))return false;// Never reopen an older cached version if the portable executable is newer.
+  if(isNewerVersion(app.getVersion(),pointer.version))return false;
+  // This declaration must not be part of the comment above. A pending update
+  // registers exit/rollback handlers against this process; missing it caused
+  // a startup ReferenceError when current.json pointed to a pending version.
+  let child;
+  try{
+    child=spawnSelection(pointer);
+    child.unref();
+  }catch{return false;}
   // A confirmed version is already known-good. Start it detached and let the stable launcher exit.
   if(!pointer.pending){setTimeout(()=>app.exit(0),350);return true;}
   let finished=false;const finish=()=>{if(finished)return;finished=true;clearInterval(check);clearTimeout(timeout);app.exit(0);};const recover=()=>{if(finished)return;finished=true;clearInterval(check);clearTimeout(timeout);try{child.kill();}catch{}try{const previous=rollback(pointer),fallback=spawnSelection(previous,['--rollback']);fallback.unref();}catch{}app.exit(0);};
