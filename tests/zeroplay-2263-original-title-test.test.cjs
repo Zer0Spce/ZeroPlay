@@ -9,6 +9,13 @@ test('Android carousel title component exactly matches working 2.2.5 release',()
  assert.doesNotMatch(s,/movieTitleLogo|loadCarouselMovieTitleLogo|trimTransparentMovieLogo/);
  assert.match(s,/title\.setText\(item\.title\)/);
 });
+test('carousel uses exact v2.2.5.9 info layout with one title',()=>{
+ const s=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+ const block=s.slice(s.indexOf('    void carousel('),s.indexOf('    List<Catalog.Item> localItems(){'));
+ assert.ok(block.includes("LinearLayout info=column();info.setPadding(dp(googleLayout()?36:24),dp(googleLayout()?34:24),dp(googleLayout()?30:20),dp(googleLayout()?34:20));FrameLayout.LayoutParams ip=new FrameLayout.LayoutParams(BuildConfig.TV?dp(googleLayout()?620:440):-1,-2,Gravity.START|Gravity.BOTTOM);if(BuildConfig.TV&&!googleLayout())ip.rightMargin=dp(245);hero.addView(info,ip);"));
+ assert.doesNotMatch(block,/TextView title=text\(item\.title/);
+});
+
 test('Streaming provider badge is outside 2.2.5 title layout',()=>{
  const s=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  assert.match(s,/hero\.addView\(providerBadge,badgeSlot\)/);
