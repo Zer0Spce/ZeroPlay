@@ -66,7 +66,7 @@ test('duplicate films merge verified provider tags without inventing unavailable
  assert.deepEqual(res.find(x=>x.id===11).providerBrands,[]);
 });
 
-test('featured carousel shows a tiny provider SVG beside the movie heading, never a full-width text banner',()=>{
+test('featured carousel provider SVG appears below metadata above synopsis, with no full-width text banner',()=>{
  const source=fs.readFileSync(path.join(__dirname,'..','ui','app.js'),'utf8');
  const style=fs.readFileSync(path.join(__dirname,'..','ui','sunset-palette.css'),'utf8');
  const hero=source.slice(source.indexOf('function hero(){'),source.indexOf('function watchlistHome()'));
@@ -76,5 +76,7 @@ test('featured carousel shows a tiny provider SVG beside the movie heading, neve
  assert.ok(!hero.includes('US subscription listing ·'));
  assert.ok(!hero.includes('<span class="badge">US subscription listing'));
  assert.match(style,/\.hero \.hero-provider-logo/);
- assert.match(style,/max-width:70px/);
+ assert.match(style,/max-width:140px/);
+ const metadata=hero.indexOf('${badge(item)}'),logo=hero.indexOf('class="hero-provider-logo"'),synopsis=hero.indexOf('<p>${escape(item.overview');
+ assert.ok(metadata>=0&&metadata<logo&&logo<synopsis,'Provider logo must sit under metadata before synopsis');
 });
