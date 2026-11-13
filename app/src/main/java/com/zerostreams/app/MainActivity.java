@@ -256,6 +256,12 @@ public class MainActivity extends Activity {
             switch(id){
             case "clock":homeTools(clean);break;
             case "featured":carousel(clean,token);break;
+            case "top10":{
+                List<Catalog.Item> daily=new ArrayList<>();
+                for(Catalog.Item x:clean)if(x.raw.optBoolean("trendingToday",false))daily.add(x);
+                posterRow("TMDB Trending Today",homeRecommendationSession.claim("top10",daily,10),token);
+                break;
+            }
             case "continue":if(!resumes.isEmpty())posterRow("Continue watching",resumes,token);break;
             case "upnext":posterRow("Up next",upnext,token);break;
             case "because":posterRow(Zero22.becauseLabel(because),
