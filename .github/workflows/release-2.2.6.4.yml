@@ -1,5 +1,5 @@
 name: ZeroPlay 2.2.6.4 — Confirmed Android TV Provider Logo and Refresh Picks
-# Revalidated Windows version-only smoke checks across both Android and Windows regression suites.
+# v2.2.6.4 CI: revalidate modern below-metadata provider-logo assertions with real Android TV release activity.
 # Revalidated both isolated QA and established signed production Android app IDs.
 on:
   push:

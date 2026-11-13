@@ -8,12 +8,15 @@ test('Android filmography cards activate native details on tap and TV remote',()
  assert.match(main,/void openFilmographyCredit\(Intent intent\)/);
  assert.match(main,/details\(selected\)/);
 });
-test('Carousel logos render above title and Android TV Modern UI suppresses diagnostics',()=>{
+test('Carousel logos appear below metadata and Android TV Modern UI suppresses diagnostics',()=>{
  const android=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  const windows=read('windows/ui/app.js');
  assert.match(android,/getAssets\(\)\.open\("provider-logos\/"\+logoAsset\)/);
  assert.match(android,/if\(BuildConfig\.TV&&googleLayout\(\)\)status\.setVisibility\(View\.GONE\)/);
- assert.match(windows,/<div class="hero-title-line">\$\{providerName\?/);
+ const hero=windows.slice(windows.indexOf('function hero(){'),windows.indexOf('function watchlistHome(){'));
+ const meta=hero.indexOf('${badge(item)}'),logo=hero.indexOf('class="hero-provider-logo"'),synopsis=hero.indexOf('<p>${escape(item.overview');
+ assert.ok(meta>=0&&meta<logo&&logo<synopsis,'Provider wordmark must follow movie metadata and precede synopsis');
+ assert.doesNotMatch(hero,/<div class="hero-title-line">\$\{providerName\?/);
  assert.doesNotMatch(windows,/<span class="eyebrow">\$\{escape\(heroEyebrow\(\)\)\}<\/span>/);
 });
 test('Rejected add-on search and guide features are disabled; basics remain',()=>{
