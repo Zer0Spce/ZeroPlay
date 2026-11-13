@@ -54,7 +54,7 @@ final class StreamingTopTen {
         return result;
     }
     private static double score(Catalog.Item x,long seed,String cutoff){
-        double days=Math.max(0,(x.raw.optString("releaseDate").compareTo(cutoff)));// replaced by parsed date below
+        double days=0;
         try{
             SimpleDateFormat f=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT);f.setTimeZone(TimeZone.getTimeZone("UTC"));
             days=Math.max(0,(f.parse(x.raw.optString("releaseDate")).getTime()-f.parse(cutoff).getTime())/86400000.0);
