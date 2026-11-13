@@ -53,29 +53,42 @@ function hero(){const picks=heroPicks();if(!picks.length)return '';heroIndex=((h
 function watchlistHome(){return state.favorites.length?row('Watchlist',state.favorites):'<section class="row-section home-watchlist"><h3>Watchlist</h3><p>Save movies and series from their details to see them here.</p></section>';}
 function renderHero(){const old=$('#hero');if(!old)return;const picks=heroPicks();if(!picks.length){old.remove();return;}const item=picks[((heroIndex%picks.length)+picks.length)%picks.length];if(item&&old.dataset.featured===key(item))return;old.outerHTML=hero();bindHero();}
 function bindHero(){const node=$('#hero');if(!node)return;if(!state.settings.performanceMode)window.zeroExperience?.hero();const picks=heroPicks();atmosphere(picks[((heroIndex%Math.max(1,picks.length))+Math.max(1,picks.length))%Math.max(1,picks.length)]);node.addEventListener('mouseenter',()=>heroPaused=true);node.addEventListener('mouseleave',()=>heroPaused=false);node.addEventListener('focusin',()=>heroPaused=true);node.addEventListener('focusout',()=>heroPaused=false);}
+// Deliberate fixed showcase: no recommendations or extra regional services may enter.
+const MAJOR_STREAMING_PROVIDERS=Object.freeze([
+  {brand:'netflix',name:'Netflix'},
+  {brand:'hulu',name:'Hulu'},
+  {brand:'disney',name:'Disney+'},
+  {brand:'max',name:'HBO Max'},
+  {brand:'apple',name:'Apple TV'},
+  {brand:'paramount',name:'Paramount+'},
+  {brand:'peacock',name:'Peacock'},
+  {brand:'youtube-tv',name:'YouTube TV'}
+]);
 function providerBrand(name){
-  const n=String(name||'').toLowerCase();
-  if(n.includes('netflix'))return 'netflix';
-  if(n.includes('amazon prime')||n.includes('prime video'))return 'prime';
+  const n=String(name||'').toLowerCase().trim();
+  if(/\byoutube\s*tv\b/.test(n))return 'youtube-tv';
+  if(/^netflix(?:\b|$)/.test(n))return 'netflix';
+  if(/^hulu(?:\b|$)/.test(n))return 'hulu';
   if(n.includes('disney'))return 'disney';
-  if(n.includes('hulu'))return 'hulu';
-  if(n.includes('paramount'))return 'paramount';
-  if(n.includes('peacock'))return 'peacock';
-  if(n.includes('apple tv'))return 'apple';
-  if(n==='max'||n.includes('hbo')||n.includes('max '))return 'max';
-  return 'other';
+  if(n==='hbo max'||n==='max'||/^hbo max\b/.test(n)||/^max\b/.test(n))return 'max';
+  if(/^apple tv\b/.test(n))return 'apple';
+  if(/^paramount(?:\+| plus|\b)/.test(n))return 'paramount';
+  if(/^peacock\b/.test(n))return 'peacock';
+  return null;
 }
 function providerWordmark(row){
-  const brand=providerBrand(row.provider_name);
-  return ['netflix','prime','hulu','disney','paramount','peacock','max','apple'].includes(brand)
-    ?'provider-logos/'+brand+'.svg':null;
+  const brand=row.provider_brand||providerBrand(row.provider_name);
+  return MAJOR_STREAMING_PROVIDERS.some(p=>p.brand===brand)?'provider-logos/'+brand+'.svg':null;
 }
 function providersHTML(rows){
-  const cards=rows.slice(0,12).map(row=>{
-    const mark=providerWordmark(row),name=escape(row.provider_name),brand=providerBrand(row.provider_name);
+  const cards=rows.map(row=>{
+    const brand=row.provider_brand,mark=providerWordmark(row),name=escape(row.provider_name);
+    const available=Number(row.provider_id)>0;
+    const title=available?'Browse '+name:name+' is not listed in the '+state.settings.region+' TMDB provider catalog';
+    const route=available?'data-provider="'+Number(row.provider_id)+'"':`data-provider-unavailable="${name}"`;
     const logo=mark?`<img class="provider-wordmark" loading="lazy" decoding="async" src="${mark}" alt="${name}">`:
       `<span class="provider-name">${name}</span>`;
-    return `<button type="button" class="provider" data-provider="${Number(row.provider_id)}" data-provider-brand="${escape(brand)}" data-name="${name}" aria-label="Browse ${name}">${logo}</button>`;
+    return `<button type="button" class="provider" ${route} data-provider-brand="${escape(brand)}" data-name="${name}" aria-label="${escape(title)}" title="${escape(title)}">${logo}</button>`;
   }).join('');
   return `<section class="row-section zero-provider-section" aria-label="Streaming providers">
     <div class="section-head"><h3>Streaming providers</h3><div class="zero-provider-heading-actions">
@@ -91,16 +104,26 @@ function providersHTML(rows){
   </section>`;
 }
 async function providerRows(){
-  const data=await api('/watch/providers/'+providerType,{watch_region:state.settings.region});
-  const priority=['netflix','prime','hulu','disney','paramount','peacock','max','apple'];
-  const seen=new Set(),rows=[];
-  for(const row of (data.results||[]).filter(x=>Number(x.provider_id)>0&&art(x.logo_path))
-    .sort((a,b)=>{const rank=x=>{const i=priority.indexOf(providerBrand(x.provider_name));return i<0?99:i;};return rank(a)-rank(b);})) {
-    const brand=providerBrand(row.provider_name),key=brand==='other'?'other:'+row.provider_name.toLowerCase():brand;
-    if(seen.has(key))continue;
-    seen.add(key);rows.push(row);if(rows.length>=12)break;
+  let catalog=[];
+  try{const data=await api('/watch/providers/'+providerType,{watch_region:state.settings.region});
+    catalog=Array.isArray(data?.results)?data.results:[];
+  }catch(error){console.warn('TMDB provider list unavailable',error?.message||error);}
+  const matched=new Map();
+  for(const row of catalog){
+    if(!row||Number(row.provider_id)<=0)continue;
+    const brand=providerBrand(row.provider_name);
+    if(!brand||!MAJOR_STREAMING_PROVIDERS.some(p=>p.brand===brand))continue;
+    const name=String(row.provider_name||'').toLowerCase();
+    const exact=MAJOR_STREAMING_PROVIDERS.find(p=>p.brand===brand);
+    const score=(name===exact.name.toLowerCase()?20:0)+
+      (/\b(?:amazon|channel|basic|with ads|standard)\b/.test(name)?-5:0)+
+      (brand==='apple'&&name.includes('+')?4:0);
+    if(!matched.has(brand)||score>matched.get(brand).score)matched.set(brand,{row,score});
   }
-  return rows;
+  return MAJOR_STREAMING_PROVIDERS.map(item=>({
+    provider_brand:item.brand,provider_name:item.name,
+    provider_id:matched.get(item.brand)?.row.provider_id||0
+  }));
 }
 const homePanels=[['clock','Clock'],['featured','Featured carousel'],['top10','Top 10 today'],['continue','Continue watching'],['upnext','Up next'],['because','Because you watched'],['watchlist','Watchlist'],['tonight',"Tonight's picks"],['hidden','Hidden gems'],['upcoming','Coming soon'],['providers','Streaming providers'],['recommended','Recommended movies'],['trending','Trending'],['popular','Popular movies'],['series','Series worth watching'],['now','Latest VOD Releases'],['airing','Airing today'],['action','Action movies',28],['comedy','Comedy movies',35],['horror','Horror movies',27],['animation','Animation movies',16],['anime','Anime series',16],["adventure", "Adventure movies", 12],["crime", "Crime movies", 80],["documentary", "Documentaries", 99],["drama", "Drama movies", 18],["family", "Family movies", 10751],["fantasy", "Fantasy movies", 14],["history", "History movies", 36],["music", "Music movies", 10402],["mystery", "Mystery movies", 9648],["romance", "Romance movies", 10749],["scifi", "Science fiction movies", 878],["thriller", "Thriller movies", 53],["war", "War movies", 10752],["western", "Western movies", 37],["tvmovie", "TV movies", 10770],["thrillers","Highly rated thrillers"],["recent","Recent Releases"],["different","Something different"],["classics","Rediscover Classics"]];
 const DEFAULT_HOME_PANELS=['clock','featured','continue','upnext','watchlist','top10','providers','because','tonight','hidden','trending','recommended','thrillers','recent','different','classics','popular','series','now','airing'];
@@ -195,6 +218,7 @@ document.addEventListener('click',async event=>{const target=event.target.closes
     return;
   }
   if(target.dataset.providerType){providerType=target.dataset.providerType;const token=request;const rows=await providerRows();if(token===request&&$('#providers'))$('#providers').innerHTML=providersHTML(rows);return;}
+  if(target.dataset.providerUnavailable){toast(target.dataset.providerUnavailable+' is not listed for '+state.settings.region+' in the TMDB catalog.');return;}
   if(target.dataset.provider){providerId=Number(target.dataset.provider);providerName=target.dataset.name;await navigate('Provider');$('#heading').textContent=providerName+' · '+(providerType==='tv'?'TV series':'Movies');return;}
   if(action==='toggle-theme'){await change('settings',{...state.settings,theme:state.settings.theme==='light'?'dark':'light',source:state.settings.source||'vidstuck'});toast(state.settings.theme==='light'?'Light mode':'Night mode');}
   else if(action==='source')openSources(activeDetail||heroPicks()[heroIndex]);
