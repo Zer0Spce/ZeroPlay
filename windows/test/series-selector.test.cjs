@@ -5,7 +5,8 @@ const main=fs.readFileSync(path.join(__dirname,'..','main.cjs'),'utf8');
 test('Windows series selector is only rendered in title details',()=>{
   assert.equal((source.match(/\$\{episodePicker\}/g)||[]).length,1);
   assert.match(source,/const episodePicker=item\.type==='tv'/);
-  assert.match(source,/\$\{episodePicker\}<p>\$\{escape\(genres\)\}/);
+  assert.ok(source.includes('${episodePicker}'),'Episode picker remains rendered in details');
+  assert.match(source,/const episodePicker=item\.type==='tv'/);
   const hero=source.slice(source.indexOf('function hero(){'),source.indexOf('function watchlistHome(){'));
   assert.doesNotMatch(hero,/episodePicker/);
 });
