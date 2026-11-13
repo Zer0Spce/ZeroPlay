@@ -64,14 +64,26 @@ final class LivePpvPlayback {
         }
     }
 
+    static boolean isMalformedManifest(int errorCode) {
+        return errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED;
+    }
+
+    static boolean isMalformedManifest(PlaybackException error) {
+        return error != null && isMalformedManifest(error.errorCode);
+    }
+
+    /** A successful HTTP request may still return HTML or another non-HLS response. */
+    static boolean shouldTryBrowserHeaders(int errorCode) {
+        return isMalformedManifest(errorCode) || (errorCode >= 2000 && errorCode < 3000);
+    }
+
     static boolean shouldTryBrowserHeaders(PlaybackException error) {
-        if (error == null) return false;
-        String name = error.getErrorCodeName();
-        return name != null && name.contains("IO_");
+        return error != null && shouldTryBrowserHeaders(error.errorCode);
     }
 
     static String failure(PlaybackException error) {
         if (error == null) return "Unknown playback error";
+        if (isMalformedManifest(error)) return "Invalid HLS manifest (possibly a server response page)";
         int depth = 0;
         for (Throwable cause = error; cause != null && depth++ < 12; cause = cause.getCause()) {
             if (cause instanceof HttpDataSource.InvalidResponseCodeException) {
@@ -88,7 +100,8 @@ final class LivePpvPlayback {
 
     static String eventKey(String name) {
         if (name == null) return "";
-        return name.replaceFirst("(?i)\\s+[—–-]\\s+Feed\\s+\\d+(?:\\s*·.*)?$", "")
+        return name.replaceFirst("(?i)\\s+[—–-]\\s+Unverified\\s*$", "")
+                   .replaceFirst("(?i)\\s+[—–-]\\s+Feed\\s+\\d+(?:\\s*·.*)?$", "")
                    .trim().toLowerCase(Locale.ROOT);
     }
 

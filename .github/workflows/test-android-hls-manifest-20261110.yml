@@ -1,0 +1,120 @@
+name: ZeroPlay Android HLS Manifest Recovery — Signed Test APKs
+on:
+  push:
+    branches:
+      - fix/android-hls-manifest-recovery-20261110
+    paths:
+      - '.github/workflows/test-android-hls-manifest-20261110.yml'
+      - 'app/src/main/java/com/zerostreams/app/LivePlayerActivity.java'
+      - 'app/src/main/java/com/zerostreams/app/LivePpvPlayback.java'
+      - 'app/src/test/java/com/zerostreams/app/LivePpvPlaybackTest.java'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeroplay-android-hls-manifest-test
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Confirm no Windows code or ZeroStreams modifications
+        run: |
+          set -euo pipefail
+          git diff --quiet origin/main...HEAD -- windows
+          git diff --quiet origin/main...HEAD -- .github/workflows/build-windows.yml
+          echo 'Windows source untouched.'
+
+      - name: Verify existing working native playback and TV source navigation
+        run: |
+          set -euo pipefail
+          node --test tests/android-native-live-ppv-v2.2.5.6.test.cjs
+          node tests/android-tv-source-navigation-2.2.5.4.test.cjs
+          node tests/source-selection-regression.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+
+      - name: Apply preserved Android feature stack; set test version 2.2.5.7-rc1
+        run: |
+          set -euo pipefail
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node tests/audio-boost-2.2.4.1.test.cjs
+          node scripts/apply-custom-livetv-test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const file='app/build.gradle';
+          let code=fs.readFileSync(file,'utf8');
+          if(!code.includes("versionName '2.2.5-test1'")||!code.includes('versionCode 51'))throw Error('Unexpected Android version baseline');
+          code=code.replace("versionName '2.2.5-test1'","versionName '2.2.5.7-rc1'");
+          code=code.replace('versionCode 51','versionCode 61');
+          fs.writeFileSync(file,code);
+          NODE
+          node --test tests/android-native-live-ppv-v2.2.5.6.test.cjs
+
+      - name: Android unit tests for all public variants
+        run: |
+          gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest :app:testLiteMobileReleaseUnitTest :app:testLiteTvReleaseUnitTest
+
+      - name: Build signed Android test APKs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-android-hls-manifest-test.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleMobileRelease :app:assembleTvRelease :app:assembleLiteMobileRelease :app:assembleLiteTvRelease
+          mkdir -p test-apks
+          cp app/build/outputs/apk/mobile/release/app-mobile-release.apk test-apks/ZeroPlay-2.2.5.7-rc1-Android.apk
+          cp app/build/outputs/apk/tv/release/app-tv-release.apk test-apks/ZeroPlay-2.2.5.7-rc1-Android-TV.apk
+          cp app/build/outputs/apk/liteMobile/release/app-liteMobile-release.apk test-apks/ZeroPlay-2.2.5.7-rc1-Android-Lite.apk
+          cp app/build/outputs/apk/liteTv/release/app-liteTv-release.apk test-apks/ZeroPlay-2.2.5.7-rc1-Android-TV-Lite.apk
+          test "$(find test-apks -maxdepth 1 -name '*.apk' | wc -l)" -eq 4
+          for apk in test-apks/*.apk; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionName='2.2.5.7-rc1'"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionCode='61'"
+          done
+          (cd test-apks && sha256sum ./*.apk > SHA256SUMS.txt)
+
+      - name: Lint four Android flavors
+        run: gradle --continue :app:lintMobileRelease :app:lintTvRelease :app:lintLiteMobileRelease :app:lintLiteTvRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-Android-HLS-Manifest-2.2.5.7-rc1-Test
+          path: test-apks/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
