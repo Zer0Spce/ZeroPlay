@@ -2,6 +2,7 @@ const {app,BrowserWindow,WebContentsView,screen,ipcMain,session,shell,safeStorag
 const fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('node:url');
 const versions=require('./version-manager.cjs');
 const sourceIntelligence=require('./source-intelligence.cjs');
+const watchlistModel=require('./ui/watchlist-2260.js');
 const {PlayerHost}=require('./player-host.cjs');
 const {OfflineHost}=require('./offline-host.cjs');
 const offlineMedia=require('./offline-media.cjs');
@@ -256,6 +257,10 @@ app.whenReady().then(async()=>{
     else if(action==='collection'){
       const name=String(value?.name||'').trim().slice(0,60);if(!name||['__proto__','constructor','prototype'].includes(name))throw Error('Invalid collection name');
       const title=core.cleanItem(value.item),rows=state.collections[name]||[];if(!Array.isArray(rows))throw Error('Invalid collection');state.collections[name]=rows.some(row=>core.key(row)===core.key(title))?rows.filter(row=>core.key(row)!==core.key(title)):[title,...rows].slice(0,300);
+    }else if(action==='collection-rename'){
+      state.collections=watchlistModel.rename(state.collections||{},value?.from,value?.to);
+    }else if(action==='collection-delete'){
+      state.collections=watchlistModel.remove(state.collections||{},value?.name);
     }else if(action==='settings'){
       if(!value||!['PH','US','GB','CA','AU','IN','JP'].includes(value.region)||![1,1.5,2].includes(Number(value.gain)))throw Error('Invalid settings');if(!Object.hasOwn(themes,value.theme)||!sources.sources.some(s=>s.id===value.source))throw Error('Invalid appearance or playback source');state.settings={...state.settings,uiLayout:['youtube','google','flix','classic'].includes(value.uiLayout)?value.uiLayout:'youtube',uiAnimations:value.uiAnimations!==false,focusInfo:value.focusInfo!==false,focusTrailer:value.focusTrailer!==false,homepageTrailer:value.homepageTrailer!==false,previewDelay:Math.max(500,Math.min(3000,Number(value.previewDelay)||2000)),rawcastPlayback:value.rawcastPlayback===true,region:value.region,gain:Number(value.gain),theme:value.theme,source:value.source==='rawcast'&&value.rawcastPlayback!==true?'vidstuck':value.source,carouselSource:'streaming',homePanels:Array.isArray(value.homePanels)?homePanelIds.filter(id=>value.homePanels.includes(id)):(state.settings.homePanels||homePanelIds.slice(0,16)),homePanelOrder:normalizeHomePanelOrder(Array.isArray(value.homePanelOrder)?value.homePanelOrder:state.settings.homePanelOrder),performanceMode:value.performanceMode===true,artQuality:['auto','high','balanced','saver'].includes(value.artQuality)?value.artQuality:'auto',autoSourceRecovery:value.autoSourceRecovery===true,autoBestSource:value.autoBestSource!==false,autoplayNext:value.autoplayNext!==false,skipIntroSeconds:Math.max(0,Math.min(600,Number(value.skipIntroSeconds)||0)),skipRecapSeconds:Math.max(0,Math.min(600,Number(value.skipRecapSeconds)||0))};
       if(value.key===null)state.customKey='';else if(value.key){if(!/^[a-f\d]{32}$/i.test(value.key))throw Error('Enter a valid TMDB v3 API key');if(!safeStorage.isEncryptionAvailable())throw Error('Windows credential encryption unavailable');state.customKey=safeStorage.encryptString(value.key).toString('base64');}
