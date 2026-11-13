@@ -147,92 +147,99 @@
 :root[data-layout="youtube"]:not([data-rail-expanded="true"]) aside .zeroplay-wordmark{
   display:none!important;
 }
-/* Streaming provider showcase — four large logo-led cards per row, no mini rail.
-   Keep provider metadata and click routing; only presentation changes. */
-.zero-provider-section{margin:26px 0 34px!important;width:100%;min-width:0}
-.zero-provider-section .section-head{margin-bottom:20px!important}
-.zero-provider-section .zero-provider-grid{
-  display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:22px!important;
-  width:100%!important;
-  overflow:visible!important;
-  padding:0 0 12px!important;
-  scroll-snap-type:none!important;
-  scrollbar-width:none!important;
+/* Compact horizontally scrolling streaming services — like TMDB Trending Today. */
+.zero-provider-section{
+  margin:24px 0 30px!important;width:100%;min-width:0;
+}
+.zero-provider-section .section-head{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  flex-wrap:wrap;margin-bottom:14px!important;
+}
+.zero-provider-heading-actions{display:flex;align-items:center;gap:14px}
+.zero-provider-scroll-actions{display:flex;align-items:center;gap:6px}
+.zero-provider-scroll-actions button{
+  width:32px;height:32px;min-width:32px;padding:0;
+  display:grid;place-items:center;border:1px solid #555761!important;
+  border-radius:9px;background:#292a30!important;color:#f6f6f8!important;
+  font-size:24px;line-height:1;cursor:pointer;
+}
+.zero-provider-scroll-actions button:hover,
+.zero-provider-scroll-actions button:focus-visible{
+  background:#9c202e!important;border-color:#f44054!important;
+}
+.zero-provider-section .zero-provider-strip{
+  display:flex!important;flex-direction:row!important;
+  grid-template-columns:none!important;
+  gap:16px!important;overflow-x:auto!important;overflow-y:hidden!important;
+  width:100%!important;padding:4px 4px 14px!important;
+  scroll-snap-type:x mandatory!important;
+  scrollbar-width:thin!important;scrollbar-color:#777b86 #292a30!important;
+  -webkit-overflow-scrolling:touch;
 }
 .zero-provider-section .provider{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  width:100%!important;
-  min-width:0!important;
-  height:212px!important;
-  padding:16px 20px!important;
-  flex:none!important;
+  display:flex!important;flex:0 0 234px!important;
+  box-sizing:border-box!important;align-items:center!important;
+  justify-content:center!important;position:relative;isolation:isolate;
+  width:234px!important;min-width:234px!important;
+  height:132px!important;min-height:132px!important;
+  margin:0!important;padding:12px 19px!important;
   overflow:hidden!important;
-  isolation:isolate;
-  position:relative;
-  border:1px solid #ffffff1f!important;
-  border-radius:24px!important;
-  background:linear-gradient(145deg,var(--tile-start,#272d39),var(--tile-end,#141921))!important;
-  box-shadow:0 9px 24px #0006, inset 0 1px #ffffff1c!important;
-  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+  scroll-snap-align:start!important;
+  border:1px solid #ffffff29!important;border-radius:19px!important;
+  background:linear-gradient(145deg,var(--tile-start,#303442),var(--tile-end,#11151f))!important;
+  box-shadow:0 7px 17px #0007,inset 0 1px #ffffff16!important;
+  transition:transform .16s ease,border-color .16s ease;
 }
 .zero-provider-section .provider::before{
-  content:"";
-  position:absolute;inset:0;z-index:-1;
-  background:radial-gradient(circle at 40% 22%,#ffffff17,transparent 68%);
-  pointer-events:none;
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(circle at 20% 0%,#ffffff12,transparent 65%);
 }
-.zero-provider-section .provider img{
-  display:block!important;
-  width:min(100%,210px)!important;
-  height:168px!important;
-  max-width:100%!important;
-  min-width:0!important;
-  object-fit:contain!important;
-  object-position:center!important;
-  border-radius:14px!important;
-  margin:0!important;
-  box-shadow:none!important;
-  transform:none!important;
+.zero-provider-section .provider-wordmark{
+  display:block!important;width:100%!important;max-width:192px!important;
+  height:84px!important;max-height:84px!important;min-width:0!important;
+  object-fit:contain!important;object-position:center!important;
+  border:0!important;border-radius:0!important;
+  padding:0!important;margin:0!important;box-shadow:none!important;
+  background:transparent!important;
 }
-.zero-provider-section .provider span{display:none!important}
-.zero-provider-section .provider[data-provider-brand="netflix"]{--tile-start:#fcfbf9;--tile-end:#e6e5e4}
-.zero-provider-section .provider[data-provider-brand="prime"]{--tile-start:#176dff;--tile-end:#073db1}
-.zero-provider-section .provider[data-provider-brand="hulu"]{--tile-start:#062d27;--tile-end:#07191d}
-.zero-provider-section .provider[data-provider-brand="disney"]{--tile-start:#0674ae;--tile-end:#00b5bf}
-.zero-provider-section .provider[data-provider-brand="paramount"]{--tile-start:#1b75fb;--tile-end:#053ad0}
-.zero-provider-section .provider[data-provider-brand="peacock"]{--tile-start:#222638;--tile-end:#09111e}
-.zero-provider-section .provider[data-provider-brand="max"]{--tile-start:#2103fa;--tile-end:#080a77}
-.zero-provider-section .provider[data-provider-brand="apple"]{--tile-start:#263246;--tile-end:#0a111b}
-.zero-provider-section .provider[data-provider-brand="other"]{--tile-start:#343644;--tile-end:#1a1b26}
-.zero-provider-section .provider:hover,
-.zero-provider-section .provider:focus-visible{
-  outline:3px solid #f42a42!important;outline-offset:2px;
-  transform:translateY(-3px) scale(1.01)!important;
-  box-shadow:0 13px 30px #0009!important;
+.zero-provider-section .provider .provider-name{
+  display:block!important;text-align:center;color:#fff!important;
+  font:800 20px/1.2 "Open Sans",Arial,sans-serif!important;
+  white-space:normal;max-width:100%;
+  overflow-wrap:anywhere;text-shadow:0 1px 6px #0008;
+}
+.zero-provider-section .provider[data-provider-brand="netflix"]{--tile-start:#181a20;--tile-end:#090b10}
+.zero-provider-section .provider[data-provider-brand="prime"]{--tile-start:#1260bc;--tile-end:#00317a}
+.zero-provider-section .provider[data-provider-brand="hulu"]{--tile-start:#092b2c;--tile-end:#071820}
+.zero-provider-section .provider[data-provider-brand="disney"]{--tile-start:#064f83;--tile-end:#023157}
+.zero-provider-section .provider[data-provider-brand="paramount"]{--tile-start:#1673e7;--tile-end:#1048c7}
+.zero-provider-section .provider[data-provider-brand="peacock"]{--tile-start:#33394a;--tile-end:#101727}
+.zero-provider-section .provider[data-provider-brand="max"]{--tile-start:#172391;--tile-end:#0b0e4c}
+.zero-provider-section .provider[data-provider-brand="apple"]{--tile-start:#263345;--tile-end:#0b131d}
+.zero-provider-section .provider[data-provider-brand="other"]{--tile-start:#343640;--tile-end:#1e202a}
+.zero-provider-section .provider:hover,.zero-provider-section .provider:focus-visible{
+  outline:2px solid #ff4053!important;outline-offset:1px;
+  transform:translateY(-2px)!important;
+  box-shadow:0 10px 22px #000a!important;
 }
 .zero-provider-section .zero-provider-note{
-  display:block;margin-top:5px;
-  color:var(--muted);font-size:11px;line-height:1.5;
+  display:block;margin-top:2px;color:var(--muted);font-size:11px;line-height:1.5;
 }
-@media(max-width:1160px){
-  .zero-provider-section .zero-provider-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-  .zero-provider-section .provider{height:190px!important}
-  .zero-provider-section .provider img{height:150px!important}
+@media(max-width:900px){
+  .zero-provider-section .provider{
+    flex-basis:198px!important;width:198px!important;min-width:198px!important;
+    height:116px!important;min-height:116px!important;padding:9px 13px!important;
+  }
+  .zero-provider-section .provider-wordmark{height:76px!important;max-height:76px!important}
+  .zero-provider-section .zero-provider-strip{gap:12px!important}
 }
-@media(max-width:800px){
-  .zero-provider-section .zero-provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
-  .zero-provider-section .provider{height:172px!important;border-radius:18px!important;padding:10px!important}
-  .zero-provider-section .provider img{height:142px!important}
-}
-@media(max-width:440px){
-  .zero-provider-section .zero-provider-grid{gap:10px!important}
-  .zero-provider-section .provider{height:142px!important}
-  .zero-provider-section .provider img{height:118px!important}
+@media(max-width:580px){
+  .zero-provider-section .provider{
+    flex-basis:172px!important;width:172px!important;min-width:172px!important;
+    height:108px!important;min-height:108px!important;
+  }
+  .zero-provider-section .provider-wordmark{height:68px!important;max-height:68px!important}
+  .zero-provider-heading-actions{gap:7px}
 }
 @media(prefers-reduced-motion:reduce){
   .zero-provider-section .provider{transition:none!important}
