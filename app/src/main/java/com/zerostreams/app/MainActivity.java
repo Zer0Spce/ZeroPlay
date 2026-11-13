@@ -204,6 +204,13 @@ public class MainActivity extends Activity {
     void filterDialog(){LinearLayout panel=column();panel.setPadding(dp(18),dp(10),dp(18),dp(10));String[] genreNames={"Any genre","Action","Adventure","Animation","Comedy","Crime","Documentary","Drama","Family","Fantasy","History","Horror","Music","Mystery","Romance","Science fiction","Thriller","War","Western"};int[] genreIds={0,28,12,16,35,80,99,18,10751,14,36,27,10402,9648,10749,878,53,10752,37};Spinner genre=new Spinner(this);genre.setAdapter(spinnerAdapter(genreNames));int current=0;for(int i=0;i<genreIds.length;i++)if(genreIds[i]==prefs.getInt("filterGenre",0))current=i;genre.setSelection(current);panel.addView(text("Genre",13,INK));panel.addView(genre);EditText years=new EditText(this);years.setSingleLine(true);years.setHint("Year range, e.g. 2010-2026");int ymin=prefs.getInt("filterYearMin",0),ymax=prefs.getInt("filterYearMax",0);if(ymin>0||ymax>0)years.setText((ymin>0?ymin:"")+"-"+(ymax>0?ymax:""));panel.addView(years);Spinner rating=new Spinner(this);rating.setAdapter(spinnerAdapter(new String[]{"Any rating","6.0+","7.0+","7.5+","8.0+"}));float saved=prefs.getFloat("filterRating",0);rating.setSelection(saved>=8?4:saved>=7.5?3:saved>=7?2:saved>=6?1:0);panel.addView(rating);Spinner language=new Spinner(this);String[] langs={"Any language","English","Japanese","Korean","Filipino","Spanish","French","Hindi"};String[] langIds={"","en","ja","ko","tl","es","fr","hi"};language.setAdapter(spinnerAdapter(langs));int li=Arrays.asList(langIds).indexOf(prefs.getString("filterLanguage",""));language.setSelection(Math.max(0,li));panel.addView(language);Spinner runtime=new Spinner(this);int[] runtimes={0,90,100,120,150};runtime.setAdapter(spinnerAdapter(new String[]{"Any runtime","Under 90 minutes","Under 100 minutes","Under 2 hours","Under 150 minutes"}));int ri=0;for(int i=0;i<runtimes.length;i++)if(runtimes[i]==prefs.getInt("filterRuntime",0))ri=i;runtime.setSelection(ri);panel.addView(runtime);Spinner country=new Spinner(this);String[] countries={"Any country","PH","US","GB","JP","KR","IN","FR","ES"};country.setAdapter(spinnerAdapter(countries));int ci=Arrays.asList(countries).indexOf(prefs.getString("filterCountry","").isEmpty()?"Any country":prefs.getString("filterCountry",""));country.setSelection(Math.max(0,ci));panel.addView(country);new AlertDialog.Builder(this).setTitle((category.equals("Series")?"TV series":"Movie")+" filters").setView(panel).setPositiveButton("Apply",(d,n)->{String raw=years.getText().toString().trim();int a=0,b=0;try{String[] parts=raw.split("-",-1);if(parts.length>0&&!parts[0].isEmpty())a=Integer.parseInt(parts[0]);if(parts.length>1&&!parts[1].isEmpty())b=Integer.parseInt(parts[1]);}catch(Exception ignored){}float[] ratings={0,6,7,7.5f,8};prefs.edit().putInt("filterGenre",genreIds[genre.getSelectedItemPosition()]).putInt("filterYearMin",a).putInt("filterYearMax",b).putFloat("filterRating",ratings[rating.getSelectedItemPosition()]).putString("filterLanguage",langIds[language.getSelectedItemPosition()]).putInt("filterRuntime",runtimes[runtime.getSelectedItemPosition()]).putString("filterCountry",country.getSelectedItemPosition()==0?"":countries[country.getSelectedItemPosition()]).apply();tabSnapshots.remove(category);resetPaging();catalog=new ArrayList<>();scroll.scrollTo(0,0);load();}).setNeutralButton("Clear",(d,n)->{prefs.edit().remove("filterGenre").remove("filterYearMin").remove("filterYearMax").remove("filterRating").remove("filterLanguage").remove("filterRuntime").remove("filterCountry").apply();tabSnapshots.remove(category);resetPaging();catalog=new ArrayList<>();load();}).setNegativeButton("Cancel",null).show();}
     void mergeBrowse(List<Catalog.Item> rows){LinkedHashMap<String,Catalog.Item> all=new LinkedHashMap<>();for(Catalog.Item item:browse)all.put(item.id,item);for(Catalog.Item item:rows)all.put(item.id,item);browse=new ArrayList<>(all.values());}
     void renderHome22(List<Catalog.Item> rows,int token){
+        // Apply the new requested default homepage preset only once.
+        if(!prefs.getBoolean("discoveryVODPreset2258",false)){
+            Set<String> enabled=new HashSet<>(prefs.getStringSet("homePanels",HomePanels.defaults()));
+            Collections.addAll(enabled,"tonight","hidden","trending","top10",
+                "thrillers","recent","different","classics","providers","now");
+            prefs.edit().putStringSet("homePanels",enabled).putBoolean("discoveryVODPreset2258",true).apply();
+        }
         List<Catalog.Item> clean=Zero22.visible(prefs,rows),resumes=continuing(),
             movies=new ArrayList<>(),shows=new ArrayList<>(),
             upcoming=new ArrayList<>(),trending=new ArrayList<>(),
@@ -229,6 +236,11 @@ public class MainActivity extends Activity {
         homeRecommendationSession.reserve(upnext);
         homeRecommendationSession.reserveIds(favorites());
         homeRecommendationSession.reserve(carouselSourceItems(clean));
+        // Claim genuine digital releases early, so other shelves cannot consume their slots.
+        List<Catalog.Item> digitalCandidates=new ArrayList<>();
+        for(Catalog.Item item:clean)if(item.type.equals("movie")&&item.raw.optBoolean("digitalVOD",false))
+            digitalCandidates.add(item);
+        List<Catalog.Item> vodPicks=homeRecommendationSession.claim("vod",digitalCandidates,18);
 
         Button shuffle=button("↻ Refresh Picks",()->{
             SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());
@@ -264,8 +276,7 @@ public class MainActivity extends Activity {
                 homeRecommendationSession.claim("popular",movies,18),token);break;
             case "series":posterRow("Series worth watching",
                 homeRecommendationSession.claim("series",shows,18),token);break;
-            case "now":posterRow("Now playing",
-                homeRecommendationSession.claim("now",newest,18),token);break;
+            case "now":posterRow("Latest VOD Releases",vodPicks,token);break;
             case "airing":if(!airingToday.isEmpty())posterRow("Airing today",
                 homeRecommendationSession.claim("airing",airingToday,18),token);
                 else loadAiringToday();break;
