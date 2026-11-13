@@ -284,3 +284,9 @@
 .zero-watchlist-filters select{min-width:160px}
 .zero-watchlist-item .card{width:100%}
 .zero-watchlist-item>button:last-child{font-size:12px;border:1px solid #ffffff1c;padding:7px 10px;width:100%;margin-top:8px;text-align:center}
+
+/* ZeroPlay 2.2.6 TEST — PHT-aware live sports guide time filters. */
+.zero-live-guide-tabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 16px}
+.zero-live-guide-tabs button{padding:9px 14px;background:#202126;color:white;border:1px solid #ffffff28;border-radius:10px}
+.zero-live-guide-tabs button.selected{background:#df253122;border-color:#df2531;color:#ffb2b9;font-weight:700}
+.zero-live-guide-tabs button:focus-visible{outline:2px solid #df2531;outline-offset:2px}
