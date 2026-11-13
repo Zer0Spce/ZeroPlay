@@ -1,37 +1,39 @@
 <p align="center"><img src="windows/assets/zeroplay-home-logo.png" alt="ZeroPlay official red Zero and white Play logo" width="650"></p>
 
-# 🎬 ZeroPlay 2.2.6
+# 🎬 ZeroPlay 2.2.6.1
 
 ### Movies. Series. Anime. Live TV. Sports. Your own space to watch.
 
-ZeroPlay 2.2.6 focuses on playback reliability, discovery, update recovery, TV-series progress, performance and cleaner carousels across **Android, Android TV / Google TV and Windows**. The old player and library foundations remain intact.
+ZeroPlay 2.2.6.1 focuses on playback reliability, discovery, update recovery, TV-series progress, performance and cleaner carousels across **Android, Android TV / Google TV and Windows**. The old player and library foundations remain intact.
 
-**[⬇️ Latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 Full 2.2.6 release notes](docs/releases/v2.2.6.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Screenshots](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
+**[⬇️ Latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 Full 2.2.6.1 release notes](docs/releases/v2.2.6.1.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Screenshots](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
 
-> **Existing users:** Official Android 2.2.6 builds preserve the standard production package IDs and signing, unlike separate TEST editions. If the updater in an older Windows build fails, extract the 2.2.6 ZIP manually.
+> **Existing users:** Official Android 2.2.6.1 builds preserve the standard production package IDs and signing, unlike separate TEST editions. If the updater in an older Windows build fails, extract the 2.2.6.1 ZIP manually.
 
 ## ⬇️ Choose your edition
 
 | Edition | Download | What you get |
 | --- | --- | --- |
-| Android | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android.apk) | Phone/tablet |
-| Android TV / Google TV | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android-TV.apk) | Remote-friendly TV |
-| Android Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android-Lite.apk) | Lightweight mobile |
-| Android TV Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Android-TV-Lite.apk) | Lightweight TV |
-| Windows x64 | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/ZeroPlay-2.2.6-Windows-x64.zip) | Portable ZIP with standalone updater |
-| SHA256 checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6/SHA256SUMS.txt) | Verify downloaded artifacts |
+| Android | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.1/ZeroPlay-2.2.6.1-Android.apk) | Phone/tablet |
+| Android TV / Google TV | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.1/ZeroPlay-2.2.6.1-Android-TV.apk) | Remote-friendly TV |
+| Android Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.1/ZeroPlay-2.2.6.1-Android-Lite.apk) | Lightweight mobile |
+| Android TV Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.1/ZeroPlay-2.2.6.1-Android-TV-Lite.apk) | Lightweight TV |
+| Windows x64 | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.1/ZeroPlay-2.2.6.1-Windows-x64.zip) | Portable ZIP with standalone updater |
+| SHA256 checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.1/SHA256SUMS.txt) | Verify downloaded artifacts |
 
 Android requires Android 6.0+. Windows requires Windows 10/11 x64.
 
-## ⭐ What's new in ZeroPlay 2.2.6
+## ⭐ What's new in ZeroPlay 2.2.6.1
 
 **Nine approved items:** Windows Updater 3.0 & Crash Recovery; Startup/Update Regression Tests; Smart Playback Source 2.0; Top 10 Streaming Carousel 2.0; Streaming Provider Hub; TV Series Tracker; Smart Watchlist 2.0; Movie & TV Details 2.0; Performance Boost.
+
+**2.2.6.1 hotfix:** Android TV carousel titles, facts and synopsis are left aligned; logos use all eight bundled providers with a visible fallback; the provider catalog Sort/Genre/disclaimer bar is removed across platforms while provider browsing remains.
 
 **Usability fixes:** The large red TOP 10 NEW STREAMING MOVIES · US headline is gone; each streaming-provider wordmark is a compact logo **above the movie title** on Windows and Android. Android TV Modern UI no longer shows temporary technical status text above its carousel. Android and Android TV actor filmography cards now open selected movie/show details by tap or remote OK.
 
 **Removed at owner's request:** Universal Search 2.0 and Live TV & PPV Guide 2.0. The original basic title search and Live TV / Live PPV / Live Sports remain functional.
 
-[Complete release feature breakdown and changes](docs/releases/v2.2.6.md).
+[Complete release feature breakdown and changes](docs/releases/v2.2.6.1.md).
 
 [![ZeroPlay app screenshot](docs/screenshots/2.2/windows-home.png)](docs/screenshots/2.2/windows-home.png)
 
