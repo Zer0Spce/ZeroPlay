@@ -65,7 +65,31 @@ function providerBrand(name){
   if(n==='max'||n.includes('hbo')||n.includes('max '))return 'max';
   return 'other';
 }
-function providersHTML(rows){return `<section class="row-section zero-provider-section" aria-label="Streaming providers"><div class="section-head"><h3>Streaming providers</h3><div class="type-switch"><button data-provider-type="movie" class="${providerType==='movie'?'selected':''}">Movies</button><button data-provider-type="tv" class="${providerType==='tv'?'selected':''}">TV series</button></div></div><div class="provider-row zero-provider-grid">${rows.slice(0,8).map(row=>`<button type="button" class="provider" data-provider="${Number(row.provider_id)}" data-provider-brand="${escape(providerBrand(row.provider_name))}" data-name="${escape(row.provider_name)}" aria-label="Browse ${escape(row.provider_name)}"><img loading="lazy" decoding="async" src="${escape(art(row.logo_path,'w300'))}" alt="${escape(row.provider_name)} logo"></button>`).join('')}</div><small class="zero-provider-note">Catalog selection varies by ${escape(state.settings.region)}. Listings from TMDB/JustWatch; playback uses your selected source.</small></section>`;}
+function providerWordmark(row){
+  const brand=providerBrand(row.provider_name);
+  return ['netflix','prime','hulu','disney','paramount','peacock','max','apple'].includes(brand)
+    ?'provider-logos/'+brand+'.svg':null;
+}
+function providersHTML(rows){
+  const cards=rows.slice(0,12).map(row=>{
+    const mark=providerWordmark(row),name=escape(row.provider_name),brand=providerBrand(row.provider_name);
+    const logo=mark?`<img class="provider-wordmark" loading="lazy" decoding="async" src="${mark}" alt="${name}">`:
+      `<span class="provider-name">${name}</span>`;
+    return `<button type="button" class="provider" data-provider="${Number(row.provider_id)}" data-provider-brand="${escape(brand)}" data-name="${name}" aria-label="Browse ${name}">${logo}</button>`;
+  }).join('');
+  return `<section class="row-section zero-provider-section" aria-label="Streaming providers">
+    <div class="section-head"><h3>Streaming providers</h3><div class="zero-provider-heading-actions">
+      <div class="type-switch"><button data-provider-type="movie" class="${providerType==='movie'?'selected':''}">Movies</button>
+      <button data-provider-type="tv" class="${providerType==='tv'?'selected':''}">TV series</button></div>
+      <div class="zero-provider-scroll-actions">
+        <button type="button" data-provider-scroll="-1" aria-label="Scroll providers left">‹</button>
+        <button type="button" data-provider-scroll="1" aria-label="Scroll providers right">›</button>
+      </div>
+    </div></div>
+    <div class="provider-row zero-provider-strip" role="group" aria-label="Streaming providers; scroll horizontally">${cards}</div>
+    <small class="zero-provider-note">Catalog selection varies by ${escape(state.settings.region)}. Listings from TMDB/JustWatch; playback uses your selected source.</small>
+  </section>`;
+}
 async function providerRows(){
   const data=await api('/watch/providers/'+providerType,{watch_region:state.settings.region});
   const priority=['netflix','prime','hulu','disney','paramount','peacock','max','apple'];
@@ -164,6 +188,12 @@ document.addEventListener('click',async event=>{const target=event.target.closes
   if(action==='source-cancel'){$('#source-confirm').close();return;}
   if(target.dataset.genreType){genreType=target.dataset.genreType;await renderCategories();return;}
   if(target.dataset.genre){if(Number(target.dataset.genre)===-16){await openAnime(genreType);return;}genreId=Number(target.dataset.genre);genreName=target.dataset.name;category='Genre';page=1;$('#heading').textContent=genreName+' · '+(genreType==='tv'?'TV series':'Movies');await browse();return;}
+  if(target.dataset.providerScroll){
+    const rail=document.querySelector('.zero-provider-strip');
+    if(rail){const step=(rail.querySelector('.provider')?.getBoundingClientRect().width||238)+16;
+      rail.scrollBy({left:Number(target.dataset.providerScroll)*step*2,behavior:'smooth'});}
+    return;
+  }
   if(target.dataset.providerType){providerType=target.dataset.providerType;const token=request;const rows=await providerRows();if(token===request&&$('#providers'))$('#providers').innerHTML=providersHTML(rows);return;}
   if(target.dataset.provider){providerId=Number(target.dataset.provider);providerName=target.dataset.name;await navigate('Provider');$('#heading').textContent=providerName+' · '+(providerType==='tv'?'TV series':'Movies');return;}
   if(action==='toggle-theme'){await change('settings',{...state.settings,theme:state.settings.theme==='light'?'dark':'light',source:state.settings.source||'vidstuck'});toast(state.settings.theme==='light'?'Light mode':'Night mode');}
