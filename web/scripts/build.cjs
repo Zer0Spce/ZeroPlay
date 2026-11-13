@@ -6,4 +6,4 @@ for(const file of ['app.js','browser.js','playback-sources.js','infinite-scroll.
 const manifest=JSON.parse(fs.readFileSync(path.join(publicDir,'manifest.json'),'utf8'));if(manifest.display!=='standalone'||manifest.short_name!=='ZeroPlay')throw Error('Invalid ZeroPlay web manifest');
 const html=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
 for(const asset of ['/style.css','/app.js','/web-router.js','/zsflix-ui.css','/singlebar.css','/hero-trailer.js'])if(!html.includes(asset))throw Error('Website shell is not root-safe: '+asset);
-console.log('ZeroPlay 2.2 website ready for deployment. Configure TMDB_API_KEY in the hosting platform environment.');
+console.log('ZeroPlay 2.2.5.9 website ready for deployment. Configure TMDB_API_KEY in the hosting platform environment.');

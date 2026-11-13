@@ -41,14 +41,15 @@
     favorites=[],notInterested=[],carouselSource='top',perShelf=18}={}){
     const used=new Set(),ignored=new Set(notInterested),watched=new Set(Object.keys(positions||{}));
     const saved=new Set((favorites||[]).filter(x=>x?.id&&x.type).map(id));
+    const streamingAllowed=new Set((pools.streaming||[]).filter(x=>x?.id&&x.type).map(id));
     const all=new Map(),today=new Date(now).toISOString().slice(0,10);
     for(const source of Object.values(pools))for(const item of Array.isArray(source)?source:[]){
       if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||
         Number(item.id)<=0||(!item.poster&&!item.backdrop))continue;
-      if(item.type==='movie'&&(item.originalLanguage&&item.originalLanguage!=='en'||
+      if(item.type==='movie'&&!streamingAllowed.has(id(item))&&(item.originalLanguage&&item.originalLanguage!=='en'||
           Array.isArray(item.originCountry)&&item.originCountry.length>0&&!item.originCountry.includes('US')))continue;
       const key=id(item);
-      if(ignored.has(key)||watched.has(key)||saved.has(key))continue;
+      if(ignored.has(key)||((watched.has(key)||saved.has(key))&&!streamingAllowed.has(key)))continue;
       if(!all.has(key))all.set(key,item);
     }
     const genreWeights=new Map();
@@ -104,14 +105,15 @@
       for(const x of chosen)used.add(id(x));
       return chosen;
     }
-    const heroSources=carouselSource==='recommended'?['recommended','top','trending','popular','day']:
+    const heroSources=carouselSource==='streaming'?['streaming']:
+      carouselSource==='recommended'?['recommended','top','trending','popular','day']:
       carouselSource==='popular'?['popular','trending','day','recommended']:
       carouselSource==='now'?['now','day','trending','popular']:
       ['day','trending','popular','recommended','series','now'];
     let hero=[];
     if(!['watchlist','continue'].includes(carouselSource)){
-      hero=take('hero:'+carouselSource,heroSources,strong,6,true);
-      if(!hero.length)hero=take('hero-fallback',heroSources,x=>recentMedia(x)&&Boolean(x.backdrop)&&enough(x),6,true);
+      hero=carouselSource==='streaming'?take('hero:streaming',heroSources,x=>x.type==='movie'&&Boolean(x.backdrop)&&released(x),10,false):take('hero:'+carouselSource,heroSources,strong,6,true);
+      if(!hero.length&&carouselSource!=='streaming')hero=take('hero-fallback',heroSources,x=>recentMedia(x)&&Boolean(x.backdrop)&&enough(x),6,true);
     }
     const shelves={};
     // Digital type-4 release date supplied by TMDB's region-aware discover endpoint.
