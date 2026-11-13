@@ -135,6 +135,15 @@
     section.appendChild(rail);return section;
   }
 
+  function positionProvidersBelowTrending(trendingSection){
+    // Move the persistent provider slot, not its child cards, so Movies/TV toggles
+    // continue updating the same element with no duplicate or orphaned providers.
+    const slot=document.querySelector('#providers');
+    if(trendingSection&&slot&&trendingSection.nextElementSibling!==slot){
+      trendingSection.insertAdjacentElement('afterend',slot);
+    }
+  }
+
   async function ensureTop10(){
     if(document.documentElement.dataset.section&&document.documentElement.dataset.section!=='Home')return;
     const hero=document.querySelector('#hero');if(!hero)return;
@@ -158,10 +167,14 @@
     }
     if(!items.length)return;
     const existing=document.querySelector('.zero-top10');
-    if(existing?.dataset.region===region&&Number(existing.dataset.refreshed||0)===topCache.get(region)?.at)return;
+    if(existing?.dataset.region===region&&Number(existing.dataset.refreshed||0)===topCache.get(region)?.at){
+      positionProvidersBelowTrending(existing);
+      return;
+    }
     existing?.remove();const section=top10Section(items,region);section.dataset.region=region;
     section.dataset.refreshed=String(topCache.get(region)?.at||now);
     hero.insertAdjacentElement('afterend',section);
+    positionProvidersBelowTrending(section);
   }
 
   async function applyComingSoonDefault(){
