@@ -86,7 +86,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Home integration syntax check failed' }
           node --check windows/ui/app.js
           if ($LASTEXITCODE -ne 0) { throw 'Windows UI syntax check failed' }
-          node --test tests/zeroplay-smart-home-2259.test.cjs
+          node --test tests/zeroplay-smart-home-2258.test.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Recommendation tests failed' }
       - name: Run all Windows and Smart Stream Status regressions
         working-directory: windows
