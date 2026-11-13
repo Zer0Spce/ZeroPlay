@@ -1,0 +1,118 @@
+name: ZeroPlay TEST — Android 2.2.6.3 Original 2.2.5 Carousel
+on:
+  push:
+    branches:
+      - test/zeroplay-2263-original-225-carousel
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeroplay-2263-carousel-tv-test
+  cancel-in-progress: true
+
+jobs:
+  android-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      ZERO_ANDROID_TEST_SIDE_BY_SIDE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify exact 2.2.5 title regression restoration and test isolation
+        run: |
+          set -euo pipefail
+          node --test tests/zeroplay-2263-original-title-test.test.cjs
+          node --test tests/zeroplay-smart-home-2258.test.cjs
+          node --test tests/zeroplay-2260-final-polish.test.cjs
+          node --test tests/zeroplay-2261-ui-hotfix.test.cjs
+          node --test tests/android-native-live-ppv-v2.2.5.6.test.cjs
+          node tests/android-tv-source-navigation-2.2.5.4.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+          node tests/source-selection-regression.test.cjs
+      - name: Apply original Android audio and Live TV baseline patches
+        run: |
+          set -euo pipefail
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node tests/audio-boost-2.2.4.1.test.cjs
+          node scripts/apply-custom-livetv-test.cjs
+      - name: Set isolated Android TEST version and package name
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs'),file='app/build.gradle';
+          let s=fs.readFileSync(file,'utf8');
+          if(!s.includes("versionName '2.2.5-test1'")||!s.includes('versionCode 51'))throw Error('Baseline script version markers changed');
+          if(!s.includes("applicationIdSuffix '.tv.test'")||!s.includes("applicationIdSuffix '.mobile.test'")||!s.includes("appLabel: 'ZeroPlay TEST'"))throw Error('TEST build would overwrite an existing app');
+          s=s.replace("versionName '2.2.5-test1'","versionName '2.2.6.3-TEST'");
+          s=s.replace('versionCode 51','versionCode 69');
+          fs.writeFileSync(file,s);
+          NODE
+      - name: Prepare packaged streaming-provider logos
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/zeroplay-logo-venv"
+          "$RUNNER_TEMP/zeroplay-logo-venv/bin/python" -m pip install --disable-pip-version-check -q CairoSVG==2.7.1 Pillow==11.3.0
+          "$RUNNER_TEMP/zeroplay-logo-venv/bin/python" scripts/render-provider-wordmarks.py
+          test "$(find app/src/main/assets/provider-logos -maxdepth 1 -name '*.png' | wc -l)" -eq 8
+          test "$(find app/src/main/res/drawable-nodpi -maxdepth 1 -name 'zero_provider_*.png' | wc -l)" -eq 8
+      - name: Run Android TV and mobile unit tests
+        run: gradle :app:testTvReleaseUnitTest :app:testMobileReleaseUnitTest
+      - name: Build separately installable signed Android TEST APKs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-test.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleTvRelease :app:assembleMobileRelease
+          mkdir -p test-builds
+          cp app/build/outputs/apk/tv/release/app-tv-release.apk test-builds/ZeroPlay-2.2.6.3-TEST-Android-TV.apk
+          cp app/build/outputs/apk/mobile/release/app-mobile-release.apk test-builds/ZeroPlay-2.2.6.3-TEST-Android.apk
+          for apk in test-builds/*.apk; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionCode='69'"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionName='2.2.6.3-TEST'"
+            actual_id=$("$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -n 1)
+            case "$(basename "$apk")" in
+              ZeroPlay-2.2.6.3-TEST-Android-TV.apk) expected_id='com.zerostreams.app.tv.test' ;;
+              ZeroPlay-2.2.6.3-TEST-Android.apk) expected_id='com.zerostreams.app.mobile.test' ;;
+              *) echo 'Unexpected APK filename'; exit 1 ;;
+            esac
+            test "$actual_id" = "$expected_id" || { echo "TEST package ID mismatch: $actual_id expected $expected_id"; exit 1; }
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "application-label:'ZeroPlay TEST'"
+          done
+      - name: Check Android TV lint
+        run: gradle :app:lintTvRelease :app:lintMobileRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.6.3-TEST-Android-APKs
+          path: test-builds/*.apk
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
