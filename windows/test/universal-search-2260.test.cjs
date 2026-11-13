@@ -48,3 +48,12 @@ test('search controls are wired in actual Windows interface',()=>{
  assert.match(app,/ZeroUniversalSearch\.filterByProvider/);
  assert.match(app,/data-search-filter/);
 });
+
+test('verified provider lookups use an explicitly allowlisted TMDB route, never arbitrary URLs',()=>{
+ const core=require('../core.cjs');
+ assert.equal(core.endpoint('/movie/550/watch/providers'),true);
+ assert.equal(core.endpoint('/tv/1399/watch/providers'),true);
+ assert.equal(core.endpoint('/movie/550/watch/providers/evil'),false);
+ assert.equal(core.endpoint('/movie/../watch/providers'),false);
+ assert.equal(core.endpoint('/https://example.com'),false);
+});
