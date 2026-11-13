@@ -30,7 +30,23 @@ has(ppv,'button.setTextColor(focused ? Color.BLACK : Color.WHITE)','visible sele
 has(ppv,'if(channelDialogOpen)return super.dispatchKeyEvent(event)','dialog navigation unmodified');
 assert.equal(require('../windows/playback-sources.cjs').sources.find(x=>x.id==='vidrock').name,'Vidrock.to [Offline]');
 assert.equal(require('../web/public/playback-sources.js').sources.find(x=>x.id==='vidrock').name,'Vidrock.to [Offline]');
-has(windows,"'embedwave','vidnest'","offline source excluded from automatic best-source selection");
-has(windows,"playbackSource==='embedwave'?'vidnest'","offline source skipped by Windows recovery");
-has(player,'current.equals("embedwave")?"vidnest"','offline source skipped by Android recovery');
+if(windows.includes("sourceIntelligence.best(")){
+  const intelligence=require('../windows/source-intelligence.cjs');
+  assert.equal(intelligence.ONLINE.includes('vidrock'),false,'Vidrock is offline');
+  assert.equal(intelligence.ONLINE.includes('vidsrc-sh'),false,'VidSrc SH is offline');
+  assert.equal(intelligence.ONLINE.includes('rawcast'),false,'Quota-based RawCast requires explicit selection');
+  has(windows,"sourceIntelligence.next(","Smart Playback 2.0 excludes offline sources in recovery");
+}else{
+  has(windows,"'embedwave','vidnest'","offline source excluded from automatic best-source selection");
+  has(windows,"playbackSource==='embedwave'?'vidnest'","offline source skipped by Windows recovery");
+}
+if(player.includes('PlaybackHealth.next(prefs,current)')){
+  const health=fs.readFileSync('app/src/main/java/com/zerostreams/app/PlaybackHealth.java','utf8');
+  has(player,'PlaybackHealth.next(prefs,current)','Android recovery uses verified provider health ranking');
+  assert.match(health,/AUTOMATIC=Collections.unmodifiableList/);
+  assert.match(health,/"vidstuck","zxcstream","embedwave","vidnest","vidrift","vidfast","vidapi"/);
+  assert.doesNotMatch(health,/AUTOMATIC[^;]*"vidrock"/);
+  assert.doesNotMatch(health,/AUTOMATIC[^;]*"vidsrc-sh"/);
+  assert.doesNotMatch(health,/AUTOMATIC[^;]*"rawcast"/);
+}else has(player,'current.equals("embedwave")?"vidnest"','offline source skipped by Android recovery');
 console.log('Android TV per-source navigation and Vidrock.to offline regression checks passed');

@@ -34,6 +34,20 @@ public class StreamingTopTenTest {
         for(Catalog.Item row:chosen)assertTrue(row.raw.optString("releaseDate").compareTo("2026-11-13")<=0);
         assertEquals(chosen.get(0).id,StreamingTopTen.select(rows,10,now).get(0).id);
     }
+    @Test public void balancesVerifiedSubscriptionProvidersWhenEachHasEligibleTitles() throws Exception{
+        List<Catalog.Item> rows=new ArrayList<>();
+        for(String brand:new String[]{"netflix","hulu","max","disney"})
+            for(int i=0;i<12;i++){
+                Catalog.Item movie=item(rows.size()+1,"2026-10-01",125,"https://image.tmdb.org/1");
+                movie.raw.put("providerBrand",brand);rows.add(movie);
+            }
+        long now=java.time.Instant.parse("2026-11-13T12:00:00Z").toEpochMilli();
+        List<Catalog.Item> found=StreamingTopTen.select(rows,19,now);
+        assertEquals(10,found.size());
+        Set<String> brands=new HashSet<>();
+        for(Catalog.Item movie:found)brands.add(movie.raw.optString("providerBrand"));
+        assertTrue(brands.containsAll(Arrays.asList("netflix","hulu","max","disney")));
+    }
     private static Catalog.Item item(int id,String date,int votes,String backdrop) throws Exception{
         return new Catalog.Item(new JSONObject().put("id","tmdb-movie-"+id).put("type","movie")
         .put("title","Movie "+id).put("poster","https://image.tmdb.org/2").put("backdrop",backdrop)

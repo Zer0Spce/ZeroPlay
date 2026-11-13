@@ -6,9 +6,8 @@ android {
     externalNativeBuild { cmake { path file('src/main/cpp/CMakeLists.txt'); version '3.22.1' } }
     defaultConfig {
         applicationId 'com.zerostreams.app'
-        // CI-only side-by-side test identity. Keeps production package names unchanged.
-        manifestPlaceholders = [appLabel: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay TEST' : 'ZeroPlay',
-                                appLabelLite: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay Lite TEST' : 'ZeroPlay Lite']
+        // Production: preserve official application identity and signing.
+        manifestPlaceholders = [appLabel: 'ZeroPlay', appLabelLite: 'ZeroPlay Lite']
         minSdk 23
         targetSdk 35
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' }
@@ -24,32 +23,32 @@ android {
     productFlavors {
         mobile {
             dimension 'device'
-            applicationIdSuffix '.mobile' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.mobile'
             buildConfigField 'boolean', 'TV', 'false'
             buildConfigField 'boolean', 'LITE', 'false'
         }
         tv {
             dimension 'device'
-            applicationIdSuffix '.tv' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.tv'
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'false'
         }
         privateTv {
             dimension 'device'
-            applicationIdSuffix '.tv' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.tv' // Private TV flavor retains official TV identity
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'false'
             buildConfigField 'String', 'DEFAULT_TSP_KEY', groovy.json.JsonOutput.toJson(System.getenv('TSP_API_KEY') ?: '')
         }
         liteMobile {
             dimension 'device'
-            applicationIdSuffix '.lite.mobile' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.lite.mobile'
             buildConfigField 'boolean', 'TV', 'false'
             buildConfigField 'boolean', 'LITE', 'true'
         }
         liteTv {
             dimension 'device'
-            applicationIdSuffix '.lite.tv' + (System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? '.test' : '')
+            applicationIdSuffix '.lite.tv'
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'true'
         }

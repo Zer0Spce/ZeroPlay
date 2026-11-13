@@ -26,20 +26,58 @@ function selectLatestWindowsRelease(releases){
   const checksumAsset=release.assets.find(a=>/^SHA256SUMS\.txt$/i.test(a?.name||''))||null;
   return {...release,asset,checksumAsset};
 }
-async function latest(){
-  let response;
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const RETRY_CODES=new Set([408,425,429,500,502,503,504]);
+function retryDelay(attempt,retryAfter=''){
+  const seconds=Number(retryAfter);
+  const fromServer=Number.isFinite(seconds)&&seconds>0?Math.min(seconds*1000,10000):0;
+  return Math.max(fromServer,Math.min(1000*Math.pow(2,attempt),4000));
+}
+function diagnosticPath(){
+  const dir=path.join(app.getPath('userData'),'diagnostics');
+  fs.mkdirSync(dir,{recursive:true});
+  return path.join(dir,'windows-updater.log');
+}
+function recordDiagnostic(stage,error){
   try{
-    response=await fetch(API,{headers:{Accept:'application/vnd.github+json','User-Agent':'ZeroPlay-Windows-Updater'},signal:AbortSignal.timeout(15000)});
-  }catch(error){
-    throw Error('Could not connect to GitHub to check for updates: '+String(error?.message||error));
+    const message=String(error?.message||error).replace(/[\r\n]+/g,' ').slice(0,250);
+    const file=diagnosticPath();
+    // Never write API keys, URLs, or environment variables to this log.
+    fs.appendFileSync(file,new Date().toISOString()+' ['+stage+'] '+message+'\n');
+    if(fs.statSync(file).size>512000){
+      const last=fs.readFileSync(file,'utf8').slice(-200000);
+      fs.writeFileSync(file,last);
+    }
+  }catch{}
+}
+async function requestReleases(request=fetch,sleep=wait){
+  let last=null;
+  for(let attempt=0;attempt<3;attempt++){
+    let response;
+    try{
+      response=await request(API,{headers:{Accept:'application/vnd.github+json','User-Agent':'ZeroPlay-Windows-Updater'},
+        signal:AbortSignal.timeout(15000)});
+    }catch(error){
+      last=Error('Could not connect to GitHub to check for updates: '+String(error?.message||error));
+      if(attempt<2){await sleep(retryDelay(attempt));continue;}
+      throw last;
+    }
+    if(response.ok){
+      try{return await response.json();}
+      catch{throw Error('GitHub returned invalid release information.');}
+    }
+    const status=response.status;
+    last=status===403||status===429?
+      Error('GitHub is rate limiting update requests (HTTP '+status+'). Please retry or install manually.'):
+      Error('GitHub update check returned HTTP '+status+'.');
+    if(!RETRY_CODES.has(status)||attempt===2)throw last;
+    await sleep(retryDelay(attempt,response.headers?.get('retry-after')||''));
   }
-  if(!response.ok){
-    if(response.status===403||response.status===429)throw Error('GitHub rate limit or access restriction ('+response.status+'). Please try later or download the release manually.');
-    throw Error('Could not check GitHub for updates (HTTP '+response.status+').');
-  }
-  let releases;
-  try{releases=await response.json();}catch{throw Error('GitHub returned invalid release information.');}
-  return selectLatestWindowsRelease(releases);
+  throw last||Error('Could not check for updates.');
+}
+async function latest(){
+  try{return selectLatestWindowsRelease(await requestReleases());}
+  catch(error){recordDiagnostic('release-check',error);throw error;}
 }
 function trustedMain(event){if(!mainWindow||mainWindow.isDestroyed()||event.sender!==mainWindow.webContents)throw Error('Untrusted updater request');}
 function trustedUpdate(event){if(!updateWindow||updateWindow.isDestroyed()||event.sender!==updateWindow.webContents)throw Error('Untrusted updater window');}
@@ -52,4 +90,4 @@ async function installVersion(release){if(downloadBusy)throw Error('An update is
 async function startInstall(event){trustedUpdate(event);if(!currentRelease)throw Error('No update is selected.');const result=await installVersion(currentRelease);closeUpdate();setTimeout(()=>{try{app.exit(0);}catch{process.exit(0);}},250);return result;}
 function bindMain(win){if(mainWindow||win.isDestroyed())return;mainWindow=win;win.on('closed',()=>{if(mainWindow===win)mainWindow=null;});win.once('ready-to-show',()=>{if(!process.argv.includes('--smoke-test'))setTimeout(()=>check({manual:false}).catch(()=>{}),1800);});}
 function install(){if(installed)return;installed=true;app.on('browser-window-created',(_event,win)=>{if(!mainWindow&&win.getTitle()==='ZeroPlay')bindMain(win);});ipcMain.handle('update-check',async event=>{trustedMain(event);return check({manual:true});});ipcMain.handle('update-window-action',async(event,action)=>{trustedUpdate(event);if(action==='cancel'){closeUpdate();return {ok:true};}if(action==='skip'){if(currentRelease){const s=readState();s.skippedVersion=releaseView(currentRelease).version;writeState(s);}closeUpdate();return {ok:true};}if(action==='install')return startInstall(event);throw Error('Unsupported updater action');});}
-module.exports={install,newer,cleanVersion,releaseView,expectedSha256,testRelease,selectLatestWindowsRelease};
+module.exports={install,newer,cleanVersion,releaseView,expectedSha256,testRelease,selectLatestWindowsRelease,requestReleases,retryDelay,RETRY_CODES};

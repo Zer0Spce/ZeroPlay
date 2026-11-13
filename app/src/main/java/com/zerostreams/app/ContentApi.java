@@ -47,7 +47,8 @@ final class ContentApi {
 
     static JSONObject tmdb(String path,String key,String extra) throws Exception {
         if(key.isEmpty())throw new IOException("Add your TMDB API key in Settings");
-        return (JSONObject)json("https://api.themoviedb.org/3"+path+"?api_key="+URLEncoder.encode(key,"UTF-8")+"&language=en-US"+extra);
+        String url="https://api.themoviedb.org/3"+path+"?api_key="+URLEncoder.encode(key,"UTF-8")+"&language=en-US"+extra;
+        return TmdbRequestCache2260.load(url,()->(JSONObject)json(url));
     }
     static List<Catalog.Item> tmdbRows(JSONArray data,String mediaDefault,boolean search) throws JSONException {
         List<Catalog.Item> rows=new ArrayList<>();
@@ -64,9 +65,21 @@ final class ContentApi {
     static JSONObject searchPageData(String query,String key,int page) throws Exception {return tmdb("/search/multi",key,"&query="+URLEncoder.encode(query.trim(),"UTF-8")+"&include_adult=false&page="+page);}
     static JSONObject browsePageData(String key,String section,int page) throws Exception {return tmdb(section.equals("Series")?"/tv/popular":"/movie/popular",key,"&page="+page);}
     static List<Catalog.Item> carouselItems(String key,String mode) throws Exception {if(mode.equals("streaming"))return StreamingTopTen.load(key,System.currentTimeMillis());String path,media;if(mode.equals("recommended")){path="/movie/top_rated";media="movie";}else if(mode.equals("popular")){path="/movie/popular";media="movie";}else if(mode.equals("now")){path="/movie/now_playing";media="movie";}else if(mode.equals("top")){path="/trending/all/week";media="";}else return new ArrayList<>();return tmdbRows(tmdb(path,key,"&page=1").getJSONArray("results"),media,false);}
+    static String providerSortParam(String type,String sort){
+        if(!type.equals("movie")&&!type.equals("tv"))throw new IllegalArgumentException("Invalid media type");
+        if("new".equals(sort))return type.equals("tv")?"first_air_date.desc":"primary_release_date.desc";
+        if("top".equals(sort))return "vote_average.desc";
+        return "popularity.desc";
+    }
     static JSONObject providerPageData(String key,String type,int provider,String region,int page) throws Exception {
+        return providerPageData(key,type,provider,region,page,"popular",0);
+    }
+    static JSONObject providerPageData(String key,String type,int provider,String region,int page,String sort,int genre) throws Exception {
         if(provider<=0||!region.matches("[A-Z]{2}")||!type.equals("movie")&&!type.equals("tv"))throw new IOException("Invalid provider");
-        return tmdb("/discover/"+type,key,"&include_adult=false&with_watch_providers="+provider+"&watch_region="+region+"&with_watch_monetization_types=flatrate&sort_by=popularity.desc&page="+page);
+        if(page<1||page>500||genre<0||genre>999999)throw new IOException("Invalid provider filter");
+        return tmdb("/discover/"+type,key,"&include_adult=false&with_watch_providers="+provider+
+            "&watch_region="+region+"&with_watch_monetization_types=flatrate&sort_by="+providerSortParam(type,sort)+
+            ("top".equals(sort)?"&vote_count.gte=100":"")+(genre>0?"&with_genres="+genre:"")+"&page="+page);
     }
     static List<Catalog.Item> searchMovies(String query,String key,int page) throws Exception {
         return tmdbRows(tmdb("/search/multi",key,"&query="+URLEncoder.encode(query.trim(),"UTF-8")+"&include_adult=false&page="+page).getJSONArray("results"),"",true);
@@ -110,6 +123,22 @@ final class ContentApi {
         return new ArrayList<>(rows.values());
     }
     static String media(Catalog.Item item){return item.type.equals("series")?"tv":"movie";}
+    static List<String> subscriptionBrands(Catalog.Item item,String key,String region) throws Exception {
+        if(!item.id.matches("tmdb-(movie|series)-[1-9][0-9]*")||!region.matches("[A-Z]{2}"))
+            throw new IOException("Invalid title or region");
+        String type=item.type.equals("series")?"tv":"movie";
+        String id=item.id.substring(item.id.lastIndexOf('-')+1);
+        JSONObject response=tmdb("/"+type+"/"+id+"/watch/providers",key,"");
+        JSONObject results=response.optJSONObject("results"),country=results==null?null:results.optJSONObject(region);
+        JSONArray subscription=country==null?null:country.optJSONArray("flatrate");
+        LinkedHashSet<String> brands=new LinkedHashSet<>();
+        for(int i=0;subscription!=null&&i<subscription.length();i++){
+            JSONObject row=subscription.optJSONObject(i);if(row==null)continue;
+            String brand=StreamingTopTen.brand(row.optString("provider_name"));
+            if(!brand.isEmpty())brands.add(brand);
+        }
+        return new ArrayList<>(brands);
+    }
     static JSONObject details(Catalog.Item item,String key) throws Exception {
         if(!item.id.matches("tmdb-(movie|series)-[0-9]+"))throw new IOException("Not a TMDB title");
         return tmdb("/"+media(item)+"/"+item.id.substring(item.id.lastIndexOf('-')+1),key,"&append_to_response=credits,videos,recommendations");
