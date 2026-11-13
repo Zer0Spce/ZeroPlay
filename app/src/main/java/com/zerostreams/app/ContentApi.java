@@ -62,23 +62,6 @@ final class ContentApi {
             rows.add(new Catalog.Item(item));
         }return rows;
     }
-    static int usStreamingProviderId(String key,String media,String brand) throws Exception{
-        if(!SearchFilters2260.approved(brand)||!media.equals("movie")&&!media.equals("tv"))return 0;
-        JSONArray rows=tmdb("/watch/providers/"+media,key,"&watch_region=US").optJSONArray("results");
-        int best=0,score=-100;
-        for(int i=0;rows!=null&&i<rows.length();i++){
-            JSONObject row=rows.optJSONObject(i);if(row==null)continue;
-            if(!brand.equals(StreamingTopTen.brand(row.optString("provider_name"))))continue;
-            JSONObject priorities=row.optJSONObject("display_priorities");
-            if(priorities!=null&&!priorities.has("US"))continue;
-            int id=row.optInt("provider_id");if(id<1)continue;
-            String name=row.optString("provider_name").toLowerCase(Locale.ROOT);
-            int candidate=name.equals(brand)?5:0;
-            if(name.contains("rent")||name.contains("channel"))candidate-=10;
-            if(candidate>score){best=id;score=candidate;}
-        }
-        return best;
-    }
     static JSONObject searchPageData(String query,String key,int page) throws Exception {return tmdb("/search/multi",key,"&query="+URLEncoder.encode(query.trim(),"UTF-8")+"&include_adult=false&page="+page);}
     static JSONObject browsePageData(String key,String section,int page) throws Exception {return tmdb(section.equals("Series")?"/tv/popular":"/movie/popular",key,"&page="+page);}
     static List<Catalog.Item> carouselItems(String key,String mode) throws Exception {if(mode.equals("streaming"))return StreamingTopTen.load(key,System.currentTimeMillis());String path,media;if(mode.equals("recommended")){path="/movie/top_rated";media="movie";}else if(mode.equals("popular")){path="/movie/popular";media="movie";}else if(mode.equals("now")){path="/movie/now_playing";media="movie";}else if(mode.equals("top")){path="/trending/all/week";media="";}else return new ArrayList<>();return tmdbRows(tmdb(path,key,"&page=1").getJSONArray("results"),media,false);}

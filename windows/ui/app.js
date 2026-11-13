@@ -4,7 +4,6 @@ let zeroHomeDeck=null;
 let state,category='Home',libraryTab='Continue watching',watchlistStatus='all',page=1,request=0,detailRequest=0,heroIndex=0,heroTimer,heroPaused=false,providerType='movie',providerId,providerName,providerSort='popular',providerGenre='',homeData={},activeDetail,sourcePickerItem,pendingSource;const oneTimeSources=new Map();
 const titles=new Map(),cache=new Map();
 let submittedQuery='',pageBusy=false,pageTotal=1,pageError=false,loadedKeys=new Set(),pagingObserver,liveTimer,playlistSnapshots=new Map(),channelGroup='All';
-const searchFilters={media:'all',year:'',rating:0,genre:0,provider:'',sort:'relevance'};
 // ZERO22_WINDOWS_UI
 let peopleResults=[],quickItem=null;const viewSnapshots=new Map();let catalogFilters={movie:{},tv:{}};try{catalogFilters=JSON.parse(localStorage.getItem('zero-catalog-filters')||JSON.stringify(catalogFilters));}catch{}
 
@@ -28,21 +27,13 @@ document.addEventListener('change',event=>{
   }
 });
 document.addEventListener('change',event=>{
-  const prop=event.target.dataset.searchFilter;
-  if(!prop||category!=='Search')return;
-  searchFilters[prop]=event.target.value;
-  Object.assign(searchFilters,window.ZeroUniversalSearch.normalize(searchFilters));
-  page=1;
-  catalogPage().catch(error=>toast(error.message));
-});
-document.addEventListener('change',event=>{
  if(event.target.dataset.watchlistStatus&&libraryTab==='Watchlist'){
    watchlistStatus=['all','watched','unwatched'].includes(event.target.value)?event.target.value:'all';
    renderLibrary();
  }
 });
 document.addEventListener('change',event=>{const kind=event.target.dataset.sort;if(!kind)return;const value=event.target.value;if(kind==='titles'){titleSort=value;if(category==='Library')renderLibrary();else reorderTitles();}if(kind==='channels'){channelSort=value;renderPlaylist();}if(kind==='sports'){sportsSort=value;renderSports();}});
-function reorderTitles(){const grid=$('#catalog-grid');if(!grid)return;const items=[...loadedKeys].map(id=>titles.get(id)).filter(Boolean);grid.innerHTML=(section==='Search'?items:sortedTitles(items)).map(item=>card(item)).join('');}
+function reorderTitles(){const grid=$('#catalog-grid');if(!grid)return;const items=[...loadedKeys].map(id=>titles.get(id)).filter(Boolean);grid.innerHTML=sortedTitles(items).map(item=>card(item)).join('');}
 const sources=[['vidstuck','VidStuck'],['zxcstream','ZXCStream (Beta)'],['embedwave','Embedwave (BETA)'],['vidsrc-sh','VidSrc [Offline]'],['vidrock','Vidrock.to [Offline]'],['vidnest','VidNest'],['vidrift','VidRift'],['vidfast','VidFast'],['vidapi','VidAPI'],['rawcast','RawCast · Limited quota']];
 function sourceOverrides(){try{return JSON.parse(localStorage.getItem('zero-title-sources')||'{}')||{};}catch{return {};}}
 function playbackSourceValid(id){return sources.some(([sourceId])=>sourceId===id);}
@@ -76,7 +67,7 @@ function upNextItems(items=Object.values(state.positions||{})){const continuing=
 const carouselSourceLabels={streaming:'TOP 10 NEW STREAMING MOVIES · US'};
 function heroPicks(){return Array.isArray(zeroHomeDeck?.hero)?zeroHomeDeck.hero:[];}
 function heroEyebrow(){return carouselSourceLabels.streaming;}
-function hero(){const picks=heroPicks();if(!picks.length)return '';heroIndex=((heroIndex%picks.length)+picks.length)%picks.length;const item=picks[heroIndex];const service=(item.providerBrands||[])[0];const providerName=({netflix:'Netflix',hulu:'Hulu',disney:'Disney+',max:'HBO Max',apple:'Apple TV+',paramount:'Paramount+',peacock:'Peacock','youtube-tv':'YouTube TV'})[service];return `<div class="hero" id="hero" data-featured="${key(item)}">${item.backdrop?`<img class="hero-art" src="${escape(item.backdrop)}" alt="">`:''}<div class="hero-shade"></div><div class="hero-content"><span class="eyebrow">${escape(heroEyebrow())}</span><div class="detail-heading"><div><div class="hero-title-line"><h2>${escape(item.title)}</h2>${providerName?`<img class="hero-provider-logo" src="provider-logos/${service}.svg" alt="${escape(providerName)}" title="Available on ${escape(providerName)} in the US" loading="lazy" decoding="async">`:''}</div>${badge(item)}</div><div class="watch-actions"><button class="primary" data-play="${key(item)}">▶ Watch now</button>${sourceButton(item)}</div></div><p>${escape(item.overview||'A new story is waiting. Discover the details and find your next great watch.')}</p><div class="actions"><button class="primary" data-play="${key(item)}">▶ Watch now</button>${sourceButton(item)}<button data-detail="${key(item)}">More details</button><button data-favorite="${key(item)}">${state.favorites.some(row=>key(row)===key(item))?'✓ In watchlist':'+ My list'}</button></div><div class="hero-controls"><button data-action="hero-prev" aria-label="Previous featured title">‹</button>${picks.map((_,index)=>`<span class="dot ${index===heroIndex?'on':''}"></span>`).join('')}<button data-action="hero-next" aria-label="Next featured title">›</button></div></div><div class="ranked">${picks.map((pick,index)=>`<button data-hero="${index}"><strong>${String(index+1).padStart(2,'0')}</strong><span>${escape(pick.title)}</span></button>`).join('')}</div></div>`;}
+function hero(){const picks=heroPicks();if(!picks.length)return '';heroIndex=((heroIndex%picks.length)+picks.length)%picks.length;const item=picks[heroIndex];const service=(item.providerBrands||[])[0];const providerName=({netflix:'Netflix',hulu:'Hulu',disney:'Disney+',max:'HBO Max',apple:'Apple TV+',paramount:'Paramount+',peacock:'Peacock','youtube-tv':'YouTube TV'})[service];return `<div class="hero" id="hero" data-featured="${key(item)}">${item.backdrop?`<img class="hero-art" src="${escape(item.backdrop)}" alt="">`:''}<div class="hero-shade"></div><div class="hero-content"><div class="detail-heading"><div><div class="hero-title-line">${providerName?`<img class="hero-provider-logo" src="provider-logos/${service}.svg" alt="${escape(providerName)}" title="Available on ${escape(providerName)} in the US" loading="lazy" decoding="async">`:''}<h2>${escape(item.title)}</h2></div>${badge(item)}</div><div class="watch-actions"><button class="primary" data-play="${key(item)}">▶ Watch now</button>${sourceButton(item)}</div></div><p>${escape(item.overview||'A new story is waiting. Discover the details and find your next great watch.')}</p><div class="actions"><button class="primary" data-play="${key(item)}">▶ Watch now</button>${sourceButton(item)}<button data-detail="${key(item)}">More details</button><button data-favorite="${key(item)}">${state.favorites.some(row=>key(row)===key(item))?'✓ In watchlist':'+ My list'}</button></div><div class="hero-controls"><button data-action="hero-prev" aria-label="Previous featured title">‹</button>${picks.map((_,index)=>`<span class="dot ${index===heroIndex?'on':''}"></span>`).join('')}<button data-action="hero-next" aria-label="Next featured title">›</button></div></div><div class="ranked">${picks.map((pick,index)=>`<button data-hero="${index}"><strong>${String(index+1).padStart(2,'0')}</strong><span>${escape(pick.title)}</span></button>`).join('')}</div></div>`;}
 function watchlistHome(){return state.favorites.length?row('Watchlist',state.favorites):'<section class="row-section home-watchlist"><h3>Watchlist</h3><p>Save movies and series from their details to see them here.</p></section>';}
 function renderHero(){const old=$('#hero');if(!old)return;const picks=heroPicks();if(!picks.length){old.remove();return;}const item=picks[((heroIndex%picks.length)+picks.length)%picks.length];if(item&&old.dataset.featured===key(item))return;old.outerHTML=hero();bindHero();}
 function bindHero(){const node=$('#hero');if(!node)return;if(!state.settings.performanceMode)window.zeroExperience?.hero();const picks=heroPicks();atmosphere(picks[((heroIndex%Math.max(1,picks.length))+Math.max(1,picks.length))%Math.max(1,picks.length)]);node.addEventListener('mouseenter',()=>heroPaused=true);node.addEventListener('mouseleave',()=>heroPaused=false);node.addEventListener('focusin',()=>heroPaused=true);node.addEventListener('focusout',()=>heroPaused=false);}
@@ -261,45 +252,14 @@ async function searchTitles(append=false){return catalogPage(append);}
 function paging(){return '<div id="load-more" class="load-more" role="status"></div>';}
 function observePaging(){pagingObserver?.disconnect();const footer=$('#load-more');if(!footer)return;footer.innerHTML=pageError?'Could not load more. <button data-action="retry-more">Retry</button>':pageBusy?'Loading more…':page<pageTotal?'More titles load as you scroll':'You have reached the end';if(typeof IntersectionObserver==='function'&&page<pageTotal&&!pageError){pagingObserver=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)&&!pageBusy&&!$('#detail').open){page++;catalogPage(true);}}, {rootMargin:'240px'});pagingObserver.observe(footer);}}
 async function catalogPage(append=false){const token=++request,section=category;clearInterval(heroTimer);if(!append){page=1;loadedKeys=new Set();busy();}pageBusy=true;pageError=false;
-if(section==='Search'&&!submittedQuery){pageBusy=false;$('#content').innerHTML=searchFilterHTML()+'<h2>Recent searches</h2>'+searchHistoryHTML();status('Type a title and press Search');return;}
+if(section==='Search'&&!submittedQuery){pageBusy=false;$('#content').innerHTML='<h2>Recent searches</h2>'+searchHistoryHTML();status('Type a title and press Search');return;}
 let path=section==='Series'?'/tv/popular':'/movie/popular',type=section==='Series'?'tv':'movie',params={page};if(section==='Movies'||section==='Series'){const f=catalogFilters[type]||{};if(Object.keys(f).some(k=>f[k])){path='/discover/'+type;params={page,sort_by:'popularity.desc','vote_count.gte':25};if(f.genre)params.with_genres=f.genre;if(f.language)params.with_original_language=f.language;if(f.rating)params['vote_average.gte']=f.rating;if(f.runtime)params['with_runtime.lte']=f.runtime;if(f.country)params.with_origin_country=f.country;if(f.yearMin)params[type==='tv'?'first_air_date.gte':'primary_release_date.gte']=f.yearMin+'-01-01';if(f.yearMax)params[type==='tv'?'first_air_date.lte':'primary_release_date.lte']=f.yearMax+'-12-31';}}if(section==='Search'){path='/search/multi';type=undefined;params.query=submittedQuery;}if(section==='Genre'){path='/discover/'+genreType;type=genreType;if(genreId>0)params.with_genres=genreId;else if(genreId<=-101)params.with_original_language=categoryLanguages[genreId];if(genreName.startsWith('Anime'))params.with_original_language='ja';params.sort_by='popularity.desc';}if(section==='Provider'){path='/discover/'+providerType;type=providerType;Object.assign(params,{watch_region:state.settings.region,with_watch_providers:providerId,with_watch_monetization_types:'flatrate',
  sort_by:providerSort==='new'?(providerType==='movie'?'primary_release_date.desc':'first_air_date.desc'):providerSort==='top'?'vote_average.desc':'popularity.desc'});
  if(providerSort==='top')params['vote_count.gte']=100;
- if(providerGenre)params.with_genres=providerType==='tv'&&providerGenre==='28'?'10759':providerGenre;}try{const data=await api(path,params);if(token!==request)return;pageBusy=false;pageTotal=Math.min(500,Number(data.total_pages)||1);if(section==='Search'&&!append){try{peopleResults=(await api('/search/person',{query:submittedQuery,page:1})).results||[];}catch{peopleResults=[];}}let candidates=section==='Search'?window.ZeroUniversalSearch.filter(list(data,type),searchFilters):list(data,type);
-let unverified=0;
-if(section==='Search'&&searchFilters.provider){
-  const result=await verifySearchProviders(candidates,searchFilters.provider);
-  if(token!==request)return;
-  candidates=result.items;unverified=result.unverified;
-}
-const items=candidates.filter(item=>{const id=key(item);if(loadedKeys.has(id))return false;loadedKeys.add(id);return true;});if(append){$('#catalog-grid')?.insertAdjacentHTML('beforeend',items.map(item=>card(item)).join(''));if(!items.length)pageTotal=page;}else{const filterBar=section==='Search'?searchFilterHTML():section==='Provider'?providerHubTools():(section==='Movies'||section==='Series')?catalogFilterHTML(type):'',people=section==='Search'&&searchFilters.media==='all'?peopleHTML():'',providerNote=unverified?'<p class="zero-search-warning">Could not verify '+unverified+' provider listings. Those titles were not included.</p>':'';$('#content').innerHTML=(filterBar+people+providerNote)+(items.length?sortTools('titles',titleSort,titleSorts,'Loaded titles · more load as you scroll')+'<div id="catalog-grid" class="grid">'+sortedTitles(items).map(item=>card(item)).join('')+'</div>'+paging():empty(section==='Search'?'No matches found.':'No titles found.','Try another title or category.'));atmosphere(items[0]);}if(append&&titleSort!=='Featured')reorderTitles();status((section==='Search'?'Results for “'+submittedQuery+'”':section==='Genre'?genreName:section==='Provider'?providerName:section)+' · '+loadedKeys.size+' titles loaded');observePaging();}catch(error){if(token!==request)return;pageBusy=false;if(append){page--;pageError=true;observePaging();}else{$('#content').innerHTML=empty('Could not load titles.',error.message);status(error.message);}}}
+ if(providerGenre)params.with_genres=providerType==='tv'&&providerGenre==='28'?'10759':providerGenre;}try{const data=await api(path,params);if(token!==request)return;pageBusy=false;pageTotal=Math.min(500,Number(data.total_pages)||1);if(section==='Search'&&!append){try{peopleResults=(await api('/search/person',{query:submittedQuery,page:1})).results||[];}catch{peopleResults=[];}}let candidates=list(data,type);
+const items=candidates.filter(item=>{const id=key(item);if(loadedKeys.has(id))return false;loadedKeys.add(id);return true;});if(append){$('#catalog-grid')?.insertAdjacentHTML('beforeend',items.map(item=>card(item)).join(''));if(!items.length)pageTotal=page;}else{const filterBar=section==='Provider'?providerHubTools():(section==='Movies'||section==='Series')?catalogFilterHTML(type):'',people=section==='Search'?peopleHTML():'',providerNote='';$('#content').innerHTML=(filterBar+people+providerNote)+(items.length?sortTools('titles',titleSort,titleSorts,'Loaded titles · more load as you scroll')+'<div id="catalog-grid" class="grid">'+sortedTitles(items).map(item=>card(item)).join('')+'</div>'+paging():empty(section==='Search'?'No matches found.':'No titles found.','Try another title or category.'));atmosphere(items[0]);}if(append&&titleSort!=='Featured')reorderTitles();status((section==='Search'?'Results for “'+submittedQuery+'”':section==='Genre'?genreName:section==='Provider'?providerName:section)+' · '+loadedKeys.size+' titles loaded');observePaging();}catch(error){if(token!==request)return;pageBusy=false;if(append){page--;pageError=true;observePaging();}else{$('#content').innerHTML=empty('Could not load titles.',error.message);status(error.message);}}}
 function streamBadgeHTML(channel){const status=channel.streamStatus==='verified'?'verified':channel.streamStatus==='reachable'?'reachable':'unverified';return (status==='verified'?'<span class="stream-pill stream-pill-live">LIVE</span>':'')+'<span class="stream-pill stream-pill-'+status+'">'+status.toUpperCase()+'</span>';}
 async function renderPlaylist(force=false){const section=category,token=++request;pagingObserver?.disconnect();clearInterval(heroTimer);clearTimeout(liveTimer);let snapshot=playlistSnapshots.get(section);if(!snapshot)busy();try{snapshot=await window.zero.playlist(section,force);playlistSnapshots.set(section,snapshot);}catch(error){if(token===request){$('#content').innerHTML=empty('Channels unavailable.',error.message);status(error.message);}return;}if(token!==request)return;const live=section==='LiveTV';const groups=['All','Favorites',...[...new Set(snapshot.channels.map(c=>c.group))].sort((a,b)=>a.localeCompare(b))];if(!groups.includes(channelGroup))channelGroup='All';const rows=snapshot.channels.filter(c=>(channelGroup==='All'||channelGroup==='Favorites'&&c.favorite||channelGroup===c.group)&&(!submittedQuery||(c.name+' '+c.group).toLowerCase().includes(submittedQuery.toLowerCase())));rows.sort((a,b)=>channelSort==='A–Z'?a.name.localeCompare(b.name):channelSort==='Z–A'?b.name.localeCompare(a.name):channelSort==='Group'?a.group.localeCompare(b.group)||a.name.localeCompare(b.name):0);const y=window.scrollY;$('#content').innerHTML='<div class="section-head"><h2>'+(live?'Live PPV':'Live TV')+'</h2><button class="'+(live?'refresh-live':'refresh-iptv')+'" data-action="refresh-playlist">↻ Refresh '+(live?'sports':'TV')+'</button></div><p>'+escape(snapshot.error||(live?'Live events · catalogue auto-refreshes every hour. Press Refresh anytime for an immediate update.':'Your live TV channels · refresh whenever needed.'))+'</p><label>Group <select id="channel-group">'+groups.map(g=>'<option '+(g===channelGroup?'selected':'')+'>'+escape(g)+'</option>').join('')+'</select></label>'+sortTools('channels',channelSort,['Playlist order','A–Z','Z–A','Group'])+'<div class="grid" style="margin-top:24px">'+rows.map(c=>'<article><button class="channel-card" data-channel="'+c.index+'">'+(c.logo?'<img loading="lazy" src="'+escape(c.logo)+'" alt="">':'')+'<strong>'+escape(c.name)+'</strong><small class="stream-badge-row">'+streamBadgeHTML(c)+'</small><small>'+escape(c.group)+'</small></button>'+(live?'':'<button data-favorite-channel="'+c.index+'" aria-label="'+(c.favorite?'Remove favorite':'Add favorite')+'">'+(c.favorite?'★ Favorite':'☆ Add favorite')+'</button>')+'</article>').join('')+'</div>'+(rows.length?'':'<p>No matching channels.</p>');$('#channel-group').onchange=()=>{channelGroup=$('#channel-group').value;renderPlaylist();};status(snapshot.channels.length+' channels · refreshed '+new Date(snapshot.updated).toLocaleString());window.scrollTo?.(0,y);if(live)liveTimer=setTimeout(()=>{if(category===section&&!document.hidden)renderPlaylist(false);},Math.max(60000,3600000-(Date.now()-snapshot.updated)));}
-function searchFilterHTML(){
- const options=(rows,current)=>rows.map(([value,title])=>`<option value="${escape(String(value))}" ${String(current)===String(value)?'selected':''}>${escape(title)}</option>`).join('');
- const row=(name,label,values)=>`<label>${label}<select data-search-filter="${name}">${options(values,searchFilters[name])}</select></label>`;
- const years=[['','Any year'],...Array.from({length:40},(_,i)=>{const y=String(new Date().getFullYear()-i);return [y,y]})];
- const provider=[['','Any provider'],...MAJOR_STREAMING_PROVIDERS.map(p=>[p.brand,p.name])];
- return `<section class="zero-search-filters" aria-label="Universal Search 2.0 filters">
- <div class="zero-search-filter-head"><b>Universal Search 2.0</b><small>Filter and sort loaded TMDB search results</small></div>
- <div class="zero-search-filter-row">${row('media','Type',[['all','Movies & TV'],['movie','Movies'],['tv','TV series']])}
- ${row('year','Release year',years)}
- ${row('rating','Minimum rating',[[0,'Any'],[5,'5+'],[6,'6+'],[7,'7+'],[8,'8+'],[9,'9+']])}
- ${row('genre','Genre',[[0,'All'],[28,'Action'],[35,'Comedy'],[18,'Drama'],[16,'Animation'],[9648,'Mystery'],[27,'Horror'],[99,'Documentary']])}
- ${row('provider','US subscription',provider)}
- ${row('sort','Sort',[['relevance','Relevance'],['popular','Popular'],['rating','Top rated'],['newest','Newest'],['az','A–Z']])}
- </div></section>`;
-}
-async function verifySearchProviders(items,brand){
- if(!brand)return {items,unverified:0};
- const ids={};
- for(const type of ['movie','tv']){
-   const data=await api('/watch/providers/'+type,{watch_region:'US'});
-   const rows=window.ZeroStreamingCarousel.providers(data.results||[]);
-   ids[type]=rows.find(x=>x.brand===brand)?.provider_id||0;
- }
- return window.ZeroUniversalSearch.filterByProvider(items,ids,(route,params)=>api(route,params));
-}
 function searchHistoryHTML(){return state.searches.length?state.searches.map(query=>`<div class="search-history"><button data-query="${escape(query)}">⌕ ${escape(query)}</button><button data-remove-query="${escape(query)}" aria-label="Remove search">×</button></div>`).join('')+'<button data-action="clear-searches">Clear search history</button>':'<p>Your submitted searches will appear here.</p>';}
 function renderLibrary(){++request;clearInterval(heroTimer);const tabs=['Continue watching','Watchlist','Plan to watch','Watch history','Search history','Collections'];let html=`<div class="library-tabs">${tabs.map(tab=>`<button data-library="${tab}" class="${libraryTab===tab?'selected':''}">${tab}</button>`).join('')}</div>`;
   if(libraryTab==='Search history')html+=searchHistoryHTML();else if(libraryTab==='Watch history')html+=state.history.length?state.history.map(item=>{titles.set(key(item),item);return `<div class="history-item">${item.poster?`<img src="${escape(item.poster)}" alt="">`:''}<div class="description"><b>${escape(item.title)}</b><p>${item.type==='tv'?'S'+item.season+' E'+item.episode+' · ':''}${item.percent>=95?'Completed':item.percent>0?Math.round(item.percent)+'% watched':'Started'} · ${new Date(item.at).toLocaleString()}</p></div><button data-play="${key(item)}" data-season="${item.season}" data-episode="${item.episode}">Watch</button><button data-remove-history="${escape(item.historyKey)}">Remove</button></div>`;}).join('')+'<div class="actions"><button data-action="clear-history">Clear watch history and resume positions</button></div>':'<p>No watch history yet. Choose a title to get started.</p>';
@@ -365,11 +325,6 @@ async function change(action,value){state=await window.zero.change(action,value)
 document.addEventListener('click',async event=>{const target=event.target.closest('button,[data-nav],.brand');if(!target)return;const action=target.dataset.action;try{
   if(target.dataset.person){await personPage(Number(target.dataset.person),target.dataset.personName||'Person');return;}if(target.dataset.collectionId){await collectionPage(Number(target.dataset.collectionId),target.dataset.collectionName||'Collection');return;}if(target.dataset.panelMove){moveHomePanel(target.dataset.panelId,target.dataset.panelMove==='up'?-1:1);panelSettings();return;}if(target.dataset.quick){await runQuick(target.dataset.quick);return;}  if(target.classList.contains('brand')){event.preventDefault();await navigate('Home');return;}
   if(target.dataset.favoriteChannel!==undefined){await window.zero.channelFavorite(category,Number(target.dataset.favoriteChannel));await renderPlaylist();return;}
-  if(target.dataset.guideWindow){
-    const choice=target.dataset.guideWindow;
-    if(['today','tomorrow','week','all'].includes(choice))sportsGuideWindow=choice;
-    await renderSports(false);return;
-  }
   if(target.dataset.sportsEvent!==undefined){await window.zero.sportsPlay(target.dataset.sportsEvent,Number(target.dataset.sportsSource));return;}
   if(target.dataset.channel!==undefined){await window.zero.livePlay(category,Number(target.dataset.channel));return;}
   if(target.dataset.nav){await navigate(target.dataset.nav);return;}
@@ -451,14 +406,7 @@ document.addEventListener('click',async event=>{const target=event.target.closes
   else if(action==='collection'){const name=$('#collection-name')?.value.trim();if(!name){toast('Enter a collection name');return;}await change('collection',{name,item:activeDetail});toast('Collection updated');}
   else if(action==='save-settings'||action==='bundled-key'){await change('settings',{...state.settings,...Object.fromEntries(['uiAnimations','focusInfo','focusTrailer','homepageTrailer'].map(id=>[id,$('#'+id).checked])),rawcastPlayback:$('#rawcastPlayback').checked,previewDelay:Number($('#previewDelay').value),uiLayout:$('#ui-layout').value,carouselSource:$('#carousel-source').value,region:$('#region').value,theme:$('#theme').value,source:$('#playback-source').value,gain:Number($('#gain').value),homePanels:[...document.querySelectorAll('#home-panels input:checked')].map(n=>n.value),homePanelOrder:homeOrder(),performanceMode:$('#zero22-performance')?.checked===true,artQuality:$('#zero22-art')?.value||'auto',autoSourceRecovery:$('#zero22-recovery')?.checked===true,autoBestSource:$('#zero22-best-source')?.checked!==false,autoplayNext:$('#zero22-autonext')?.checked!==false,skipIntroSeconds:Number($('#zero22-intro')?.value||90),skipRecapSeconds:Number($('#zero22-recap')?.value||45),key:action==='bundled-key'?null:$('#api-key').value.trim()});cache.clear();$('#settings').close();toast('Settings saved');await navigate('Home',true);}
 }catch(error){if($('#settings').open)$('#settings-status').textContent=error.message;else toast(error.message);}});
-const searchBox=$('#query'),suggestBox=$('#zero-search-suggest');
-searchBox.addEventListener('input',()=>{
-  const suggestions=window.ZeroUniversalSearch.recentSuggestions(searchBox.value,state?.searches||[]);
-  suggestBox.innerHTML=suggestions.map(q=>`<button type="button" role="option" data-query="${escape(q)}">⌕ ${escape(q)}</button>`).join('');
-  suggestBox.hidden=suggestions.length===0;
-});
-searchBox.addEventListener('blur',()=>setTimeout(()=>suggestBox.hidden=true,150));
-$('#search-form').addEventListener('submit',async event=>{suggestBox.hidden=true;event.preventDefault();try{submittedQuery=$('#query').value.trim();page=1;if(category==='Live Sports'){await renderSports();return;}if(playlistTab()){await renderPlaylist();return;}category='Search';for(const button of document.querySelectorAll('[data-nav]'))button.classList.toggle('active',button.dataset.nav==='Search');await change('search',submittedQuery);$('#heading').textContent='Find your next favorite.';await searchTitles();}catch(error){toast(error.message);}});
+$('#search-form').addEventListener('submit',async event=>{event.preventDefault();try{submittedQuery=$('#query').value.trim();page=1;if(category==='Live Sports'){await renderSports();return;}if(playlistTab()){await renderPlaylist();return;}category='Search';for(const button of document.querySelectorAll('[data-nav]'))button.classList.toggle('active',button.dataset.nav==='Search');await change('search',submittedQuery);$('#heading').textContent='Find your next favorite.';await searchTitles();}catch(error){toast(error.message);}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&category==='LiveTV')renderPlaylist();else if(!document.hidden&&category==='Live Sports')renderSports();});
 $('#detail').addEventListener('cancel',()=>{++detailRequest;if(category==='Home')renderHome();else observePaging();});
 window.zero.onRefresh(async()=>{state=await window.zero.state();applyTheme();if(category==='Library')renderLibrary();else if(category==='Home')await renderHome();else observePaging();});
@@ -476,56 +424,7 @@ document.addEventListener('click',event=>{
 async function genreArtwork(node,type,id,token){try{const data=await api('/discover/'+type,{...(id<=-101?{with_original_language:categoryLanguages[id]}:{with_genres:Math.abs(id)}),...(id===-16?{with_original_language:'ja'}:{}),page:1,sort_by:'popularity.desc'});if(token!==request||!node.isConnected)return;const example=(data.results||[]).find(r=>art(r.backdrop_path,'w1280')||art(r.poster_path,'w500'));if(!example)return;const img=document.createElement('img');img.className='genre-art';img.loading='lazy';img.alt='';img.src=art(example.backdrop_path,'w1280')||art(example.poster_path,'w500');node.prepend(img);}catch{}}
 
 async function openAnime(type){genreType=type;genreId=16;genreName='Anime · '+(type==='tv'?'Series':'Movies');await navigate('Genre');}
-let sportsGuideWindow='today';
-async function renderSports(force=false){
-  const token=++request;
-  clearTimeout(liveTimer);
-  if(!$('#sports-catalogue'))busy();
-  const refresh=$('[data-action="refresh-sports"]');
-  if(refresh){refresh.disabled=true;refresh.textContent='↻ Refreshing…';}
-  status('Updating live sports guide…');
-  try{
-    const snapshot=await window.zero.sports(force);
-    if(token!==request||category!=='Live Sports')return;
-    const now=Date.now()/1000,filter=submittedQuery.toLowerCase(),scroll=window.scrollY;
-    const windows=[['today','Today'],['tomorrow','Tomorrow'],['week','Next 7 days'],['all','All events']]
-      .map(([id,label])=>`<button type="button" data-guide-window="${id}" class="${sportsGuideWindow===id?'selected':''}">${label}</button>`).join('');
-    const groups=[...(snapshot.categories||[])].sort((a,b)=>a.category.localeCompare(b.category)).map(c=>{
-      const events=(c.events||[])
-        .filter(e=>window.ZeroLiveGuide.eligible(e,sportsGuideWindow,now))
-        .filter(e=>!filter||(c.category+' '+e.title).toLowerCase().includes(filter))
-        .sort((a,b)=>sportsSort==='A–Z'?a.title.localeCompare(b.title):
-          sportsSort==='Z–A'?b.title.localeCompare(a.title):(a.start||0)-(b.start||0));
-      if(!events.length)return '';
-      return '<h3>'+escape(c.category)+'</h3><div class="grid">'+events.map(e=>{
-        const label=window.ZeroLiveGuide.countdown(e,now);
-        const time=e.alwaysLive?'Always available':window.ZeroLiveGuide.time(e.start);
-        const sources=(e.sources||[]).map((source,index)=>`<button data-sports-event="${escape(e.id)}" data-sports-source="${index}">▶ ${escape(source.label)}</button>`).join('');
-        return `<article class="sports-card">
-          ${e.poster?`<img loading="lazy" decoding="async" src="${escape(e.poster)}" alt="">`:''}
-          <h3>${escape(e.title)}</h3>
-          <p><strong>${escape(label)}</strong> · ${escape(time)}</p>
-          ${sources||'<small>No streaming sources listed</small>'}
-        </article>`;
-      }).join('')+'</div>';
-    }).join('');
-    $('#content').innerHTML=`<div class="section-head"><h2>Live Sports & PPV Guide 2.0</h2><button class="refresh-live" data-action="refresh-sports">↻ Refresh sports</button></div>
-      <p>Times shown in Philippine Time (PHT) · schedule information is provided by the event catalog</p>
-      <div class="zero-live-guide-tabs" aria-label="Live sports date filter">${windows}</div>`+
-      sortTools('sports',sportsSort,['Schedule','A–Z','Z–A'])+
-      '<div id="sports-catalogue">'+(groups||'<p>No matching events are scheduled for this period. Choose All events to see unknown schedules.</p>')+'</div>';
-    status(snapshot.error||'Sports guide · updated '+new Date(snapshot.updated).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'}));
-    window.scrollTo?.(0,scroll);
-  }catch(error){
-    if(token===request){
-      $('#content').innerHTML=empty('Live Sports unavailable',error.message)+'<button class="refresh-live" data-action="refresh-sports">↻ Retry sports</button>';
-      status(error.message);
-    }
-  }finally{
-    if(refresh?.isConnected){refresh.disabled=false;refresh.textContent='↻ Refresh sports';}
-    if(category==='Live Sports')liveTimer=setTimeout(()=>{if(!document.hidden)renderSports(false);},3600000);
-  }
-}
+async function renderSports(force=false){const token=++request;clearTimeout(liveTimer);if(!$('#sports-catalogue'))busy();const refresh=$('[data-action="refresh-sports"]');if(refresh){refresh.disabled=true;refresh.textContent='↻ Refreshing…';}status('Refreshing Live Sports…');try{const snapshot=await window.zero.sports(force);if(token!==request||category!=='Live Sports')return;const filter=submittedQuery.toLowerCase();const y=window.scrollY;$('#content').innerHTML='<div class="section-head"><h2>🏟 Live Sports</h2><button class="refresh-live" data-action="refresh-sports">↻ Refresh sports</button></div><p>Embedded players · catalogue auto-refreshes every hour</p>'+sortTools('sports',sportsSort,['Schedule','A–Z','Z–A'])+'<div id="sports-catalogue">'+[...snapshot.categories].sort((a,b)=>a.category.localeCompare(b.category)).map(c=>{const events=c.events.filter(e=>!filter||(c.category+' '+e.title).toLowerCase().includes(filter)).sort((a,b)=>sportsSort==='A–Z'?a.title.localeCompare(b.title):sportsSort==='Z–A'?b.title.localeCompare(a.title):(a.start||0)-(b.start||0));return events.length?'<h3>'+escape(c.category)+'</h3><div class="grid">'+events.map(e=>{const now=Date.now()/1000;const label=e.alwaysLive?'LIVE · 24/7':!e.start?'Schedule unavailable':(now>=e.start&&now<e.end?'LIVE · ':now>=e.end?'Ended · ':'Scheduled · ')+new Date(e.start*1000).toLocaleString();return '<article class="sports-card">'+(e.poster?'<img loading="lazy" src="'+escape(e.poster)+'" alt="">':'')+'<h3>'+escape(e.title)+'</h3><p>'+escape(label)+'</p>'+e.sources.map((s,i)=>'<button data-sports-event="'+escape(e.id)+'" data-sports-source="'+i+'">▶ '+escape(s.label)+'</button>').join('')+'</article>';}).join('')+'</div>':'';}).join('')+'</div>';status(snapshot.error||'Sports updated '+new Date(snapshot.updated).toLocaleTimeString());window.scrollTo?.(0,y);}catch(e){if(token===request){$('#content').innerHTML=empty('Live Sports unavailable',e.message)+'<button class="refresh-live" data-action="refresh-sports">↻ Retry sports</button>';status(e.message);}}finally{if(refresh?.isConnected){refresh.disabled=false;refresh.textContent='↻ Refresh sports';}if(category==='Live Sports')liveTimer=setTimeout(()=>{if(!document.hidden)renderSports(false);},3600000);}}
 
 document.querySelector('#rawcastPlayback').addEventListener('change',event=>{document.querySelector('#playback-source option[value=rawcast]').hidden=!event.target.checked;document.querySelector('#rawcast-controls').hidden=!event.target.checked;if(!event.target.checked&&document.querySelector('#playback-source').value==='rawcast')document.querySelector('#playback-source').value='vidstuck';});
 

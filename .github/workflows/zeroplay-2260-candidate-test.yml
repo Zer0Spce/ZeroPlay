@@ -72,6 +72,7 @@ jobs:
           node --check windows/ui/app.js
           node --test tests/zeroplay-smart-home-2258.test.cjs
           node --test tests/zeroplay-2260-isolation.test.cjs
+          node --test tests/zeroplay-2260-final-polish.test.cjs
       - name: Run full and Lite Android unit tests
         run: gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest :app:testLiteMobileReleaseUnitTest :app:testLiteTvReleaseUnitTest
       - name: Build and verify signed four public Android APKs
@@ -199,6 +200,7 @@ jobs:
           node --test tests/zeroplay-smart-home-2258.test.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Recommendation tests failed' }
           node --test tests/zeroplay-2260-isolation.test.cjs
+          node --test tests/zeroplay-2260-final-polish.test.cjs
           if ($LASTEXITCODE -ne 0) { throw 'TEST package isolation failed' }
       - name: Run all Windows and Smart Stream Status regressions
         working-directory: windows
