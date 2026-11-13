@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Legacy Android TV / pre-26 devices: never let a white launcher tile show through. -->
+<!-- Pre-Android-8 / Android TV fallback: scale vector with the launcher bounds, not a fixed-size 160px PNG. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/zeroplay_launcher_charcoal"/>
-    <item android:gravity="center" android:left="5dp" android:top="5dp"
-          android:right="5dp" android:bottom="5dp"
-          android:drawable="@drawable/zeroplay_appicon"/>
+    <item android:gravity="fill" android:drawable="@drawable/zeroplay_launcher_foreground"/>
 </layer-list>
