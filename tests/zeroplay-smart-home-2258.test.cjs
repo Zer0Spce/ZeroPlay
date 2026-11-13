@@ -286,5 +286,9 @@ test('Android TEST can install beside 2.2.5.7 without replacing production app o
     'com.zerostreams.app.lite.mobile.test','com.zerostreams.app.lite.tv.test']){
     assert.ok(workflow.includes(pkg),'missing package check: '+pkg);
   }
-  assert.ok(workflow.includes("application-label:'ZeroPlay TEST'"));
+  assert.ok(workflow.includes("application-label:'$expected_label'"));
+  assert.ok(workflow.includes("expected_label='ZeroPlay Lite TEST'"));
+  assert.ok(workflow.includes("expected_label='ZeroPlay TEST'"));
+  assert.ok(read('app/src/liteMobile/AndroidManifest.xml').includes('android:label="${appLabelLite}"'));
+  assert.ok(read('app/src/liteTv/AndroidManifest.xml').includes('android:label="${appLabelLite}"'));
 });
