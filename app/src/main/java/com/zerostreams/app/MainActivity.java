@@ -475,7 +475,26 @@ public class MainActivity extends Activity {
         panel.addView(button(favorites().contains(item.id)?"Remove from watchlist":"Add to watchlist",()->toggleFavorite(item)));space(panel,10);panel.addView(button("Add to collection",()->addCollection(item)));panel.addView(button(prefs.getInt("percent:"+item.id,0)>=95?"Mark unwatched":"Mark watched",()->toggleWatched(item)));if(item.type.equals("series")){space(panel,10);panel.addView(button("Mark season watched",()->markSeasonDialog(item)));space(panel,10);panel.addView(button("Mark series watched",()->markSeriesWatched(item)));}if(item.id.startsWith("tmdb-")){space(panel,10);panel.addView(button("Trailer",()->trailer(detailData[0])));space(panel,10);Button planned=button(savedIds("planned").contains(item.id)?"Planned ✓":"Plan to watch",()->plan(item));planned.setOnClickListener(v->{plan(item);planned.setText(savedIds("planned").contains(item.id)?"Planned ✓":"Plan to watch");});panel.addView(planned);space(panel,10);panel.addView(button("Share link",()->share(item)));}
         space(panel,16);panel.addView(rich);
         ScrollView view=new ScrollView(this);view.setFillViewport(true);view.getViewTreeObserver().addOnScrollChangedListener(()->{ui.removeCallbacks(visiblePictures);ui.postDelayed(visiblePictures,80);});view.addView(panel);scene.addView(view,new FrameLayout.LayoutParams(-1,-1));
-        LinearLayout related=column();space(panel,24);panel.addView(related);AlertDialog dialog=new AlertDialog.Builder(this).setView(scene).setNegativeButton("Close",null).create();dialog.setOnDismissListener(d->{detailsOpen=false;activeSeriesProgress=null;activeSeriesNext=null;if(!isDestroyed())render();});dialog.show();if(item.id.startsWith("tmdb-")){String key=tmdbKey();io.execute(()->{try{JSONObject data=ContentApi.details(item,key);ui.post(()->{if(isDestroyed()||!dialog.isShowing())return;detailData[0]=data;if(item.type.equals("series"))configureSeriesSelectors(item,data,detailSeasonPicker,detailEpisodePicker,detailSeason,detailEpisode);titleExtras(rich,data,item,renderVersion);recommendations(related,data,item,renderVersion);collectionSection(related,data,item,renderVersion);ui.post(visiblePictures);});}catch(Exception error){ui.post(()->{if(dialog.isShowing()){rich.removeAllViews();rich.addView(text("Extra title details unavailable. Try again later.",13,MUTED));}});}});}
+        LinearLayout related=column();space(panel,24);panel.addView(related);AlertDialog dialog=new AlertDialog.Builder(this).setView(scene).setNegativeButton("Close",null).create();dialog.setOnDismissListener(d->{detailsOpen=false;activeSeriesProgress=null;activeSeriesNext=null;if(!isDestroyed())render();});dialog.show();if(item.id.startsWith("tmdb-")){String key=tmdbKey();io.execute(()->{try{
+            JSONObject data=ContentApi.details(item,key);
+            String availabilityRegion=prefs.getString("providerRegion","US");
+            List<String> available=new ArrayList<>();
+            try{available=ContentApi.subscriptionBrands(item,key,availabilityRegion);}catch(Exception ignored){}
+            final List<String> subscriptions=available;
+            ui.post(()->{if(isDestroyed()||!dialog.isShowing())return;
+                detailData[0]=data;
+                if(item.type.equals("series"))configureSeriesSelectors(item,data,detailSeasonPicker,detailEpisodePicker,detailSeason,detailEpisode);
+                titleExtras(rich,data,item,renderVersion);
+                space(rich,8);
+                if(!subscriptions.isEmpty()){
+                    TextView streamingTitle=text(availabilityRegion+" subscription listings",12,ACCENT);bold(streamingTitle);
+                    rich.addView(streamingTitle);
+                    rich.addView(text(String.join(" · ",subscriptions).replace("max","HBO Max"),13,INK));
+                }else rich.addView(text("No verified subscription listing from the selected eight providers in "+availabilityRegion+".",12,MUTED));
+                recommendations(related,data,item,renderVersion);collectionSection(related,data,item,renderVersion);
+                ui.post(visiblePictures);
+            });
+        }catch(Exception error){ui.post(()->{if(dialog.isShowing()){rich.removeAllViews();rich.addView(text("Extra title details unavailable. Try again later.",13,MUTED));}});}});}
         if(dialog.getWindow()!=null){dialog.getWindow().setBackgroundDrawable(shape(BG,0));int width=Math.min(getResources().getDisplayMetrics().widthPixels-dp(32),dp(BuildConfig.TV?1040:600));int height=Math.min(getResources().getDisplayMetrics().heightPixels-dp(64),dp(620));dialog.getWindow().setLayout(width,height);dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);WindowManager.LayoutParams attrs=dialog.getWindow().getAttributes();attrs.dimAmount=.72f;dialog.getWindow().setAttributes(attrs);}
         if(BuildConfig.TV)play.requestFocus();
     }
