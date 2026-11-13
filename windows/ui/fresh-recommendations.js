@@ -41,6 +41,7 @@
     favorites=[],notInterested=[],carouselSource='top',perShelf=18}={}){
     const used=new Set(),ignored=new Set(notInterested),watched=new Set(Object.keys(positions||{}));
     const saved=new Set((favorites||[]).filter(x=>x?.id&&x.type).map(id));
+    const streamingAllowed=new Set((pools.streaming||[]).filter(x=>x?.id&&x.type).map(id));
     const all=new Map(),today=new Date(now).toISOString().slice(0,10);
     for(const source of Object.values(pools))for(const item of Array.isArray(source)?source:[]){
       if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||
@@ -48,7 +49,7 @@
       if(item.type==='movie'&&(item.originalLanguage&&item.originalLanguage!=='en'||
           Array.isArray(item.originCountry)&&item.originCountry.length>0&&!item.originCountry.includes('US')))continue;
       const key=id(item);
-      if(ignored.has(key)||watched.has(key)||saved.has(key))continue;
+      if(ignored.has(key)||((watched.has(key)||saved.has(key))&&!streamingAllowed.has(key)))continue;
       if(!all.has(key))all.set(key,item);
     }
     const genreWeights=new Map();
