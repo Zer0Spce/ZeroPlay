@@ -204,7 +204,7 @@ jobs:
         run: |
           npm test
           node --test test/smart-status-2.2.5.7.test.cjs
-          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.5\\.8$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.5.9')"
+          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.5\\.9$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.5.9')"
       - name: Build self-contained visible ZeroPlayUpdater.exe
         shell: pwsh
         run: |
