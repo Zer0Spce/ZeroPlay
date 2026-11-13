@@ -8,6 +8,7 @@ import android.widget.*;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.*;
+import org.json.*;
 
 /** Final release-test activity: supplies the corrected 15-second featured carousel. */
 public class ReleaseMainActivity extends FinalMainActivity {
