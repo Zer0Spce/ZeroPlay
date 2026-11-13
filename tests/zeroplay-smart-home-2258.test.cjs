@@ -176,29 +176,34 @@ test('new default home sections, VOD source and provider cards are wired on Wind
 });
 
 
-test('Streaming providers render as large two-row desktop grid below real TMDB Trending Today',()=>{
+test('Streaming providers use original wide local logos and horizontal carousel below TMDB Trending Today',()=>{
   const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-  const app=read('windows/ui/app.js'),
-    css=read('windows/ui/sunset-palette.css'),
-    visuals=read('windows/ui/home-visuals.js'),
-    native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
-  assert.match(app,/class="provider-row zero-provider-grid"/);
-  assert.match(app,/rows\.slice\(0,8\)/);
-  assert.match(app,/logo_path,'w300'/);
-  assert.match(css,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(css,/height:212px!important/);
-  assert.match(css,/height:168px!important/);
-  assert.match(css,/\.zero-provider-section \.provider span\{display:none!important\}/);
-  assert.match(visuals,/function positionProvidersBelowTrending\(trendingSection\)/);
-  assert.match(visuals,/trendingSection\.insertAdjacentElement\('afterend',slot\)/);
-  assert.match(visuals,/positionProvidersBelowTrending\(existing\)/);
-  assert.match(native,/int columns=BuildConfig\.TV\?4:2/);
-  assert.match(native,/if\(displayed>=8\)break/);
-  assert.match(native,/dp\(BuildConfig\.TV\?165:125\)/);
-  assert.match(native,/line\.addView\(tile,cp\)/);
-  const providerSection=native.slice(native.indexOf('void providerSection(int token)'),
-    native.indexOf('GradientDrawable providerTileBackground('));
-  assert.ok(!providerSection.includes('HorizontalScrollView'),
-    'Streaming providers must not use a horizontal rail');
-  assert.match(providerSection,/content\.addView\(cards,new LinearLayout\.LayoutParams\(-1,-2\)\)/);
+  const app=read('windows/ui/app.js'),css=read('windows/ui/sunset-palette.css');
+  const visuals=read('windows/ui/home-visuals.js');
+  const native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+  const workflow=read('.github/workflows/zeroplay-2258-candidate-test.yml');
+  assert.ok(app.includes('function providerWordmark(row)'));
+  assert.ok(app.includes('class="provider-row zero-provider-strip"'));
+  assert.ok(app.includes('rows.slice(0,12)'));
+  assert.ok(app.includes('data-provider-scroll="1"'));
+  assert.ok(app.includes('rail.scrollBy({left:'));
+  assert.ok(css.includes('overflow-x:auto!important'));
+  assert.ok(css.includes('height:132px!important'));
+  assert.ok(css.includes('flex:0 0 234px!important'));
+  assert.ok(visuals.includes('function positionProvidersBelowTrending(trendingSection)'));
+  assert.ok(visuals.includes("trendingSection.insertAdjacentElement('afterend',slot)"));
+  const providerSection=native.slice(native.indexOf('void providerSection(int token)'),native.indexOf('GradientDrawable providerTileBackground('));
+  assert.ok(providerSection.includes('HorizontalScrollView providerRail'));
+  assert.ok(providerSection.includes('providerRail.addView(cards'));
+  assert.ok(native.includes('String providerWordmarkAsset(String provider)'));
+  assert.ok(native.includes('getAssets().open("provider-logos/"+asset)'));
+  assert.ok(native.includes('dp(BuildConfig.TV?238:202)'));
+  assert.ok(!native.includes('int columns=BuildConfig.TV?4:2'));
+  assert.ok(workflow.includes('Render original wide streaming-provider logos for all Android APKs'));
+  assert.ok(workflow.includes('scripts/render-provider-wordmarks.py'));
+  assert.ok(read('scripts/render-provider-wordmarks.py').includes('cairosvg.svg2png'));
+  for(const brand of ['netflix','prime','hulu','disney','paramount','peacock','max','apple']){
+    const asset=read('windows/ui/provider-logos/'+brand+'.svg');
+    assert.ok(asset.includes('<svg')&&asset.includes('</svg>'));
+  }
 });
