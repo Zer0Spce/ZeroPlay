@@ -27,6 +27,7 @@ public class MainActivity extends Activity {
     private LinearLayout activeProviderCards;
     private final Map<String,String> oneTimePlaybackSources=new HashMap<>();
     private String submittedQuery="", channelGroup="All";
+    private final SearchFilters2260.Options searchOptions=new SearchFilters2260.Options();
     private final Map<String,PlaylistStore.Snapshot> playlists=new HashMap<>();
     private final Set<String> playlistLoading=new HashSet<>();
     private final Map<String,String> playlistErrors=new HashMap<>(),genreArtwork=new HashMap<>();
@@ -185,8 +186,42 @@ public class MainActivity extends Activity {
         if(!category.equals("Search")||submittedQuery.isEmpty())return;
         String key=tmdbKey();if(key.isEmpty()){status.setText("Add your TMDB API key in Settings to search movies and series");return;}
         final boolean append=loadingMore;pageLoading=true;pageFailed=false;int token=++searchVersion;++loadVersion;String requested=submittedQuery;int page=searchPage;status.setText("Searching movies, series and people online…");
-        io.execute(()->{try{JSONObject data=ContentApi.searchPageData(requested,key,page);List<Catalog.Item> rows=ContentApi.tmdbRows(data.getJSONArray("results"),"",true);JSONArray people=page==1?ContentApi.searchPeople(requested,key):new JSONArray();ui.post(()->{if(isDestroyed()||token!=searchVersion||!category.equals("Search"))return;pageLoading=false;loadingMore=false;pageHasMore=CatalogPaging.hasMore(page,data.optInt("total_pages",1));if(append)mergeCatalog(rows);else{catalog=rows;peopleSearch=people;}status.setText("TMDB search · "+catalog.size()+" titles"+(peopleSearch.length()>0?" · "+peopleSearch.length()+" people":""));if(append)appendPage(rows);else render();});}
-            catch(Exception e){ui.post(()->{if(isDestroyed()||token!=searchVersion||!category.equals("Search"))return;pageLoading=false;loadingMore=false;if(append){searchPage=Math.max(1,searchPage-1);pageFailed=true;updatePagingFooter();return;}catalog=new ArrayList<>(browse);searchPage=1;pageHasMore=false;status.setText("TMDB search unavailable · showing saved browse matches. Check Settings.");render();});}});
+        final SearchFilters2260.Options options=searchOptions.copy();
+        io.execute(()->{try{
+            JSONObject data=ContentApi.searchPageData(requested,key,page);
+            List<Catalog.Item> rows=SearchFilters2260.filter(ContentApi.tmdbRows(data.getJSONArray("results"),"",true),options);
+            int skipped=0;
+            if(!options.provider.isEmpty()){
+                int movies=ContentApi.usStreamingProviderId(key,"movie",options.provider);
+                int series=ContentApi.usStreamingProviderId(key,"tv",options.provider);
+                SearchFilters2260.Result verified=SearchFilters2260.verify(rows,item->{
+                    String media=item.type.equals("series")?"tv":"movie";
+                    int providerId=media.equals("tv")?series:movies;
+                    if(providerId<=0)return false;
+                    String tmdbId=item.id.substring(item.id.lastIndexOf('-')+1);
+                    if(!tmdbId.matches("[1-9][0-9]*"))return false;
+                    return SearchFilters2260.usFlatRate(
+                        ContentApi.tmdb("/"+media+"/"+tmdbId+"/watch/providers",key,""),providerId);
+                });
+                rows=verified.rows;skipped=verified.unverified;
+            }
+            final List<Catalog.Item> filtered=rows;final int unverifiable=skipped;
+            JSONArray people=page==1&&options.media.equals("all")?ContentApi.searchPeople(requested,key):new JSONArray();
+            ui.post(()->{if(isDestroyed()||token!=searchVersion||!category.equals("Search"))return;
+                pageLoading=false;loadingMore=false;pageHasMore=CatalogPaging.hasMore(page,data.optInt("total_pages",1));
+                if(append)mergeCatalog(filtered);else{catalog=filtered;peopleSearch=people;}
+                status.setText("TMDB search · "+catalog.size()+" matching titles"+
+                    (unverifiable>0?" · "+unverifiable+" unverified provider listings excluded":"")+
+                    (peopleSearch.length()>0?" · "+peopleSearch.length()+" people":""));
+                if(append)appendPage(filtered);else render();
+            });
+        }
+            catch(Exception e){ui.post(()->{if(isDestroyed()||token!=searchVersion||!category.equals("Search"))return;pageLoading=false;loadingMore=false;if(append){searchPage=Math.max(1,searchPage-1);pageFailed=true;updatePagingFooter();return;}catalog=searchOptions.provider.isEmpty()?new ArrayList<>(browse):new ArrayList<>();
+                peopleSearch=new JSONArray();searchPage=1;pageHasMore=false;
+                status.setText(searchOptions.provider.isEmpty()?
+                    "TMDB search unavailable · showing saved browse matches. Check Settings.":
+                    "Could not verify US provider availability · no unverified results displayed.");
+                render();});}});
     }
     Set<String> favorites(){return new HashSet<>(prefs.getStringSet("favorites",Collections.emptySet()));}
     Set<String> savedIds(String key){return new HashSet<>(prefs.getStringSet(key,Collections.emptySet()));}
@@ -199,6 +234,7 @@ public class MainActivity extends Activity {
         if(playlistTab()){playlistPage(token);return;}
         if(category.equals("Categories")){categoryPage();return;}
         if(category.equals("Watch history")||category.equals("Search history")){historyPage(category.equals("Search history"));return;}
+        if(category.equals("Search")){content.addView(button("Search filters · "+(searchOptions.media.equals("all")?"All":searchOptions.media)+" · "+(searchOptions.provider.isEmpty()?"Any provider":searchOptions.provider),this::setSearchFilter));space(content,12);}
         if(category.equals("Search")&&submittedQuery.isEmpty()){recentSearches();return;}
         if(category.equals("Collections")&&collection.isEmpty()){collections();return;}
         List<Catalog.Item> rows=new ArrayList<>();for(Catalog.Item item:catalog)if(matches(item))rows.add(item);
@@ -770,6 +806,50 @@ public class MainActivity extends Activity {
             cp.setMargins(0,0,dp(14),dp(5));
             cards.addView(tile,cp);
         }
+    }
+    void setSearchFilter(){
+        String[] names={"Media type","Release year","Minimum rating","Genre","US streaming provider","Sort"};
+        new AlertDialog.Builder(this).setTitle("Universal Search 2.0")
+            .setItems(names,(dialog,which)->showSearchFilter(which))
+            .setNegativeButton("Close",null).show();
+    }
+    void showSearchFilter(int section){
+        final String[] labels,values;
+        switch(section){
+            case 0:
+                labels=new String[]{"Movies & TV","Movies","TV series"};
+                values=new String[]{"all","movie","series"};break;
+            case 1:
+                int current=Calendar.getInstance().get(Calendar.YEAR);
+                labels=new String[32];values=new String[32];labels[0]="Any year";values[0]="0";
+                for(int i=1;i<labels.length;i++){labels[i]=String.valueOf(current-i+1);values[i]=labels[i];}
+                break;
+            case 2:
+                labels=new String[]{"Any","5+","6+","7+","8+","9+"};
+                values=new String[]{"0","5","6","7","8","9"};break;
+            case 3:
+                labels=new String[]{"All genres","Action","Comedy","Drama","Animation","Mystery","Horror","Documentary"};
+                values=new String[]{"0","28","35","18","16","9648","27","99"};break;
+            case 4:
+                labels=new String[]{"Any provider","Netflix","Hulu","Disney+","HBO Max","Apple TV+","Paramount+","Peacock","YouTube TV"};
+                values=new String[]{"","netflix","hulu","disney","max","apple","paramount","peacock","youtube-tv"};break;
+            default:
+                labels=new String[]{"Relevance","Popular","Top rated","Newest","A–Z"};
+                values=new String[]{"relevance","popular","rating","newest","az"};
+        }
+        new AlertDialog.Builder(this).setTitle("Search · "+new String[]{"Type","Year","Rating","Genre","Provider","Sort"}[section])
+            .setItems(labels,(dialog,index)->{
+                switch(section){
+                    case 0:searchOptions.media=values[index];break;
+                    case 1:searchOptions.year=Integer.parseInt(values[index]);break;
+                    case 2:searchOptions.rating=Double.parseDouble(values[index]);break;
+                    case 3:searchOptions.genre=Integer.parseInt(values[index]);break;
+                    case 4:searchOptions.provider=values[index];break;
+                    default:searchOptions.sort=values[index];
+                }
+                searchPage=1;loadingMore=false;pageHasMore=true;
+                if(!submittedQuery.isEmpty())onlineSearch();else render();
+            }).setNegativeButton("Back",(dialog,index)->setSearchFilter()).show();
     }
     void providerHubSortPicker(){
         String[] titles={"Popular","New releases","Top rated"},values={"popular","new","top"};
