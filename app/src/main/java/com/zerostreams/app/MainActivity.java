@@ -628,7 +628,8 @@ public class MainActivity extends Activity {
         // Compact single-row carousel with normal horizontal swiping / TV remote focus.
         HorizontalScrollView providerRail=new HorizontalScrollView(this);
         providerRail.setFillViewport(false);
-        providerRail.setHorizontalScrollBarEnabled(true);
+        providerRail.setHorizontalScrollBarEnabled(false);
+        providerRail.setOverScrollMode(View.OVER_SCROLL_NEVER);
         LinearLayout cards=new LinearLayout(this);
         cards.setOrientation(LinearLayout.HORIZONTAL);
         activeProviderCards=cards;
@@ -637,8 +638,11 @@ public class MainActivity extends Activity {
         content.addView(text("Availability data by JustWatch · browse only; playback uses VidStuck",11,MUTED));
         space(content,24);
         String type=providerType,region=prefs.getString("providerRegion","PH"),cacheKey=type+region;JSONArray cached=providerCache.get(cacheKey);
-        if(cached!=null){providerCards(cards,cached,token,type,region);return;}cards.addView(text("Loading providers…",14,MUTED));if(!providerLoading.add(cacheKey))return;
-        io.execute(()->{try{JSONArray data=ContentApi.providers(tmdbKey(),type,region);ui.post(()->{providerLoading.remove(cacheKey);providerCache.put(cacheKey,data);if(!isDestroyed()&&category.equals("Home")&&providerType.equals(type)&&prefs.getString("providerRegion","PH").equals(region)&&activeProviderCards!=null){activeProviderCards.removeAllViews();providerCards(activeProviderCards,data,renderVersion,type,region);}});}catch(Exception e){ui.post(()->{providerLoading.remove(cacheKey);if(token==renderVersion){cards.removeAllViews();cards.addView(text("Provider list unavailable. Try refreshing.",14,MUTED));}});}});
+        if(cached!=null){providerCards(cards,cached,token,type,region);return;}
+        // Always render the exact eight approved brands even before TMDB responds.
+        providerCards(cards,new JSONArray(),token,type,region);
+        if(!providerLoading.add(cacheKey))return;
+        io.execute(()->{try{JSONArray data=ContentApi.providers(tmdbKey(),type,region);ui.post(()->{providerLoading.remove(cacheKey);providerCache.put(cacheKey,data);if(!isDestroyed()&&category.equals("Home")&&providerType.equals(type)&&prefs.getString("providerRegion","PH").equals(region)&&activeProviderCards!=null){activeProviderCards.removeAllViews();providerCards(activeProviderCards,data,renderVersion,type,region);}});}catch(Exception e){ui.post(()->{providerLoading.remove(cacheKey);if(token==renderVersion){cards.removeAllViews();providerCards(cards,new JSONArray(),token,type,region);}});}});
     }
     GradientDrawable providerTileBackground(String name,boolean focused){
         String n=name.toLowerCase(Locale.ROOT);
@@ -650,63 +654,84 @@ public class MainActivity extends Activity {
         else if(n.contains("paramount")){top=Color.rgb(28,116,225);bottom=Color.rgb(12,67,174);}
         else if(n.contains("peacock")){top=Color.rgb(47,54,71);bottom=Color.rgb(13,19,32);}
         else if(n.equals("max")||n.contains("hbo")){top=Color.rgb(23,34,145);bottom=Color.rgb(9,12,70);}
+        else if(n.contains("youtube")){top=Color.rgb(53,20,32);bottom=Color.rgb(15,13,24);}
         else if(n.contains("apple")){top=Color.rgb(36,47,66);bottom=Color.rgb(8,16,28);}
         GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{top,bottom});
         bg.setCornerRadius(dp(18));
         bg.setStroke(dp(focused?3:1),focused?Color.rgb(245,43,64):Color.argb(45,255,255,255));
         return bg;
     }
-    String providerWordmarkAsset(String provider){
-        String n=provider.toLowerCase(Locale.ROOT);
-        if(n.contains("netflix"))return "netflix.png";
-        if(n.contains("prime video")||n.contains("amazon prime"))return "prime.png";
-        if(n.equals("hulu")||n.startsWith("hulu "))return "hulu.png";
-        if(n.contains("disney"))return "disney.png";
-        if(n.contains("paramount"))return "paramount.png";
-        if(n.contains("peacock"))return "peacock.png";
-        if(n.equals("max")||n.contains("hbo max"))return "max.png";
-        if(n.contains("apple tv"))return "apple.png";
+    String providerBrandKey(String provider){
+        String name=provider==null?"":provider.trim().toLowerCase(Locale.ROOT);
+        if(name.equals("youtube tv")||name.startsWith("youtube tv "))return "youtube-tv";
+        if(name.equals("netflix")||name.startsWith("netflix "))return "netflix";
+        if(name.equals("hulu")||name.startsWith("hulu "))return "hulu";
+        if(name.contains("disney+")||name.startsWith("disney plus")||name.equals("disney"))return "disney";
+        if(name.equals("hbo max")||name.equals("max")||name.startsWith("hbo max ")||
+                name.startsWith("max "))return "max";
+        if(name.startsWith("apple tv"))return "apple";
+        if(name.startsWith("paramount"))return "paramount";
+        if(name.equals("peacock")||name.startsWith("peacock "))return "peacock";
         return "";
     }
+    String providerWordmarkAsset(String provider){
+        String brand=providerBrandKey(provider);
+        return brand.isEmpty()?"":brand+".png";
+    }
     void providerCards(LinearLayout cards,JSONArray data,int token,String type,String region){
+        cards.removeAllViews();
         cards.setOrientation(LinearLayout.HORIZONTAL);
-        List<JSONObject> rows=new ArrayList<>();
-        for(int i=0;i<data.length();i++)if(data.optJSONObject(i)!=null)rows.add(data.optJSONObject(i));
-        rows.sort((a,b)->Integer.compare(providerPriority(a.optString("provider_name")),
-            providerPriority(b.optString("provider_name"))));
-        Set<String> seen=new HashSet<>();
-        int count=0;
-        for(JSONObject row:rows){
+        // Exactly these eight approved services, regardless of local catalog coverage.
+        final String[] brandKeys={"netflix","hulu","disney","max","apple","paramount","peacock","youtube-tv"};
+        final String[] labels={"Netflix","Hulu","Disney+","HBO Max","Apple TV","Paramount+","Peacock","YouTube TV"};
+        final JSONObject[] matched=new JSONObject[brandKeys.length];
+        int[] matchScores=new int[brandKeys.length];
+        Arrays.fill(matchScores,Integer.MIN_VALUE);
+        for(int i=0;i<data.length();i++){
+            JSONObject row=data.optJSONObject(i);
+            if(row==null||row.optInt("provider_id",0)<=0)continue;
             String provider=row.optString("provider_name","");
-            if(provider.isEmpty())continue;
-            String duplicateKey=providerWordmarkAsset(provider);
-            if(duplicateKey.isEmpty())duplicateKey=provider.toLowerCase(Locale.ROOT)
-                .replaceAll("(standard|with ads|basic)","").trim();
-            if(!seen.add(duplicateKey))continue;
-            if(count++>=12)break;
+            int index=Arrays.asList(brandKeys).indexOf(providerBrandKey(provider));
+            if(index<0)continue;
+            String name=provider.trim().toLowerCase(Locale.ROOT);
+            int score=(name.equals(labels[index].toLowerCase(Locale.ROOT))?20:0)-
+                (name.contains("ads")||name.contains("basic")||name.contains("channel")?5:0);
+            if(score>matchScores[index]){
+                matched[index]=row;matchScores[index]=score;
+            }
+        }
+        for(int i=0;i<brandKeys.length;i++){
+            final String label=labels[i];
+            final int listedId=matched[i]==null?0:matched[i].optInt("provider_id",0);
             LinearLayout tile=column();
             tile.setGravity(Gravity.CENTER);
             tile.setPadding(dp(12),dp(12),dp(12),dp(12));
-            tile.setBackground(providerTileBackground(provider,false));
+            tile.setBackground(providerTileBackground(label,false));
             tile.setClipToOutline(true);tile.setElevation(dp(3));
             tile.setFocusable(true);tile.setClickable(true);
-            tile.setContentDescription("Browse "+provider);
-            tile.setOnFocusChangeListener((v,focused)->v.setBackground(providerTileBackground(provider,focused)));
+            tile.setContentDescription(listedId>0?"Browse "+label:
+                label+" is not listed in the "+region+" streaming catalog");
+            tile.setOnFocusChangeListener((v,focused)->
+                v.setBackground(providerTileBackground(label,focused)));
             tile.setOnClickListener(v->{
-                providerId=row.optInt("provider_id");
-                providerName=provider;
+                if(listedId<=0){
+                    message(label+" is not listed in the "+region+" TMDB catalog.");
+                    return;
+                }
+                providerId=listedId;
+                providerName=label;
                 providerType=type;
                 resetPaging();category="Provider";query="";search.setText("");
                 catalog=new ArrayList<>();browsePage=1;scroll.scrollTo(0,0);load();
             });
             boolean loaded=false;
-            String asset=providerWordmarkAsset(provider);
+            String asset=providerWordmarkAsset(label);
             if(!asset.isEmpty())try(java.io.InputStream input=getAssets().open("provider-logos/"+asset)){
                 android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(input);
                 if(bitmap!=null){
                     ImageView logo=new ImageView(this);
                     logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    logo.setContentDescription(provider+" wordmark");
+                    logo.setContentDescription(label+" wordmark");
                     logo.setImageBitmap(bitmap);
                     tile.addView(logo,new LinearLayout.LayoutParams(
                         dp(BuildConfig.TV?172:146),dp(BuildConfig.TV?84:72)));
@@ -714,8 +739,7 @@ public class MainActivity extends Activity {
                 }
             }catch(Exception ignored){}
             if(!loaded){
-                // No square TMDB icon fallback: keep a clean readable text wordmark.
-                TextView name=text(provider,BuildConfig.TV?21:17,INK);
+                TextView name=text(label,BuildConfig.TV?21:17,INK);
                 name.setGravity(Gravity.CENTER);
                 name.setTypeface(null,Typeface.BOLD);
                 name.setMaxLines(2);
@@ -726,9 +750,7 @@ public class MainActivity extends Activity {
             cp.setMargins(0,0,dp(14),dp(5));
             cards.addView(tile,cp);
         }
-        if(count==0)cards.addView(text("No providers listed for this region.",14,MUTED));
     }
-    int providerPriority(String name){String n=name.toLowerCase(Locale.ROOT);String[] preferred={"netflix","disney","apple tv","amazon prime","hbo","max","paramount","crunchyroll"};for(int i=0;i<preferred.length;i++)if(n.contains(preferred[i]))return i;return 20;}
     void providerRegion(){String[] codes={"PH","US","GB","CA","AU","IN","JP"};new AlertDialog.Builder(this).setTitle("Provider region").setItems(new String[]{"Philippines","United States","United Kingdom","Canada","Australia","India","Japan"},(d,n)->{prefs.edit().putString("providerRegion",codes[n]).apply();providerCache.clear();render();}).show();}
     void plan(Catalog.Item item){Set<String> ids=savedIds("planned");boolean added=ids.add(item.id);if(!added)ids.remove(item.id);prefs.edit().putStringSet("planned",ids).putString("saved:"+item.id,item.raw.toString()).apply();message(added?"Added to plan to watch":"Removed from plan to watch");}
     void share(Catalog.Item item){String link="https://www.themoviedb.org/"+ContentApi.media(item)+"/"+item.id.substring(item.id.lastIndexOf('-')+1);try{startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,item.title+"\n"+link),"Share title"));}catch(ActivityNotFoundException e){((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText(item.title,link));message("Title link copied");}}
