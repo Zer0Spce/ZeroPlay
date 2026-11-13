@@ -139,6 +139,22 @@ final class ContentApi {
         return new ArrayList<>(rows.values());
     }
     static String media(Catalog.Item item){return item.type.equals("series")?"tv":"movie";}
+    static List<String> subscriptionBrands(Catalog.Item item,String key,String region) throws Exception {
+        if(!item.id.matches("tmdb-(movie|series)-[1-9][0-9]*")||!region.matches("[A-Z]{2}"))
+            throw new IOException("Invalid title or region");
+        String type=item.type.equals("series")?"tv":"movie";
+        String id=item.id.substring(item.id.lastIndexOf('-')+1);
+        JSONObject response=tmdb("/"+type+"/"+id+"/watch/providers",key,"");
+        JSONObject results=response.optJSONObject("results"),country=results==null?null:results.optJSONObject(region);
+        JSONArray subscription=country==null?null:country.optJSONArray("flatrate");
+        LinkedHashSet<String> brands=new LinkedHashSet<>();
+        for(int i=0;subscription!=null&&i<subscription.length();i++){
+            JSONObject row=subscription.optJSONObject(i);if(row==null)continue;
+            String brand=StreamingTopTen.brand(row.optString("provider_name"));
+            if(!brand.isEmpty())brands.add(brand);
+        }
+        return new ArrayList<>(brands);
+    }
     static JSONObject details(Catalog.Item item,String key) throws Exception {
         if(!item.id.matches("tmdb-(movie|series)-[0-9]+"))throw new IOException("Not a TMDB title");
         return tmdb("/"+media(item)+"/"+item.id.substring(item.id.lastIndexOf('-')+1),key,"&append_to_response=credits,videos,recommendations");
