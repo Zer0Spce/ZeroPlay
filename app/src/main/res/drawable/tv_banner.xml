@@ -1,1 +1,7 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="320dp" android:height="180dp" android:viewportWidth="320" android:viewportHeight="180"><path android:fillColor="#080D14" android:pathData="M0,0h320v180H0z"/><path android:fillColor="#54E5C1" android:pathData="M124,54h72v14l-49,44h49v14h-72v-14l49,-44h-49z"/></vector>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Balanced 320x180 TV banner featuring the user's exact approved red ZeroPlay square icon. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="rectangle"><size android:width="320dp" android:height="180dp"/><solid android:color="@color/zeroplay_launcher_charcoal"/></shape></item>
+    <!-- 82dp each horizontal side, 12dp top and bottom. -->
+    <item android:gravity="center" android:width="156dp" android:height="156dp" android:drawable="@drawable/zeroplay_appicon"/>
+</layer-list>

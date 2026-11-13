@@ -23,8 +23,8 @@ const badge='function streamBadgeHTML(channel){const status=channel.streamStatus
 patch('windows/ui/app.js',[
  ['async function renderPlaylist(force=false)',badge+'\nasync function renderPlaylist(force=false)'],
  ["<small>● LIVE · '+escape(c.group)+'</small>","<small class=\"stream-badge-row\">'+streamBadgeHTML(c)+'</small><small>'+escape(c.group)+'</small>"],
- ["+'</button><button data-favorite-channel=\"'+c.index+'\" aria-label=\"'+(c.favorite?'Remove favorite':'Add favorite')+'\">'+(c.favorite?'★ Favorite':'☆ Add favorite')+'</button></article>'",
-  "+'</button>'+(live?'':'<button data-favorite-channel=\"'+c.index+'\" aria-label=\"'+(c.favorite?'Remove favorite':'Add favorite')+'\">'+(c.favorite?'★ Favorite':'☆ Add favorite')+'</button>')+'</article>'"]
+ ["+'</small></button><button data-favorite-channel=\"'+c.index+'\" aria-label=\"'+(c.favorite?'Remove favorite':'Add favorite')+'\">'+(c.favorite?'★ Favorite':'☆ Add favorite')+'</button></article>'",
+  "+'</small></button>'+(live?'':'<button data-favorite-channel=\"'+c.index+'\" aria-label=\"'+(c.favorite?'Remove favorite':'Add favorite')+'\">'+(c.favorite?'★ Favorite':'☆ Add favorite')+'</button>')+'</article>'"]
 ]);
 const css='windows/ui/style.css',file=path.join(root,css);
 let style=fs.readFileSync(file,'utf8');

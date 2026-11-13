@@ -71,17 +71,41 @@ final class ContentApi {
     static List<Catalog.Item> searchMovies(String query,String key,int page) throws Exception {
         return tmdbRows(tmdb("/search/multi",key,"&query="+URLEncoder.encode(query.trim(),"UTF-8")+"&include_adult=false&page="+page).getJSONArray("results"),"",true);
     }
-    static List<Catalog.Item> browseMovies(String key,String section,int page) throws Exception {
+    static List<Catalog.Item> browseMovies(String key,String section,int page) throws Exception {return browseMovies(key,section,page,0);}
+    static List<Catalog.Item> browseMovies(String key,String section,int page,int homeRotation) throws Exception {
         if(section.equals("Movies"))return tmdbRows(tmdb("/movie/popular",key,"&page="+page).getJSONArray("results"),"movie",false);
         if(section.equals("Series"))return tmdbRows(tmdb("/tv/popular",key,"&page="+page).getJSONArray("results"),"tv",false);
         LinkedHashMap<String,Catalog.Item> rows=new LinkedHashMap<>();
-        String[][] endpoints={{"/trending/all/week","","trending"},{"/movie/popular","movie","popular"},{"/tv/popular","tv","popular"},{"/movie/now_playing","movie","nowPlaying"},{"/movie/top_rated","movie","recommended"},{"/movie/upcoming","movie","upcoming"}};
+        String[][] endpoints={{"/trending/all/week","","trending"},{"/trending/all/day","","trendingToday"},{"/movie/popular","movie","popular"},{"/tv/popular","tv","popular"},{"/movie/now_playing","movie","nowPlaying"},{"/movie/top_rated","movie","recommended"},{"/movie/upcoming","movie","upcoming"}};
         Exception failure=null;String today=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date());
-        for(String[] endpoint:endpoints){try{for(Catalog.Item item:tmdbRows(tmdb(endpoint[0],key,"&page=1").getJSONArray("results"),endpoint[1],false)){
+        for(int i=0;i<endpoints.length;i++){String[] endpoint=endpoints[i];try{for(Catalog.Item item:tmdbRows(tmdb(endpoint[0],key,"&page="+SmartHomeRecommendations.rotatingPage(System.currentTimeMillis(),i+homeRotation,i<2?3:4)).getJSONArray("results"),endpoint[1],false)){
             if(endpoint[2].equals("upcoming")&&item.raw.optString("releaseDate").compareTo(today)<=0)continue;
             item.raw.put(endpoint[2],true);Catalog.Item existing=rows.get(item.id);
             if(existing!=null)existing.raw.put(endpoint[2],true);else rows.put(item.id,item);
         }}catch(Exception error){failure=error;}}
+        // Type 4 = US digital/VOD release, not a theatrical run. Availability by platform
+        // is a separate region-specific data point; never claim an individual service here.
+        try{
+            Calendar calendar=Calendar.getInstance(TimeZone.getTimeZone("UTC"),Locale.ROOT);
+            calendar.add(Calendar.DAY_OF_YEAR,-180);
+            String from=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(calendar.getTime());
+            Calendar original=Calendar.getInstance(TimeZone.getTimeZone("UTC"),Locale.ROOT);
+            original.add(Calendar.DAY_OF_YEAR,-550);
+            String recentOriginal=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(original.getTime());
+            String query="&region=US&with_release_type=4&with_origin_country=US&with_original_language=en"
+                +"&release_date.gte="+from+"&release_date.lte="+today
+                +"&primary_release_date.gte="+recentOriginal
+                +"&sort_by=primary_release_date.desc&vote_count.gte=10&page="
+                +SmartHomeRecommendations.rotatingPage(System.currentTimeMillis(),homeRotation,2);
+            for(Catalog.Item item:tmdbRows(tmdb("/discover/movie",key,query).getJSONArray("results"),"movie",false)){
+                String date=item.raw.optString("releaseDate","");
+                if(date.compareTo(from)<0||date.compareTo(today)>0)continue;
+                item.raw.put("digitalVOD",true);
+                Catalog.Item existing=rows.get(item.id);
+                if(existing==null)rows.put(item.id,item);
+                else existing.raw.put("digitalVOD",true);
+            }
+        }catch(Exception error){if(failure==null)failure=error;}
         if(rows.isEmpty()&&failure!=null)throw failure;
         return new ArrayList<>(rows.values());
     }

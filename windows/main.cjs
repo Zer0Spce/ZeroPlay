@@ -24,10 +24,10 @@ const toolsURL=pathToFileURL(path.join(__dirname,'ui/player-tools.html')).href;
 const smoke=process.argv.includes('--smoke-test');
 const {cleanLegacySportsCache}=require('./sports-cache.cjs');
 const dataRoot=require('./data-directory.cjs').dataDirectory(app.getPath('appData'));fs.mkdirSync(dataRoot,{recursive:true});app.setPath('userData',dataRoot);const sportsCacheFailures=cleanLegacySportsCache(dataRoot);
-const homePanelIds=['clock','featured','top10','continue','upnext','because','watchlist','tonight','hidden','upcoming','providers','recommended','trending','popular','series','now','airing','action','comedy','horror','animation','anime','adventure','crime','documentary','drama','family','fantasy','history','music','mystery','romance','scifi','thriller','war','western','tvmovie'];
+const homePanelIds=['clock','featured','top10','continue','upnext','because','watchlist','tonight','hidden','upcoming','providers','recommended','trending','popular','series','now','airing','action','comedy','horror','animation','anime','adventure','crime','documentary','drama','family','fantasy','history','music','mystery','romance','scifi','thriller','war','western','tvmovie','thrillers','recent','different','classics'];
 function normalizeHomePanelOrder(value){const out=[];for(const id of Array.isArray(value)?value:[])if(homePanelIds.includes(id)&&!out.includes(id))out.push(id);for(const id of homePanelIds)if(!out.includes(id))out.push(id);return out;}
 const channelKey=(section,c)=>require('node:crypto').createHash('sha256').update(section+'|'+c.name+'|'+c.group).digest('hex');
-const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'PH',gain:1,theme:'dark',uiLayout:'youtube',source:'vidstuck',rawcastPlayback:false,uiAnimations:true,focusInfo:true,focusTrailer:true,homepageTrailer:true,previewDelay:2000,carouselSource:'top',homePanels:['clock','featured','top10','continue','upnext','because','watchlist','tonight','hidden','providers','recommended','trending','popular','series','now','airing'],homePanelOrder:homePanelIds.slice(),performanceMode:false,artQuality:'auto',autoSourceRecovery:false,autoBestSource:true,autoplayNext:true,skipIntroSeconds:90,skipRecapSeconds:45},customKey:''});
+const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'US',gain:1,theme:'dark',uiLayout:'youtube',source:'vidstuck',rawcastPlayback:false,uiAnimations:true,focusInfo:true,focusTrailer:true,homepageTrailer:true,previewDelay:2000,carouselSource:'top',homePanels:['clock','featured','top10','providers','continue','upnext','because','watchlist','tonight','hidden','trending','recommended','thrillers','recent','different','classics','popular','series','now','airing'],homePanelOrder:homePanelIds.slice(),performanceMode:false,artQuality:'auto',autoSourceRecovery:false,autoBestSource:true,autoplayNext:true,skipIntroSeconds:90,skipRecapSeconds:45},customKey:''});
 function personalSnapshot(){return {favorites:state.favorites||[],planned:state.planned||[],history:state.history||[],positions:state.positions||{},searches:state.searches||[],collections:state.collections||{},notInterested:state.notInterested||[]};}
 function applyPersonal(value={}){state.favorites=Array.isArray(value.favorites)?value.favorites:[];state.planned=Array.isArray(value.planned)?value.planned:[];state.history=Array.isArray(value.history)?value.history:[];state.positions=value.positions&&typeof value.positions==='object'?value.positions:{};state.searches=Array.isArray(value.searches)?value.searches:[];state.collections=value.collections&&typeof value.collections==='object'?value.collections:{};state.notInterested=Array.isArray(value.notInterested)?value.notInterested:[];}
 function ensureProfiles(){if(!state.profiles||typeof state.profiles!=='object'||Array.isArray(state.profiles))state.profiles={};if(!state.activeProfile)state.activeProfile='Default';}
@@ -170,7 +170,19 @@ async function openLive(section,index,offline){
 app.whenReady().then(async()=>{
   app.setAppUserModelId('com.zerostreams.windows');Menu.setApplicationMenu(null);
   file=path.join(app.getPath('userData'),smoke?'smoke-state.json':'library.json');state=defaults();
-  try{const saved=JSON.parse(fs.readFileSync(file,'utf8'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}state.settings.homePanelOrder=normalizeHomePanelOrder(state.settings.homePanelOrder);if(!state.settings.autoSourceRecoveryDefaultOff22){state.settings.autoSourceRecovery=false;state.settings.autoSourceRecoveryDefaultOff22=true;}if(!state.settings.trailerDelay175){if(state.settings.previewDelay===900)state.settings.previewDelay=2000;state.settings.trailerDelay175=true;}
+  try{const saved=JSON.parse(fs.readFileSync(file,'utf8'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}if(!state.settings.providerRegionDefaultUS2258){
+    // 2.2.5.8: previous releases seeded PH even when nobody selected a country.
+    // Move that old default to US once; preserve any other explicit region choice.
+    if(!state.settings.region||state.settings.region==='PH')state.settings.region='US';
+    state.settings.providerRegionDefaultUS2258=true;
+  }
+  if(!state.settings.discoveryVODPreset2258){
+    const preferred=['tonight','hidden','trending','top10','thrillers','recent','different','classics','providers','now'];
+    const base=Array.isArray(state.settings.homePanels)?state.settings.homePanels:[];
+    state.settings.homePanels=[...new Set([...base,...preferred])];
+    state.settings.discoveryVODPreset2258=true;
+  }
+  state.settings.homePanelOrder=normalizeHomePanelOrder(state.settings.homePanelOrder);if(!state.settings.autoSourceRecoveryDefaultOff22){state.settings.autoSourceRecovery=false;state.settings.autoSourceRecoveryDefaultOff22=true;}if(!state.settings.trailerDelay175){if(state.settings.previewDelay===900)state.settings.previewDelay=2000;state.settings.trailerDelay175=true;}
   for(const name of ['favorites','planned','history','searches'])if(!Array.isArray(state[name]))state[name]=[];
   state.history=state.history.slice(0,100);state.searches=state.searches.slice(0,30);
   for(const name of ['positions','collections'])if(!state[name]||typeof state[name]!=='object'||Array.isArray(state[name]))state[name]={};
@@ -196,7 +208,7 @@ app.whenReady().then(async()=>{
   ipcMain.on('player-tools-activity',event=>{if(event.sender===toolbar?.webContents)playerHost?.activity();});
   ipcMain.on('sports-activity',event=>{if(sportsSelection&&event.sender===player?.webContents)playerHost?.activity();});
   ipcMain.handle('sports-play',(event,id,index)=>{trusted(event);return openSports(id,index);});
-  ipcMain.handle('playlist',async(event,section,force)=>{trusted(event);const snapshot=await playlistStore.get(section,force===true);return {...snapshot,channels:snapshot.channels.map((c,index)=>({index,name:c.name,group:c.group,logo:c.logo,favorite:(state.liveFavorites||[]).includes(channelKey(section,c))}))};});
+  ipcMain.handle('playlist',async(event,section,force)=>{trusted(event);const snapshot=await playlistStore.get(section,force===true);return {...snapshot,channels:snapshot.channels.map((c,index)=>({index,name:c.name,group:c.group,logo:c.logo,streamStatus:c.streamStatus||'unverified',favorite:(state.liveFavorites||[]).includes(channelKey(section,c))}))};});
   ipcMain.handle('live-play',async(event,section,index)=>{trusted(event);await openLive(section,index);return true;});
   ipcMain.handle('channel-favorite',(event,section,index)=>{trusted(event);const id=channelKey(section,playlistStore.select(section,index));const saved=new Set(state.liveFavorites||[]);if(!saved.add(id)|| (state.liveFavorites||[]).includes(id))saved.delete(id);state.liveFavorites=[...saved];persist();return saved.has(id);});
   ipcMain.on('live-progress',(event,data)=>{try{liveTrusted(event);}catch{return;}if(!liveSelection?.channel.vod||!current||Date.now()-lastProgress<2500)return;const position=core.progress({...data,id:current.id,type:current.type,...liveSelection.channel.rawcastEpisode},current);if(position){lastProgress=Date.now();core.record(state,current,position);persist();}});
@@ -249,7 +261,7 @@ app.whenReady().then(async()=>{
     const position=core.progress(sources.normalize(data),current);if(!position)return;lastProgress=Date.now();core.record(state,current,position);persist();
   });
   const uiHost=await require('./ui-server.cjs').serve(__dirname);uiServer=uiHost.server;uiURL=uiHost.url;
-  main=new BrowserWindow({width:1440,height:920,minWidth:900,minHeight:620,title:'ZeroPlay',backgroundColor:'#090a10',icon:path.join(__dirname,'assets/icon.png'),show:false,autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
+  main=new BrowserWindow({width:1440,height:920,minWidth:900,minHeight:620,title:'ZeroPlay',backgroundColor:'#090a10',icon:path.join(__dirname,'assets/zeroplay-app-icon.png'),show:false,autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
   main.webContents.session.webRequest.onBeforeSendHeaders({urls:['https://www.youtube-nocookie.com/*','https://www.youtube.com/*']},(details,callback)=>callback({requestHeaders:{...details.requestHeaders,Referer:new URL(uiURL).origin+'/'}}));
   main.webContents.setWindowOpenHandler(()=>({action:'deny'}));main.webContents.on('will-navigate',event=>event.preventDefault());main.webContents.on('will-attach-webview',event=>event.preventDefault());
   main.once('ready-to-show',()=>{versions.confirmCurrent(app.getVersion());main.show();if(sportsCacheFailures.length&&!smoke)dialog.showMessageBox(main,{type:'warning',title:'Old Live Sports cache',message:'Some retired sports cache files could not be removed. Keep Microsoft Defender enabled and remove or quarantine any detected item in Protection History. The new sports player uses a memory-only browser session.'});});main.on('closed',closePlayer);await main.loadURL(uiURL);
@@ -257,7 +269,7 @@ app.whenReady().then(async()=>{
     try{
       const result=await main.webContents.executeJavaScript(
         'window.zero.state().then(data=>({version:data.version,rail:!!document.querySelector(\'[data-nav="Home"]\'),status:!!document.querySelector(\'#status\')}))');
-      if(!/^2\.2\.5\.5$/.test(result.version)||!result.rail||!result.status)
+      if(!/^2\.2\.5\.8$/.test(result.version)||!result.rail||!result.status)
         throw Error('Desktop interface did not initialize: '+JSON.stringify(result));
       console.log('ZERO_WINDOWS_UI_SMOKE_PASS '+JSON.stringify(result));
       app.exit(0);

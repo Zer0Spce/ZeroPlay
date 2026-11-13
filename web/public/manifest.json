@@ -5,10 +5,17 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#090a10",
-  "theme_color": "#090a10",
+  "background_color": "#202126",
+  "theme_color": "#202126",
   "icons": [
-    {"src":"/assets/icon.png","sizes":"any","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "/assets/icon.png?v=2258",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ],
-  "categories": ["entertainment"]
+  "categories": [
+    "entertainment"
+  ]
 }

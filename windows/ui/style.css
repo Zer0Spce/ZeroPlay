@@ -93,3 +93,8 @@ aside{background:var(--sidebar,#0d1019)}aside button{color:var(--muted);font-wei
 
 
 .zero22-filter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 18px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.zero22-filter select,.zero22-filter input{min-width:120px}.zero22-badge{position:absolute;left:8px;top:8px;z-index:2;background:rgba(10,15,24,.86);padding:4px 7px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.04em}.card-art{position:relative}.person-card{width:150px;min-width:150px;display:flex;flex-direction:column;gap:6px;text-align:left}.person-card img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px}.zero22-panel-row{display:grid!important;grid-template-columns:auto 1fr 38px 38px;gap:6px;align-items:center}.quick-actions{display:grid;gap:8px;min-width:260px;padding:14px}.zero22-person .person-profile{width:180px;max-height:270px;object-fit:cover;border-radius:14px;float:left;margin:0 18px 12px 0}
+
+/* SMART-STATUS-WINDOWS-2257 */
+.stream-badge-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0 4px}
+.stream-pill{display:inline-flex;align-items:center;padding:3px 7px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:.035em;color:#fff;pointer-events:none;cursor:default;user-select:none}
+.stream-pill-live{background:#c52d3b}.stream-pill-verified{background:#15834d}.stream-pill-reachable{background:#a86f16}.stream-pill-unverified{background:#657184}

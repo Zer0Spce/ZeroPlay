@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android TV-only adaptive launcher: original approved Z/playmark centered on dark charcoal. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/zeroplay_launcher_charcoal"/>
+    <foreground><inset android:drawable="@drawable/zeroplay_appicon" android:inset="18dp"/></foreground>
+</adaptive-icon>

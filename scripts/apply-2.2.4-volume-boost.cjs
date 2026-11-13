@@ -70,8 +70,8 @@ patch('windows/ui/index.html',text=>{
 
 patch('windows/main.cjs',text=>required(
   text,
-  "const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'PH',gain:1,",
-  "const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'PH',gain:1,",
+  "const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'US',gain:1,",
+  "const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'US',gain:1,",
   'Windows gain default marker'
 ).replace(
   "ipcMain.handle('live-context',event=>{liveTrusted(event);return {offline:!!liveSelection.channel.offline,vod:!!liveSelection.channel.vod,index:liveSelection.index,names:",

@@ -1,0 +1,4 @@
+<resources>
+    <!-- Android launcher artwork uses the same charcoal family as ZeroPlay Windows. -->
+    <color name="zeroplay_launcher_charcoal">#202126</color>
+</resources>
