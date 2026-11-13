@@ -336,18 +336,18 @@ test('Android vector launcher prevents pixelated, off-center TV graphics',()=>{
   // Scalable vectors, not the old 160x160 px PNG resampled by a TV launcher.
   assert.match(fg,/<vector /);
   assert.match(fg,/android:viewportWidth="108"/);
-  assert.match(fg,/android:translateX="16\\.18"/);
-  assert.match(fg,/android:translateY="15\\.20"/);
-  assert.match(fg,/android:scaleX="0\\.488"/);
+  assert.match(fg,/android:translateX="16\.18"/);
+  assert.match(fg,/android:translateY="15\.20"/);
+  assert.match(fg,/android:scaleX="0\.488"/);
   assert.match(fg,/android:fillColor="#ec111b"/);
   assert.match(fg,/android:fillColor="#fbfbfb"/);
   assert.match(banner,/<vector /);
   assert.match(banner,/android:viewportWidth="320"/);
   assert.match(banner,/android:viewportHeight="180"/);
   assert.match(banner,/android:fillColor="#202126"/);
-  assert.match(banner,/android:translateX="67\\.00"/);
-  assert.match(banner,/android:translateY="-5\\.40"/);
-  assert.match(manifest,/android:banner="@drawable\\/tv_banner"/);
+  assert.match(banner,/android:translateX="67\.00"/);
+  assert.match(banner,/android:translateY="-5\.40"/);
+  assert.match(manifest,/android:banner="@drawable\/tv_banner"/);
   for(const file of [adaptive,round,legacy]){
     assert.ok(file.includes('@drawable/zeroplay_launcher_foreground'));
     assert.ok(!file.includes('@drawable/zeroplay_appicon'),'old low-resolution PNG must not reach launcher');
