@@ -292,3 +292,35 @@ test('Android TEST can install beside 2.2.5.7 without replacing production app o
   assert.ok(read('app/src/liteMobile/AndroidManifest.xml').includes('android:label="${appLabelLite}"'));
   assert.ok(read('app/src/liteTv/AndroidManifest.xml').includes('android:label="${appLabelLite}"'));
 });
+
+test('Android launcher has charcoal adaptive and legacy icons, never a white launcher tile',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const manifest=read('app/src/main/AndroidManifest.xml');
+  const color=read('app/src/main/res/values/zeroplay_icon_colors.xml');
+  const oldIcon=read('app/src/main/res/mipmap/zeroplay_launcher.xml');
+  const adaptive=read('app/src/main/res/mipmap-anydpi-v26/zeroplay_launcher.xml');
+  assert.ok(manifest.includes('android:icon="@mipmap/zeroplay_launcher"'));
+  assert.ok(manifest.includes('android:roundIcon="@mipmap/zeroplay_launcher"'));
+  assert.ok(color.includes('#202126'));
+  assert.ok(oldIcon.includes('@color/zeroplay_launcher_charcoal'));
+  assert.ok(adaptive.includes('<adaptive-icon'));
+  assert.ok(adaptive.includes('@color/zeroplay_launcher_charcoal'));
+  assert.ok(adaptive.includes('@drawable/zeroplay_appicon'));
+  assert.ok(!adaptive.includes('#FFFFFF'));
+});
+
+test('Android TV refreshes its recommendations at launch without a Refresh Picks button',()=>{
+  const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+  const native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
+  assert.ok(native.includes('if(category.equals("Home")&&!BuildConfig.TV){'));
+  assert.ok(!native.includes('Button shuffle=button("↻ Refresh Picks"'));
+  assert.ok(native.includes('if(BuildConfig.TV)SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());ready=true;load();'));
+  assert.ok(native.includes('protected void onNewIntent(Intent intent)'));
+  assert.ok(native.includes('intent.hasCategory("android.intent.category.LEANBACK_LAUNCHER")'));
+  assert.ok(native.includes('Intent.ACTION_MAIN.equals(intent.getAction())'));
+  assert.ok(native.includes('if(ready&&"Home".equals(category)){'));
+  // We should not rotate on onResume: coming back from a movie must not refresh Home.
+  const resume=native.slice(native.indexOf('@Override protected void onResume()'),
+    native.indexOf('@Override protected void onPause()'));
+  assert.ok(!resume.includes('SmartHomeRecommendations.refresh('));
+});
