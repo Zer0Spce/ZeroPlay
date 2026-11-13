@@ -7,7 +7,8 @@ android {
     defaultConfig {
         applicationId 'com.zerostreams.app'
         // CI-only side-by-side test identity. Keeps production package names unchanged.
-        manifestPlaceholders = [appLabel: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay TEST' : 'ZeroPlay']
+        manifestPlaceholders = [appLabel: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay TEST' : 'ZeroPlay',
+                                appLabelLite: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay Lite TEST' : 'ZeroPlay Lite']
         minSdk 23
         targetSdk 35
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' }
