@@ -1,6 +1,7 @@
 const {app,BrowserWindow,WebContentsView,screen,ipcMain,session,shell,safeStorage,Menu,dialog}=require('electron');
 const fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('node:url');
 const versions=require('./version-manager.cjs');
+const sourceIntelligence=require('./source-intelligence.cjs');
 const {PlayerHost}=require('./player-host.cjs');
 const {OfflineHost}=require('./offline-host.cjs');
 const offlineMedia=require('./offline-media.cjs');
@@ -18,7 +19,7 @@ let config={};try{config=require('./generated-config.json');}catch{}
 let sportsSession;
 let main,player,toolbar,playerHost,current,scanTimer,cursorTimer,qrWorker,scanning=false,state,file,guard,lastProgress=0,offlineSelection;
 // ZERO22_WINDOWS_CORE
-let miniBounds=null,currentPlaybackSource='vidstuck',sourceRecoveryAttempted=false;
+let miniBounds=null,currentPlaybackSource='vidstuck',sourceRecoveryAttempted=false,lastVerifiedPlaybackKey='';
 let uiURL,uiServer;
 const toolsURL=pathToFileURL(path.join(__dirname,'ui/player-tools.html')).href;
 const smoke=process.argv.includes('--smoke-test');
@@ -39,8 +40,15 @@ function apiCacheKey(route,params){return require('node:crypto').createHash('sha
 function apiCacheRead(id,maxAge=7*24*60*60*1000){const mem=catalogMemory.get(id);if(mem&&Date.now()-mem.at<maxAge)return mem;try{const target=path.join(catalogCacheDir,id+'.json'),stat=fs.statSync(target);if(Date.now()-stat.mtimeMs>maxAge)return null;const row={at:stat.mtimeMs,data:JSON.parse(fs.readFileSync(target,'utf8'))};catalogMemory.set(id,row);return row;}catch{return null;}}
 function apiCacheWrite(id,data){const row={at:Date.now(),data};catalogMemory.set(id,row);while(catalogMemory.size>120)catalogMemory.delete(catalogMemory.keys().next().value);try{const target=path.join(catalogCacheDir,id+'.json'),temp=target+'.tmp';fs.writeFileSync(temp,JSON.stringify(data));fs.renameSync(temp,target);}catch{}}
 function sourceHealth(id){state.sourceHealth=state.sourceHealth||{};return state.sourceHealth[id]||(state.sourceHealth[id]={ok:0,fail:0,load:0});}
-function recordSource(id,ok,load=0){const row=sourceHealth(id);if(ok){row.ok=Math.min(500,row.ok+1);if(load>0)row.load=row.load?Math.round((row.load*4+load)/5):load;}else row.fail=Math.min(500,row.fail+1);persist();}
-function bestSource(fallback='vidstuck'){if(state.settings.autoBestSource===false)return fallback;const ids=['vidstuck','zxcstream','embedwave','vidnest','vidrift','vidfast','vidapi','vidsrc-sh'];let best=fallback,score=-1;for(const id of ids){const h=sourceHealth(id),total=h.ok+h.fail,reliability=total?h.ok/total:.7,speed=h.load?Math.max(0,.3-Math.min(.3,h.load/12000)):.15,s=reliability+speed;if(s>score){score=s;best=id;}}return best;}
+function recordSource(id,outcome,load=0){
+  const kind=outcome===true?'progress':outcome===false?'failure':outcome;
+  state.sourceHealth=sourceIntelligence.touch(state.sourceHealth||{},id,kind,load);
+  persist();
+}
+function bestSource(fallback='vidstuck'){
+  if(state.settings.autoBestSource===false)return fallback;
+  return sourceIntelligence.best(state.sourceHealth||{},fallback);
+}
 function persist(){const temp=file+'.tmp';fs.writeFileSync(temp,JSON.stringify(state));fs.renameSync(temp,file);}
 function key(){if(state.customKey&&safeStorage.isEncryptionAvailable())try{return safeStorage.decryptString(Buffer.from(state.customKey,'base64'));}catch{}return config.tmdbKey||process.env.TMDB_API_KEY||'';}
 function torrentSearchSettingsConfig(){let key='';try{if(state.torrentSearchSettingsKey&&safeStorage.isEncryptionAvailable())key=safeStorage.decryptString(Buffer.from(state.torrentSearchSettingsKey,'base64'));}catch{}return {...state.settings.torrentSearchSettings,key};}
@@ -75,8 +83,8 @@ function closePlayer(){
   clearInterval(scanTimer);clearInterval(cursorTimer);if(qrWorker)qrWorker.terminate();qrWorker=null;scanning=false;host.close();
   if(main&&!main.isDestroyed()){main.setTitle('ZeroPlay');main.webContents.focus();refresh();}
 }
-async function openPlayer(value,selected,fixture,prepare=false,sourceOverride){
-  value=core.cleanItem(value);let requestedSource=["vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","rawcast"].includes(sourceOverride)?sourceOverride:(state.settings.source||"vidstuck");if(!sourceOverride)requestedSource=bestSource(requestedSource);const playbackSource=requestedSource==="rawcast"&&state.settings.rawcastPlayback!==true?"vidstuck":requestedSource;currentPlaybackSource=playbackSource;sourceRecoveryAttempted=false;const playerLoadStarted=Date.now();const saved=state.positions[core.key(value)];let position=selected?core.episode(selected):saved||{};
+async function openPlayer(value,selected,fixture,prepare=false,sourceOverride,recovering=false){
+  value=core.cleanItem(value);let requestedSource=["vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","rawcast"].includes(sourceOverride)?sourceOverride:(state.settings.source||"vidstuck");if(!sourceOverride)requestedSource=bestSource(requestedSource);const playbackSource=requestedSource==="rawcast"&&state.settings.rawcastPlayback!==true?"vidstuck":requestedSource;currentPlaybackSource=playbackSource;sourceRecoveryAttempted=recovering;lastVerifiedPlaybackKey='';const playerLoadStarted=Date.now();const saved=state.positions[core.key(value)];let position=selected?core.episode(selected):saved||{};
   if(selected&&saved&&saved.season===position.season&&saved.episode===position.episode)position=saved;
   if(playbackSource==='rawcast'&&state.settings.rawcastPlayback===true&&!fixture){if(!rawcastKey())throw Error('RawCast key required. Enable RawCast and add your key in Settings. Streaming uses your limited API quota.');const media=await rawcast.stream(value,core.episode(position));await openLive('RawCast',0,{name:value.title,...media,headers:{},vod:true,rawcastItem:value,rawcastEpisode:core.episode(position),start:position.timestamp||0});current=value;core.record(state,value,position);persist();refresh();return;}
   closePlayer();
@@ -113,7 +121,7 @@ async function openPlayer(value,selected,fixture,prepare=false,sourceOverride){
     }
     playerHost?.activity();
   });
-  contents.on('did-finish-load',()=>{if(player===view)recordSource(playbackSource,true,Date.now()-playerLoadStarted);});contents.on('did-fail-load',(_event,code)=>{if(code===-3||player!==view)return;recordSource(playbackSource,false);if(state.settings.autoSourceRecovery===true&&!sourceRecoveryAttempted&&playbackSource!=='rawcast'){sourceRecoveryAttempted=true;const alternate=playbackSource==='vidstuck'?'embedwave':playbackSource==='embedwave'?'vidnest':playbackSource==='vidrock'?'vidnest':playbackSource==='vidnest'?'vidrift':playbackSource==='vidrift'?'vidfast':playbackSource==='vidfast'?'vidapi':playbackSource==='vidapi'?'zxcstream':playbackSource==='zxcstream'?'vidsrc-sh':'vidstuck';setTimeout(()=>{if(player===view)openPlayer(value,selected,fixture,false,alternate).catch(()=>{});},350);}});
+  contents.on('did-finish-load',()=>{if(player===view)recordSource(playbackSource,'load',Date.now()-playerLoadStarted);});contents.on('did-fail-load',(_event,code)=>{if(code===-3||player!==view)return;recordSource(playbackSource,false);if(state.settings.autoSourceRecovery===true&&!sourceRecoveryAttempted&&playbackSource!=='rawcast'){sourceRecoveryAttempted=true;const alternate=sourceIntelligence.next(state.sourceHealth||{},playbackSource,[],state.settings.source||'vidstuck');if(alternate)setTimeout(()=>{if(player===view)openPlayer(value,selected,fixture,false,alternate,true).catch(()=>{});},350);}});
   contents.on('render-process-gone',()=>{if(player===view){recordSource(playbackSource,false);closePlayer();}});
   cursorTimer=setInterval(()=>{if(!playerHost||main.isDestroyed()||!main.isFocused())return;const cursor=screen.getCursorScreenPoint(),bounds=main.getContentBounds();if(cursor.x>=bounds.x&&cursor.x<bounds.x+bounds.width&&cursor.y>=bounds.y&&cursor.y<bounds.y+12)playerHost.activity();},200);
   scanTimer=setInterval(scanAd,3500);
@@ -258,7 +266,15 @@ app.whenReady().then(async()=>{
   ipcMain.on('embedded-player-exit',event=>{if(event.sender===player?.webContents&&event.senderFrame===player.webContents.mainFrame&&playerOrigin(event.senderFrame.url))closePlayer();});
   ipcMain.on('progress',(event,data)=>{
     if(event.sender!==player?.webContents||!playerOrigin(event.senderFrame?.url)||!current||Date.now()-lastProgress<2500)return;
-    const position=core.progress(sources.normalize(data),current);if(!position)return;lastProgress=Date.now();core.record(state,current,position);persist();
+    const position=core.progress(sources.normalize(data),current);if(!position)return;lastProgress=Date.now();
+    if(Number(position.timestamp)>=8){
+      const verified=currentPlaybackSource+':'+core.key(current)+':'+(position.season||'')+':'+(position.episode||'');
+      if(lastVerifiedPlaybackKey!==verified){
+        lastVerifiedPlaybackKey=verified;
+        recordSource(currentPlaybackSource,'progress');
+      }
+    }
+    core.record(state,current,position);persist();
   });
   const uiHost=await require('./ui-server.cjs').serve(__dirname);uiServer=uiHost.server;uiURL=uiHost.url;
   main=new BrowserWindow({width:1440,height:920,minWidth:900,minHeight:620,title:'ZeroPlay',backgroundColor:'#090a10',icon:path.join(__dirname,'assets/zeroplay-app-icon.png'),show:false,autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
