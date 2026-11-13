@@ -1,6 +1,6 @@
 'use strict';
-const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
-const read=p=>fs.readFileSync(p,'utf8');
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 test('Android TV carousel movie title and metadata are left aligned',()=>{
  const s=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  assert.match(s,/LinearLayout info=column\(\);info\.setGravity\(Gravity\.START\)/);

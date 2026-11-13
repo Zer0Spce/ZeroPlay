@@ -210,7 +210,7 @@ jobs:
           npm test
           node --test ../tests/zeroplay-2261-ui-hotfix.test.cjs
           node --test test/smart-status-2.2.5.7.test.cjs
-          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.6$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.6.1')"
+          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.6\\.1$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.6.1')"
       - name: Build self-contained visible ZeroPlayUpdater.exe
         shell: pwsh
         run: |
