@@ -22,7 +22,7 @@ test('website movies and series append more cards below the current grid',()=>{
   const infinite=read('web/public/infinite-scroll.js');
   const sw=read('web/public/sw.js');
   assert.match(html,/infinite-scroll\.js\?v=20261013c/);
-  assert.match(sw,/zeroplay-web-2\.2\.5\.9-logo/);
+  assert.match(sw,/zeroplay-web-2\.2\.5\.9-crimson/);
   assert.match(sw,/infinite-scroll\.js\?v=20261013c/);
   assert.match(infinite,/category==='Movies'\|\|category==='Series'/);
   assert.match(infinite,/async function appendCatalogPage/);
