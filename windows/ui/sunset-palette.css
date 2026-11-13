@@ -223,6 +223,7 @@
 .zero-provider-section .provider[data-provider-brand="peacock"]{--tile-start:#33394a;--tile-end:#101727}
 .zero-provider-section .provider[data-provider-brand="max"]{--tile-start:#172391;--tile-end:#0b0e4c}
 .zero-provider-section .provider[data-provider-brand="apple"]{--tile-start:#263345;--tile-end:#0b131d}
+.zero-provider-section .provider[data-provider-brand="youtube-tv"]{--tile-start:#3b1921;--tile-end:#10131c}
 .zero-provider-section .provider[data-provider-brand="other"]{--tile-start:#343640;--tile-end:#1e202a}
 .zero-provider-section .provider:hover,.zero-provider-section .provider:focus-visible{
   outline:2px solid #ff4053!important;outline-offset:1px;
