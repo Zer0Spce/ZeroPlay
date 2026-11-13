@@ -26,7 +26,7 @@ public class MainActivity extends Activity {
     private HistoryStore history;private boolean detailsOpen;private Runnable heroTick;private int heroIndex,providerId;private String providerType="movie",providerName="",providerSort="popular";private int providerGenre=0;private boolean foreground;private boolean lightTheme;private BlurArtwork tvAtmosphere;private String atmosphereUrl="",genreType="movie",genreName="";private int genreId,surpriseVersion;private boolean surpriseLoading,genreHasMore;private Button surpriseButton;private final LinkedHashSet<Long> recentSurprises=new LinkedHashSet<>();private final Map<String,JSONArray> genreCache=new HashMap<>();private final Set<String> genreLoading=new HashSet<>();
     private LinearLayout activeProviderCards;
     private final Map<String,String> oneTimePlaybackSources=new HashMap<>();
-    private String submittedQuery="", channelGroup="All";
+    private String submittedQuery="", channelGroup="All", watchlistStatus="all";
     private final SearchFilters2260.Options searchOptions=new SearchFilters2260.Options();
     private final Map<String,PlaylistStore.Snapshot> playlists=new HashMap<>();
     private final Set<String> playlistLoading=new HashSet<>();
@@ -226,7 +226,7 @@ public class MainActivity extends Activity {
     Set<String> favorites(){return new HashSet<>(prefs.getStringSet("favorites",Collections.emptySet()));}
     Set<String> savedIds(String key){return new HashSet<>(prefs.getStringSet(key,Collections.emptySet()));}
     boolean matches(Catalog.Item item){if(Zero22.notInterested(prefs,item.id))return false;String filter=submittedQuery;if(!filter.isEmpty()&&!item.raw.optBoolean("onlineSearch")&&!TitleSearch.matches(item.title,filter)&&!item.id.equalsIgnoreCase(filter.trim())&&!item.id.substring(item.id.lastIndexOf('-')+1).equals(filter.trim())&&!category.equals("Manga"))return false;
-        switch(category){case"Search":return item.type.equals("movie")||item.type.equals("series");case"Movies":return item.type.equals("movie");case"Series":return item.type.equals("series");case"Live":return item.type.equals("live");case"Manga":return item.type.equals("manga");case"Watchlist":return favorites().contains(item.id);case"Continue":return prefs.getLong("position:"+item.id,0)>0&&prefs.getInt("percent:"+item.id,0)<95;case"Plan to watch":return savedIds("planned").contains(item.id);case"Collections":return savedIds("collection:"+collection).contains(item.id);default:return true;}}
+        switch(category){case"Search":return item.type.equals("movie")||item.type.equals("series");case"Movies":return item.type.equals("movie");case"Series":return item.type.equals("series");case"Live":return item.type.equals("live");case"Manga":return item.type.equals("manga");case"Watchlist":return favorites().contains(item.id)&&("all".equals(watchlistStatus)||("watched".equals(watchlistStatus)==(prefs.getInt("percent:"+item.id,0)>=95)));case"Continue":return prefs.getLong("position:"+item.id,0)>0&&prefs.getInt("percent:"+item.id,0)<95;case"Plan to watch":return savedIds("planned").contains(item.id);case"Collections":return savedIds("collection:"+collection).contains(item.id);default:return true;}}
     void render(){stopPreview();if(content==null)return;String displayQuery=submittedQuery;int token=++renderVersion;if(heroTick!=null)ui.removeCallbacks(heroTick);pendingPictures.clear();pictureViews.clear();pendingGenreArtwork.clear();pagingFooter=null;content.removeAllViews();content.animate().cancel();content.setAlpha(prefs.getBoolean("uiAnimations",true)?0:1);if(prefs.getBoolean("uiAnimations",true))content.animate().alpha(1).setDuration(160).start();for(Map.Entry<String,Button> entry:navigation.entrySet()){boolean active=entry.getKey().equals(category)||entry.getKey().equals("Categories")&&category.equals("Genre");entry.getValue().setTextColor(active?ACCENT:MUTED);}refreshModernTabs();
         if(category.equals("Downloads")){downloadsPage();return;}
         if(category.equals("Live Sports")){sportsPage(token);return;}
@@ -237,6 +237,9 @@ public class MainActivity extends Activity {
         if(category.equals("Search")){content.addView(button("Search filters · "+(searchOptions.media.equals("all")?"All":searchOptions.media)+" · "+(searchOptions.provider.isEmpty()?"Any provider":searchOptions.provider),this::setSearchFilter));space(content,12);}
         if(category.equals("Search")&&submittedQuery.isEmpty()){recentSearches();return;}
         if(category.equals("Collections")&&collection.isEmpty()){collections();return;}
+        if(category.equals("Watchlist")){
+            content.addView(button("Watchlist · "+watchlistStatus,this::chooseWatchlistStatus));space(content,10);
+        }
         List<Catalog.Item> rows=new ArrayList<>();for(Catalog.Item item:catalog)if(matches(item))rows.add(item);
         if(sort.equals("Newest"))Collections.sort(rows,(a,b)->Integer.compare(b.year,a.year));else if(sort.equals("Oldest"))Collections.sort(rows,(a,b)->Integer.compare(a.year>0?a.year:9999,b.year>0?b.year:9999));else if(sort.equals("Top rated"))Collections.sort(rows,(a,b)->Double.compare(b.raw.optDouble("rating"),a.raw.optDouble("rating")));else if(sort.equals("Most popular"))Collections.sort(rows,(a,b)->Double.compare(b.raw.optDouble("popularity"),a.raw.optDouble("popularity")));else if(sort.equals("A–Z"))Collections.sort(rows,(a,b)->a.title.compareToIgnoreCase(b.title));else if(sort.equals("Z–A"))Collections.sort(rows,(a,b)->b.title.compareToIgnoreCase(a.title));
         if(tvAtmosphere!=null&&!rows.isEmpty())atmosphere(rows.get(0),token);
@@ -462,7 +465,7 @@ public class MainActivity extends Activity {
         space(panel,24);TextView synopsis=text(item.description.isEmpty()?"No synopsis available.":item.description,15,INK);synopsis.setLineSpacing(dp(4),1);panel.addView(synopsis);space(panel,24);
         LinearLayout rich=column();if(item.id.startsWith("tmdb-"))rich.addView(text("Loading cast and details…",13,MUTED));space(panel,16);
 
-        panel.addView(button(favorites().contains(item.id)?"Remove from watchlist":"Add to watchlist",()->toggleFavorite(item)));space(panel,10);panel.addView(button("Add to collection",()->addCollection(item)));if(item.type.equals("series")){space(panel,10);panel.addView(button("Mark season watched",()->markSeasonDialog(item)));space(panel,10);panel.addView(button("Mark series watched",()->markSeriesWatched(item)));}if(item.id.startsWith("tmdb-")){space(panel,10);panel.addView(button("Trailer",()->trailer(detailData[0])));space(panel,10);Button planned=button(savedIds("planned").contains(item.id)?"Planned ✓":"Plan to watch",()->plan(item));planned.setOnClickListener(v->{plan(item);planned.setText(savedIds("planned").contains(item.id)?"Planned ✓":"Plan to watch");});panel.addView(planned);space(panel,10);panel.addView(button("Share link",()->share(item)));}
+        panel.addView(button(favorites().contains(item.id)?"Remove from watchlist":"Add to watchlist",()->toggleFavorite(item)));space(panel,10);panel.addView(button("Add to collection",()->addCollection(item)));panel.addView(button(prefs.getInt("percent:"+item.id,0)>=95?"Mark unwatched":"Mark watched",()->toggleWatched(item)));if(item.type.equals("series")){space(panel,10);panel.addView(button("Mark season watched",()->markSeasonDialog(item)));space(panel,10);panel.addView(button("Mark series watched",()->markSeriesWatched(item)));}if(item.id.startsWith("tmdb-")){space(panel,10);panel.addView(button("Trailer",()->trailer(detailData[0])));space(panel,10);Button planned=button(savedIds("planned").contains(item.id)?"Planned ✓":"Plan to watch",()->plan(item));planned.setOnClickListener(v->{plan(item);planned.setText(savedIds("planned").contains(item.id)?"Planned ✓":"Plan to watch");});panel.addView(planned);space(panel,10);panel.addView(button("Share link",()->share(item)));}
         space(panel,16);panel.addView(rich);
         ScrollView view=new ScrollView(this);view.setFillViewport(true);view.getViewTreeObserver().addOnScrollChangedListener(()->{ui.removeCallbacks(visiblePictures);ui.postDelayed(visiblePictures,80);});view.addView(panel);scene.addView(view,new FrameLayout.LayoutParams(-1,-1));
         LinearLayout related=column();space(panel,24);panel.addView(related);AlertDialog dialog=new AlertDialog.Builder(this).setView(scene).setNegativeButton("Close",null).create();dialog.setOnDismissListener(d->{detailsOpen=false;if(!isDestroyed())render();});dialog.show();if(item.id.startsWith("tmdb-")){String key=tmdbKey();io.execute(()->{try{JSONObject data=ContentApi.details(item,key);ui.post(()->{if(isDestroyed()||!dialog.isShowing())return;detailData[0]=data;if(item.type.equals("series"))configureSeriesSelectors(item,data,detailSeasonPicker,detailEpisodePicker,detailSeason,detailEpisode);titleExtras(rich,data,item,renderVersion);recommendations(related,data,item,renderVersion);collectionSection(related,data,item,renderVersion);ui.post(visiblePictures);});}catch(Exception error){ui.post(()->{if(dialog.isShowing()){rich.removeAllViews();rich.addView(text("Extra title details unavailable. Try again later.",13,MUTED));}});}});}
@@ -570,8 +573,69 @@ public class MainActivity extends Activity {
     boolean channelFavorite(String section,M3uPlaylist.Channel c){return savedIds("liveFavorites").contains(channelFavoriteKey(section,c));}
 
     void libraryMenu(){new AlertDialog.Builder(this).setTitle("Your Space").setItems(new String[]{"Downloads","Watchlist","Continue watching","Plan to watch","Watch history","Search history","Collections"},(d,n)->{category=new String[]{"Downloads","Watchlist","Continue","Plan to watch","Watch history","Search history","Collections"}[n];collection="";++loadVersion;catalog=new ArrayList<>(browse);for(Map.Entry<String,?> e:prefs.getAll().entrySet())if(e.getKey().startsWith("saved:")&&e.getValue() instanceof String)try{Catalog.Item item=new Catalog.Item(new JSONObject((String)e.getValue()));boolean exists=false;for(Catalog.Item old:catalog)if(old.id.equals(item.id))exists=true;if(!exists)catalog.add(item);}catch(Exception ignored){}render();}).show();}
-    void collections(){TextView title=text("Collections",28,INK);bold(title);content.addView(title);space(content,16);content.addView(button("Create collection",()->createCollection(null)));space(content,16);for(String name:new TreeSet<>(savedIds("collections"))){content.addView(button(name,()->{collection=name;render();}));space(content,10);}if(savedIds("collections").isEmpty())content.addView(text("Organize your favorite titles into collections.",15,MUTED));}
-    void createCollection(Catalog.Item item){EditText input=new EditText(this);input.setSingleLine(true);input.setHint("Collection name");new AlertDialog.Builder(this).setTitle("Create collection").setView(input).setPositiveButton("Create",(d,n)->{String name=input.getText().toString().trim();if(name.isEmpty()||name.length()>60){message("Use a name between 1 and 60 characters");return;}Set<String> names=savedIds("collections");names.add(name);SharedPreferences.Editor e=prefs.edit().putStringSet("collections",names);if(item!=null){Set<String> ids=savedIds("collection:"+name);ids.add(item.id);e.putStringSet("collection:"+name,ids).putString("saved:"+item.id,item.raw.toString());}e.apply();render();}).setNegativeButton("Cancel",null).show();}
+    void collections(){
+        TextView title=text("Collections",28,INK);bold(title);content.addView(title);space(content,16);
+        content.addView(button("Create collection",()->createCollection(null)));space(content,16);
+        for(String name:new TreeSet<>(savedIds("collections"))){
+            LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);
+            row.addView(button(name,()->{collection=name;render();}),new LinearLayout.LayoutParams(0,dp(52),1));
+            row.addView(button("Manage",()->manageCollection(name)),new LinearLayout.LayoutParams(dp(BuildConfig.TV?156:112),dp(52)));
+            content.addView(row);space(content,10);
+        }
+        if(savedIds("collections").isEmpty())content.addView(text("Organize your favorite titles into collections.",15,MUTED));
+    }
+    void chooseWatchlistStatus(){
+        String[] names={"All saved titles","Unwatched","Watched"},values={"all","unwatched","watched"};
+        new AlertDialog.Builder(this).setTitle("Smart Watchlist · Show").setItems(names,(d,i)->{
+            watchlistStatus=values[i];render();
+        }).setNegativeButton("Cancel",null).show();
+    }
+    boolean validCollectionName(String n){return n!=null&&!n.isEmpty()&&n.length()<=60&&
+        !n.equals("__proto__")&&!n.equals("constructor")&&!n.equals("prototype")&&
+        n.indexOf('<')<0&&n.indexOf('>')<0;}
+    void manageCollection(String original){
+        new AlertDialog.Builder(this).setTitle(original)
+            .setItems(new String[]{"Rename collection","Delete collection"},(d,choice)->{
+                if(choice==0){
+                    EditText input=new EditText(this);input.setSingleLine(true);input.setText(original);
+                    new AlertDialog.Builder(this).setTitle("Rename collection").setView(input)
+                        .setPositiveButton("Save",(dialog,n)->{
+                            String next=input.getText().toString().trim();
+                            Set<String> names=savedIds("collections");
+                            if(!validCollectionName(next)||!names.contains(original)||!next.equals(original)&&names.contains(next)){
+                                message("Choose a different name (1–60 characters)");return;
+                            }
+                            if(!next.equals(original)){
+                                Set<String> contents=savedIds("collection:"+original);
+                                names.remove(original);names.add(next);
+                                prefs.edit().putStringSet("collections",names)
+                                    .putStringSet("collection:"+next,contents)
+                                    .remove("collection:"+original).apply();
+                                if(collection.equals(original))collection=next;
+                            }
+                            render();
+                        }).setNegativeButton("Cancel",null).show();
+                }else{
+                    new AlertDialog.Builder(this).setTitle("Delete "+original+"?")
+                        .setMessage("Only the collection will be deleted. Your saved movies, watchlist and history remain.")
+                        .setPositiveButton("Delete",(dialog,n)->{
+                            Set<String> names=savedIds("collections");
+                            names.remove(original);
+                            prefs.edit().putStringSet("collections",names).remove("collection:"+original).apply();
+                            if(collection.equals(original))collection="";
+                            render();
+                        }).setNegativeButton("Cancel",null).show();
+                }
+            }).setNegativeButton("Cancel",null).show();
+    }
+    void toggleWatched(Catalog.Item item){
+        boolean watched=prefs.getInt("percent:"+item.id,0)>=95;
+        SharedPreferences.Editor edit=prefs.edit();
+        if(watched)edit.remove("percent:"+item.id).remove("position:"+item.id);
+        else edit.putInt("percent:"+item.id,100).putLong("watchedAt:"+item.id,System.currentTimeMillis());
+        edit.apply();render();
+    }
+    void createCollection(Catalog.Item item){EditText input=new EditText(this);input.setSingleLine(true);input.setHint("Collection name");new AlertDialog.Builder(this).setTitle("Create collection").setView(input).setPositiveButton("Create",(d,n)->{String name=input.getText().toString().trim();if(!validCollectionName(name)||savedIds("collections").contains(name)){message("Use a unique collection name between 1 and 60 characters");return;}Set<String> names=savedIds("collections");names.add(name);SharedPreferences.Editor e=prefs.edit().putStringSet("collections",names);if(item!=null){Set<String> ids=savedIds("collection:"+name);ids.add(item.id);e.putStringSet("collection:"+name,ids).putString("saved:"+item.id,item.raw.toString());}e.apply();render();}).setNegativeButton("Cancel",null).show();}
     void addCollection(Catalog.Item item){String[] names=new TreeSet<>(savedIds("collections")).toArray(new String[0]);new AlertDialog.Builder(this).setTitle("Add to collection").setItems(names,(d,n)->{Set<String> ids=savedIds("collection:"+names[n]);ids.add(item.id);prefs.edit().putStringSet("collection:"+names[n],ids).putString("saved:"+item.id,item.raw.toString()).apply();message("Added to "+names[n]);}).setPositiveButton("New collection",(d,n)->createCollection(item)).setNegativeButton("Cancel",null).show();}
     /** Every Android TV movie/series source has its own always-visible controller dropdown. */
     void addTvSourceNavigationRows(LinearLayout panel){
