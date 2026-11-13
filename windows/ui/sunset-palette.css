@@ -274,3 +274,13 @@
 .zero-search-suggest:not([hidden]){position:absolute;z-index:80;left:0;right:0;top:calc(100% + 6px);display:flex;flex-direction:column;padding:5px;background:#1e2025;border:1px solid #4c4f58;border-radius:10px;box-shadow:0 12px 25px #0009}
 .zero-search-suggest button{background:transparent;text-align:left;border:0;font-size:13px;color:white;padding:9px 12px}
 .zero-search-suggest button:hover{background:#df253122}
+
+/* ZeroPlay 2.2.6 TEST: manage personal collections without changing the base theme. */
+.zero-collection{padding:16px 0 22px;border-bottom:1px solid #ffffff1c}
+.zero-collection-actions{display:flex;gap:8px}
+.zero-collection-actions button{padding:7px 11px;font-size:12px}
+.zero-watchlist-filters{display:flex;justify-content:flex-start;margin-bottom:12px}
+.zero-watchlist-filters label{display:flex;align-items:center;gap:10px}
+.zero-watchlist-filters select{min-width:160px}
+.zero-watchlist-item .card{width:100%}
+.zero-watchlist-item>button:last-child{font-size:12px;border:1px solid #ffffff1c;padding:7px 10px;width:100%;margin-top:8px;text-align:center}
