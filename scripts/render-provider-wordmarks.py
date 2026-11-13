@@ -11,7 +11,7 @@ import cairosvg
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "windows" / "ui" / "provider-logos"
 DEST = ROOT / "app" / "src" / "main" / "assets" / "provider-logos"
-BRANDS = ("netflix", "prime", "hulu", "disney", "paramount", "peacock", "max", "apple")
+BRANDS = ("netflix", "hulu", "disney", "max", "apple", "paramount", "peacock", "youtube-tv")
 
 def main():
     DEST.mkdir(parents=True, exist_ok=True)
