@@ -115,3 +115,73 @@
 :root[data-theme="dark"] main>header{padding-top:16px;padding-bottom:10px}
 :root[data-theme="dark"] #content>.zero-fresh-controls{padding:3px 26px 8px}
 :root[data-theme="dark"] .hero{min-height:clamp(380px,43vw,660px)}
+
+/* Discovery 2.1: toolbar controls and compact Clean UI navigation. */
+:root[data-section="Home"] .home-refresh-button{
+  display:inline-flex!important;align-items:center;justify-content:center;gap:7px;
+  height:42px;min-height:42px;padding:10px 16px!important;
+  font-size:13px;font-weight:750;white-space:nowrap;
+  border:1px solid #d82636!important;background:#bf1b2c!important;color:#fff!important;
+  border-radius:9px;
+}
+:root[data-section="Home"] .home-refresh-button:hover,
+:root[data-section="Home"] .home-refresh-button:focus-visible{
+  background:#e0293c!important;border-color:#ff4053!important;
+}
+:root:not([data-section="Home"]) .home-refresh-button{display:none!important}
+:root[data-section="Home"] .surprise-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:42px;min-height:42px;padding:10px 16px!important;
+  font-size:13px;font-weight:750;border-radius:9px;
+}
+:root[data-layout="youtube"]:not([data-rail-expanded="true"]) aside .brand{
+  display:none!important;visibility:hidden!important;
+}
+:root[data-layout="youtube"][data-rail-expanded="true"] aside .brand{
+  display:flex!important;align-items:center;justify-content:center;
+  width:100%;max-width:100%;overflow:hidden;margin:0 0 20px!important;
+}
+:root[data-layout="youtube"][data-rail-expanded="true"] aside .brand .zeroplay-wordmark{
+  display:block;max-width:100%;width:100%;height:auto;object-fit:contain;
+}
+:root[data-layout="youtube"]:not([data-rail-expanded="true"]) aside .zeroplay-wordmark{
+  display:none!important;
+}
+/* Actual TMDB/JustWatch provider logos on dark, large streaming cards. */
+:root[data-theme="dark"] .provider-row{
+  display:flex;gap:16px;overflow-x:auto;padding:8px 3px 16px;scroll-snap-type:x proximity;
+}
+:root[data-theme="dark"] .provider{
+  flex:0 0 186px;width:186px;height:116px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:14px!important;scroll-snap-align:start;
+  position:relative;isolation:isolate;overflow:hidden;
+  border:1px solid #36363f!important;border-radius:19px!important;
+  background:linear-gradient(145deg,#303038,#17171d)!important;
+  box-shadow:0 8px 18px #0005, inset 0 1px #ffffff16;
+}
+:root[data-theme="dark"] .provider::before{
+  content:"";position:absolute;inset:0;z-index:-1;opacity:.28;
+  background:radial-gradient(circle at 70% 20%,var(--provider-glow,#a61229),transparent 65%);
+}
+:root[data-theme="dark"] .provider[data-provider-brand="netflix"]{--provider-glow:#f50028}
+:root[data-theme="dark"] .provider[data-provider-brand="prime"]{--provider-glow:#009bd7}
+:root[data-theme="dark"] .provider[data-provider-brand="disney"]{--provider-glow:#007ad7}
+:root[data-theme="dark"] .provider[data-provider-brand="hulu"]{--provider-glow:#00e383}
+:root[data-theme="dark"] .provider[data-provider-brand="max"]{--provider-glow:#735aff}
+:root[data-theme="dark"] .provider[data-provider-brand="apple"]{--provider-glow:#8190a3}
+:root[data-theme="dark"] .provider[data-provider-brand="paramount"]{--provider-glow:#0066ff}
+:root[data-theme="dark"] .provider[data-provider-brand="peacock"]{--provider-glow:#f9bd50}
+:root[data-theme="dark"] .provider img{
+  width:70px;height:70px;max-width:84%;flex-shrink:0;
+  object-fit:contain;display:block;margin:0!important;
+  border-radius:12px;box-shadow:0 2px 14px #0002;
+}
+:root[data-theme="dark"] .provider span{
+  font-size:12px;line-height:15px;font-weight:750;color:#fff;
+  max-width:156px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;
+}
+:root[data-theme="dark"] .provider:hover,:root[data-theme="dark"] .provider:focus-visible{
+  border-color:#ff4053!important;outline:2px solid #ff4053;
+  outline-offset:1px;transform:translateY(-2px);
+}
