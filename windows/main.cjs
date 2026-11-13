@@ -3,6 +3,8 @@ const fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('n
 const versions=require('./version-manager.cjs');
 const sourceIntelligence=require('./source-intelligence.cjs');
 const watchlistModel=require('./ui/watchlist-2260.js');
+const {RequestCoalescer}=require('./api-request-coalescer-2260.cjs');
+const tmdbRequests=new RequestCoalescer(48);
 const {PlayerHost}=require('./player-host.cjs');
 const {OfflineHost}=require('./offline-host.cjs');
 const offlineMedia=require('./offline-media.cjs');
@@ -57,11 +59,37 @@ function snapshot(){if(state.settings.rawcastPlayback!==true&&state.settings.sou
 function trusted(event){if(event.sender!==main?.webContents||event.senderFrame?.url!==uiURL)throw Error('Untrusted request');}
 function playerOrigin(url){return sources.trusted(url);}
 async function api(route,params={}){
-  if(!core.endpoint(route))throw Error('Unsupported catalog request');if(!key())throw Error('Add your TMDB API key in Settings.');const id=apiCacheKey(route,params),cached=apiCacheRead(id,5*60*1000);if(cached)return cached.data;
-  const url=new URL('https://api.themoviedb.org/3'+route);url.searchParams.set('api_key',key());url.searchParams.set('include_adult','false');
-  const allowed=new Set(['query','page','append_to_response','watch_region','with_watch_providers','with_watch_monetization_types','sort_by','with_genres','with_original_language','include_video','primary_release_date.lte','primary_release_date.gte','first_air_date.lte','first_air_date.gte','vote_average.gte','vote_count.gte','with_runtime.lte','with_origin_country']);
-  for(const [name,value]of Object.entries(params||{}))if(allowed.has(name)&&typeof value!=='object'&&String(value).length<=300)url.searchParams.set(name,String(value));
-  try{const response=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error(response.status===401?'TMDB key rejected. Check Settings.':'TMDB is unavailable. Try again.');const data=await response.json();apiCacheWrite(id,data);return data;}catch(error){const stale=apiCacheRead(id);if(stale)return stale.data;throw error;}
+  if(!core.endpoint(route))throw Error('Unsupported catalog request');
+  const apiKey=key();
+  if(!apiKey)throw Error('Add your TMDB API key in Settings.');
+  const id=apiCacheKey(route,params),cached=apiCacheRead(id,5*60*1000);
+  if(cached)return cached.data;
+  return tmdbRequests.run(id,async()=>{
+    const recent=apiCacheRead(id,5*60*1000);
+    if(recent)return recent.data;
+    const url=new URL('https://api.themoviedb.org/3'+route);
+    url.searchParams.set('api_key',apiKey);
+    url.searchParams.set('include_adult','false');
+    const allowed=new Set(['query','page','append_to_response','watch_region','with_watch_providers',
+      'with_watch_monetization_types','sort_by','with_genres','with_original_language','include_video',
+      'primary_release_date.lte','primary_release_date.gte','first_air_date.lte','first_air_date.gte',
+      'vote_average.gte','vote_count.gte','with_runtime.lte','with_origin_country']);
+    for(const [name,value]of Object.entries(params||{}))
+      if(allowed.has(name)&&typeof value!=='object'&&String(value).length<=300)
+        url.searchParams.set(name,String(value));
+    try{
+      const response=await fetch(url,{signal:AbortSignal.timeout(15000)});
+      if(!response.ok)throw Error(response.status===401?'TMDB key rejected. Check Settings.':
+        response.status===429?'TMDB rate limit reached. Try again shortly.':'TMDB is unavailable. Try again.');
+      const data=await response.json();
+      apiCacheWrite(id,data);
+      return data;
+    }catch(error){
+      const stale=apiCacheRead(id);
+      if(stale)return stale.data;
+      throw error;
+    }
+  });
 }
 function refresh(){if(main&&!main.isDestroyed())main.webContents.send('refresh');}
 function installPlayerScripts(contents){
