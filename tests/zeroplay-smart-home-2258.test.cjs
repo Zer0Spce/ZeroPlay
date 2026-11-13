@@ -305,7 +305,7 @@ test('Android launcher has charcoal adaptive and legacy icons, never a white lau
   assert.ok(oldIcon.includes('@color/zeroplay_launcher_charcoal'));
   assert.ok(adaptive.includes('<adaptive-icon'));
   assert.ok(adaptive.includes('@color/zeroplay_launcher_charcoal'));
-  assert.ok(adaptive.includes('@drawable/zeroplay_launcher_foreground'));
+  assert.ok(adaptive.includes('@drawable/zeroplay_appicon'));
   assert.ok(!adaptive.includes('#FFFFFF'));
 });
 
@@ -325,32 +325,44 @@ test('Android TV refreshes its recommendations at launch without a Refresh Picks
   assert.ok(!resume.includes('SmartHomeRecommendations.refresh('));
 });
 
-test('Android vector launcher prevents pixelated, off-center TV graphics',()=>{
+
+test('approved uploaded ZeroPlay icon and wordmark are high resolution, consistent across platforms',()=>{
   const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-  const fg=read('app/src/main/res/drawable/zeroplay_launcher_foreground.xml');
-  const banner=read('app/src/main/res/drawable/tv_banner.xml');
-  const legacy=read('app/src/main/res/mipmap/zeroplay_launcher.xml');
+  const bytes=p=>fs.readFileSync(path.join(root,p));
+  const pngInfo=p=>{
+    const b=bytes(p);
+    assert.equal(b.subarray(0,8).toString('hex'),'89504e470d0a1a0a',p+' not PNG');
+    return {width:b.readUInt32BE(16),height:b.readUInt32BE(20),size:b.length};
+  };
+  const aIcon='app/src/main/res/drawable-nodpi/zeroplay_appicon.png';
+  const wIcon='windows/assets/zeroplay-app-icon.png';
+  const aMark='app/src/main/res/drawable-nodpi/zeroplay_wordmark.png';
+  const wMark='windows/assets/zeroplay-home-logo.png';
+  const icon=pngInfo(aIcon),wordmark=pngInfo(aMark);
+  assert.ok(icon.width>=512&&icon.height>=512,'launcher source must not be 160px');
+  assert.ok(wordmark.width>=1200&&wordmark.height>=300,'wordmark must use uploaded hi-res asset');
+  assert.deepEqual(bytes(aIcon),bytes(wIcon),'Android and Windows icon must be identical');
+  assert.deepEqual(bytes(aMark),bytes(wMark),'Android and Windows wordmark must be identical');
   const adaptive=read('app/src/main/res/mipmap-anydpi-v26/zeroplay_launcher.xml');
   const round=read('app/src/main/res/mipmap-anydpi-v26/zeroplay_launcher_round.xml');
+  const legacy=read('app/src/main/res/mipmap/zeroplay_launcher.xml');
+  const banner=read('app/src/main/res/drawable/tv_banner.xml');
+  const colors=read('app/src/main/res/values/zeroplay_icon_colors.xml');
   const manifest=read('app/src/main/AndroidManifest.xml');
-  // Scalable vectors, not the old 160x160 px PNG resampled by a TV launcher.
-  assert.match(fg,/<vector /);
-  assert.match(fg,/android:viewportWidth="108"/);
-  assert.match(fg,/android:translateX="16\.18"/);
-  assert.match(fg,/android:translateY="15\.20"/);
-  assert.match(fg,/android:scaleX="0\.488"/);
-  assert.match(fg,/android:fillColor="#ec111b"/);
-  assert.match(fg,/android:fillColor="#fbfbfb"/);
-  assert.match(banner,/<vector /);
-  assert.match(banner,/android:viewportWidth="320"/);
-  assert.match(banner,/android:viewportHeight="180"/);
-  assert.match(banner,/android:fillColor="#202126"/);
-  assert.match(banner,/android:translateX="67\.00"/);
-  assert.match(banner,/android:translateY="-5\.40"/);
-  assert.match(manifest,/android:banner="@drawable\/tv_banner"/);
-  for(const file of [adaptive,round,legacy]){
-    assert.ok(file.includes('@drawable/zeroplay_launcher_foreground'));
-    assert.ok(!file.includes('@drawable/zeroplay_appicon'),'old low-resolution PNG must not reach launcher');
+  for(const launcher of [adaptive,round,legacy]){
+    assert.ok(launcher.includes('@drawable/zeroplay_appicon'),'launcher not wired to official image');
+    assert.ok(!launcher.includes('@drawable/zeroplay_launcher_foreground'),'old traced art still used');
   }
-  assert.ok(!banner.includes('android:fillColor="#242426"'),'old hand-drawn banner should be replaced');
+  assert.ok(adaptive.includes('android:inset="20dp"'));
+  assert.ok(round.includes('android:inset="20dp"'));
+  assert.ok(colors.includes('#202126'));
+  assert.ok(banner.includes('@drawable/zeroplay_wordmark'),'TV banner must contain approved wordmark');
+  assert.ok(banner.includes('android:width="320dp"'));
+  assert.ok(banner.includes('android:height="180dp"'));
+  assert.ok(banner.includes('android:gravity="center"'));
+  assert.ok(manifest.includes('android:banner="@drawable/tv_banner"'));
+  const winHtml=read('windows/ui/index.html');
+  assert.ok(winHtml.includes('../assets/zeroplay-home-logo.png?v=2258-approved-logo'));
+  const winPack=read('scripts/prepare-2258-windows-test.cjs');
+  assert.ok(winPack.includes("const sizes=[16,24,32,48,64,128,256]"));
 });

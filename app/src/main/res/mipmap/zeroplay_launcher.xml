@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pre-Android-8 / Android TV fallback: scale vector with the launcher bounds, not a fixed-size 160px PNG. -->
+<!-- Older Android / TV launcher fallback: preserve the approved square logo proportions. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/zeroplay_launcher_charcoal"/>
-    <item android:gravity="fill" android:drawable="@drawable/zeroplay_launcher_foreground"/>
+    <item android:gravity="fill" android:left="3dp" android:top="3dp"
+          android:right="3dp" android:bottom="3dp"
+          android:drawable="@drawable/zeroplay_appicon"/>
 </layer-list>

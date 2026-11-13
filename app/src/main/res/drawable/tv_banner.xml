@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android TV launcher banner: centered vector playmark on ZeroPlay charcoal, no raster upscaling. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="320dp" android:height="180dp"
-    android:viewportWidth="320" android:viewportHeight="180">
-    <path android:fillColor="#202126" android:pathData="M0,0h320v180H0z"/>
-    <group android:scaleX="1.20" android:scaleY="1.20"
-           android:translateX="67.00" android:translateY="-5.40">
-        <path android:fillColor="#6e070b" android:pathData="M21,38 L17,47 L18,52 L63,52 L64,55 L19,107 L13,121 L14,124 L98,126 L116,120 L122,116 L133,104 L139,90 L140,73 L134,55 L130,49 L121,41 L109,37 L96,36 L24,36Z M102,55 L112,60 L118,67 L122,79 L121,89 L117,97 L106,107 L96,110 L85,109 L79,106 L70,97 L66,89 L65,78 L74,67 L84,58 L91,55Z"/>
-        <path android:fillColor="#b20714" android:pathData="M20,40 L17,47 L18,52 L62,52 L64,55 L39,87 L19,107 L13,121 L14,124 L60,125 L61,124 L59,115 L62,114 L69,120 L79,125 L98,126 L116,120 L122,116 L133,104 L139,90 L140,73 L137,61 L132,52 L128,48 L109,46 L89,38 L24,37Z M118,67 L122,79 L121,89 L117,97 L106,108 L96,111 L85,110 L80,108 L70,97 L65,85 L57,94 L54,100 L54,104 L52,106 L44,105 L44,102 L85,56 L92,53 L100,53 L112,60Z"/>
-        <path android:fillColor="#ec111b" android:pathData="M20,40 L17,47 L18,52 L63,52 L64,55 L38,88 L19,107 L13,122 L15,124 L27,124 L35,120 L47,118 L57,108 L68,119 L81,125 L94,126 L111,120 L118,114 L125,112 L132,105 L139,89 L140,73 L134,55 L126,46 L112,46 L91,38 L83,37 L23,37Z M119,63 L122,71 L121,89 L117,97 L107,107 L95,111 L85,110 L80,107 L67,93 L64,98 L64,106 L56,107 L43,105 L47,98 L84,56 L93,52 L103,52 L112,56Z"/>
-        <path android:fillColor="#f65a62" android:pathData="M82,36 L90,37 L92,39 L101,41 L109,45 L119,47 L125,46 L122,42 L109,37Z"/>
-        <path android:fillColor="#fbfbfb" android:pathData="M85,65 L84,96 L88,98 L110,84 L112,81 L110,78 L91,66Z"/>
-    </group>
-</vector>
+<!-- Full 16:9 Leanback launcher banner, using the official PNG wordmark. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="320dp" android:height="180dp"/>
+            <solid android:color="@color/zeroplay_launcher_charcoal"/>
+        </shape>
+    </item>
+    <item android:gravity="center" android:width="278dp" android:height="76dp"
+          android:drawable="@drawable/zeroplay_wordmark"/>
+</layer-list>
