@@ -276,9 +276,17 @@ test('Android TEST can install beside 2.2.5.7 without replacing production app o
   const gradle=read('app/build.gradle');
   const manifest=read('app/src/main/AndroidManifest.xml');
   const workflow=read('.github/workflows/zeroplay-2258-candidate-test.yml');
-  assert.ok(gradle.includes("ZERO_ANDROID_TEST_SIDE_BY_SIDE"));
-  assert.ok(gradle.includes("'.test' : ''"));
-  assert.ok(gradle.includes("appLabel: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay TEST' : 'ZeroPlay'"));
+  // 2.2.6's dedicated QA branch deliberately requires .test even without an env variable.
+  if(gradle.includes("applicationIdSuffix '.mobile.test'")){
+    assert.ok(gradle.includes("applicationIdSuffix '.tv.test'"));
+    assert.ok(gradle.includes("applicationIdSuffix '.lite.mobile.test'"));
+    assert.ok(gradle.includes("applicationIdSuffix '.lite.tv.test'"));
+    assert.ok(gradle.includes("appLabel: 'ZeroPlay TEST'"));
+  }else{
+    assert.ok(gradle.includes("ZERO_ANDROID_TEST_SIDE_BY_SIDE"));
+    assert.ok(gradle.includes("'.test' : ''"));
+    assert.ok(gradle.includes("appLabel: System.getenv('ZERO_ANDROID_TEST_SIDE_BY_SIDE') == '1' ? 'ZeroPlay TEST' : 'ZeroPlay'"));
+  }
   assert.ok(manifest.includes('android:label="${appLabel}"'));
   assert.ok(manifest.includes('android:authorities="${applicationId}.files"'));
   assert.ok(workflow.includes("ZERO_ANDROID_TEST_SIDE_BY_SIDE: '1'"));
