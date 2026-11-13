@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <application android:label="${appLabel}" android:icon="@drawable/zeroplay_appicon" android:banner="@drawable/tv_banner" android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="true">
+    <application android:label="${appLabel}" android:icon="@mipmap/zeroplay_launcher" android:roundIcon="@mipmap/zeroplay_launcher" android:banner="@drawable/tv_banner" android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="true">
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"
