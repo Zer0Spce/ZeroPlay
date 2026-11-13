@@ -505,10 +505,10 @@ public class MainActivity extends Activity {
     String episodeReminder(Catalog.Item item,int season,int episode){String key=item.id+":s"+season+"e"+episode;long position=prefs.getLong("position:"+key,0),duration=prefs.getLong("duration:"+key,0);if(position<=0)return "";if(duration>0){int percent=ProgressRules.percent(position,duration);if(percent>=95)return " · ✓ Watched";return " · Continue "+Math.max(1,percent)+"%";}return " · In progress";}
     void loadSeriesEpisodeSelector(Catalog.Item item,int season,Spinner episodePicker,int[] selectedEpisode){selectedEpisode[0]=0;episodePicker.setEnabled(false);episodePicker.setAdapter(spinnerAdapter(new String[]{"Loading episodes…"}));String id=item.id.substring(item.id.lastIndexOf('-')+1),key=tmdbKey();io.execute(()->{try{JSONArray episodes=ContentApi.seasonEpisodes(id,season,key);String[] labels=new String[episodes.length()];int[] numbers=new int[episodes.length()];for(int i=0;i<episodes.length();i++){JSONObject ep=episodes.optJSONObject(i);numbers[i]=ep.optInt("episode",i+1);labels[i]="Episode "+numbers[i]+" · "+ep.optString("title","Episode "+numbers[i])+episodeReminder(item,season,numbers[i]);}ui.post(()->{if(isDestroyed()||!detailsOpen)return;if(labels.length==0){episodePicker.setAdapter(spinnerAdapter(new String[]{"No episodes"}));return;}episodePicker.setAdapter(spinnerAdapter(labels));int preferredEpisode=0,rememberedEpisode=season==prefs.getInt("resumeSeason:"+item.id,-1)?prefs.getInt("resumeEpisode:"+item.id,0):0;if(rememberedEpisode>0)for(int i=0;i<numbers.length;i++)if(numbers[i]==rememberedEpisode){preferredEpisode=i;break;}episodePicker.setSelection(preferredEpisode,false);episodePicker.setEnabled(true);selectedEpisode[0]=numbers[preferredEpisode];
     Map<Integer,Integer> recorded=new HashMap<>();
-    for(int id:numbers){
-        String epKey=item.id+":s"+season+"e"+id;
+    for(int episodeNo:numbers){
+        String epKey=item.id+":s"+season+"e"+episodeNo;
         long p=prefs.getLong("position:"+epKey,0),total=prefs.getLong("duration:"+epKey,0);
-        recorded.put(id,total>0?ProgressRules.percent(p,total):p>0?1:0);
+        recorded.put(episodeNo,total>0?ProgressRules.percent(p,total):p>0?1:0);
     }
     SeriesProgress2260.Summary track=SeriesProgress2260.analyze(episodes,recorded);
     if(activeSeriesProgress!=null)activeSeriesProgress.setText(
