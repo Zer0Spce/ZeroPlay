@@ -48,3 +48,20 @@ test('app launcher and Windows player use new streaming-only carousel and Crimso
  assert.match(api,/color:'DF2531'/);
  assert.match(sources,/color=DF2531/);
 });
+
+test('balanced top ten represents distinct verified US providers when catalog supplies them',()=>{
+ const films=[];
+ for(const [brand,seed] of [['netflix',100],['hulu',200],['max',300],['disney',400]])
+  for(let i=0;i<12;i++)films.push(movie(seed+i,{providerBrand:brand}));
+ const picks=top.topTen(films,'cycle-2','2026-11-13');
+ assert.equal(picks.length,10);
+ const brands=new Set(picks.flatMap(p=>p.providerBrands));
+ for(const brand of ['netflix','hulu','max','disney'])assert.ok(brands.has(brand),brand);
+ assert.equal(new Set(picks.map(p=>p.id)).size,10);
+});
+test('duplicate films merge verified provider tags without inventing unavailable services',()=>{
+ const rows=[movie(10,{providerBrand:'netflix'}),movie(10,{providerBrand:'hulu'}),movie(11,{providerBrand:'not-a-provider'})];
+ const res=top.topTen(rows,'six-hours','2026-11-13');
+ assert.deepEqual(new Set(res.find(x=>x.id===10).providerBrands),new Set(['netflix','hulu']));
+ assert.deepEqual(res.find(x=>x.id===11).providerBrands,[]);
+});

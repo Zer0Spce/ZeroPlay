@@ -80,13 +80,16 @@ async function gather(load,state,loadProviderCatalog){
     const catalog=await loadProviderCatalog('/watch/providers/movie',{watch_region:'US'});
     const services=window.ZeroStreamingCarousel.providers(catalog?.results);
     if(services.length){
-      const with_watch_providers=services.map(p=>p.provider_id).join('|');
-      const filters={watch_region:'US',with_watch_providers,with_watch_monetization_types:'flatrate',
+      // Discover separately by provider so each movie has evidence for its badge.
+      // Aggregate successful responses; a failed provider never becomes a fabricated one.
+      const filters={watch_region:'US',with_watch_monetization_types:'flatrate',
         'primary_release_date.gte':daysAgo(420),'primary_release_date.lte':today,
         sort_by:'primary_release_date.desc','vote_count.gte':10};
-      const pages=[1,2,3+(c.base+c.bump)%3];
-      const responses=await Promise.allSettled(pages.map(page=>
-        load('/discover/movie',{...filters,page},'movie')));
+      const responses=await Promise.allSettled(services.map(async service=>{
+        const page=1+(c.base+c.bump)%2;
+        const titles=await load('/discover/movie',{...filters,with_watch_providers:service.provider_id,page},'movie');
+        return titles.map(movie=>({...movie,providerBrand:service.brand}));
+      }));
       const movies=responses.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
       streaming=window.ZeroStreamingCarousel.topTen(movies,c.seed,today);
     }
