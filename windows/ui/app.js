@@ -1,7 +1,7 @@
 'use strict';
 const $=selector=>document.querySelector(selector),escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 let zeroHomeDeck=null;
-let state,category='Home',libraryTab='Continue watching',page=1,request=0,detailRequest=0,heroIndex=0,heroTimer,heroPaused=false,providerType='movie',providerId,providerName,providerSort='popular',providerGenre='',homeData={},activeDetail,sourcePickerItem,pendingSource;const oneTimeSources=new Map();
+let state,category='Home',libraryTab='Continue watching',watchlistStatus='all',page=1,request=0,detailRequest=0,heroIndex=0,heroTimer,heroPaused=false,providerType='movie',providerId,providerName,providerSort='popular',providerGenre='',homeData={},activeDetail,sourcePickerItem,pendingSource;const oneTimeSources=new Map();
 const titles=new Map(),cache=new Map();
 let submittedQuery='',pageBusy=false,pageTotal=1,pageError=false,loadedKeys=new Set(),pagingObserver,liveTimer,playlistSnapshots=new Map(),channelGroup='All';
 const searchFilters={media:'all',year:'',rating:0,genre:0,provider:'',sort:'relevance'};
@@ -34,6 +34,12 @@ document.addEventListener('change',event=>{
   Object.assign(searchFilters,window.ZeroUniversalSearch.normalize(searchFilters));
   page=1;
   catalogPage().catch(error=>toast(error.message));
+});
+document.addEventListener('change',event=>{
+ if(event.target.dataset.watchlistStatus&&libraryTab==='Watchlist'){
+   watchlistStatus=['all','watched','unwatched'].includes(event.target.value)?event.target.value:'all';
+   renderLibrary();
+ }
 });
 document.addEventListener('change',event=>{const kind=event.target.dataset.sort;if(!kind)return;const value=event.target.value;if(kind==='titles'){titleSort=value;if(category==='Library')renderLibrary();else reorderTitles();}if(kind==='channels'){channelSort=value;renderPlaylist();}if(kind==='sports'){sportsSort=value;renderSports();}});
 function reorderTitles(){const grid=$('#catalog-grid');if(!grid)return;const items=[...loadedKeys].map(id=>titles.get(id)).filter(Boolean);grid.innerHTML=(section==='Search'?items:sortedTitles(items)).map(item=>card(item)).join('');}
@@ -297,8 +303,32 @@ async function verifySearchProviders(items,brand){
 function searchHistoryHTML(){return state.searches.length?state.searches.map(query=>`<div class="search-history"><button data-query="${escape(query)}">⌕ ${escape(query)}</button><button data-remove-query="${escape(query)}" aria-label="Remove search">×</button></div>`).join('')+'<button data-action="clear-searches">Clear search history</button>':'<p>Your submitted searches will appear here.</p>';}
 function renderLibrary(){++request;clearInterval(heroTimer);const tabs=['Continue watching','Watchlist','Plan to watch','Watch history','Search history','Collections'];let html=`<div class="library-tabs">${tabs.map(tab=>`<button data-library="${tab}" class="${libraryTab===tab?'selected':''}">${tab}</button>`).join('')}</div>`;
   if(libraryTab==='Search history')html+=searchHistoryHTML();else if(libraryTab==='Watch history')html+=state.history.length?state.history.map(item=>{titles.set(key(item),item);return `<div class="history-item">${item.poster?`<img src="${escape(item.poster)}" alt="">`:''}<div class="description"><b>${escape(item.title)}</b><p>${item.type==='tv'?'S'+item.season+' E'+item.episode+' · ':''}${item.percent>=95?'Completed':item.percent>0?Math.round(item.percent)+'% watched':'Started'} · ${new Date(item.at).toLocaleString()}</p></div><button data-play="${key(item)}" data-season="${item.season}" data-episode="${item.episode}">Watch</button><button data-remove-history="${escape(item.historyKey)}">Remove</button></div>`;}).join('')+'<div class="actions"><button data-action="clear-history">Clear watch history and resume positions</button></div>':'<p>No watch history yet. Choose a title to get started.</p>';
-  else if(libraryTab==='Collections'){const collections=Object.entries(state.collections).filter(([,items])=>Array.isArray(items));html+=collections.length?collections.map(([name,items])=>row(name,items)).join(''):'<p>Add a title to a collection from its details page.</p>';}
-  else{html+=sortTools('titles',titleSort,titleSorts);const items=sortedTitles(libraryTab==='Watchlist'?state.favorites:libraryTab==='Plan to watch'?state.planned:continueItems());html+=items.length?`<div class="grid">${items.map(item=>card(item)).join('')}</div>`:empty('A little room for your next favorite.','Save a title from its details page or start watching.');}$('#content').innerHTML=html;status('Saved on this computer');}
+  else if(libraryTab==='Collections'){
+    const collections=Object.entries(state.collections||{}).filter(([,items])=>Array.isArray(items));
+    html+=collections.length?collections.map(([name,items])=>`<section class="zero-collection">
+      <div class="section-head"><h3>${escape(name)} <small>${items.length} saved</small></h3>
+      <div class="zero-collection-actions">
+        <button type="button" data-collection-rename="${escape(name)}">Rename</button>
+        <button type="button" data-collection-delete="${escape(name)}">Delete</button>
+      </div></div>
+      <div class="cards">${items.map(item=>card(item)).join('')}</div>
+    </section>`).join(''):'<p>No custom collections yet. Add titles to a collection from their details page.</p>';
+  }
+  else{
+    if(libraryTab==='Watchlist')html+=`<div class="zero-watchlist-filters">
+      <label>Show <select data-watchlist-status="1">
+        <option value="all" ${watchlistStatus==='all'?'selected':''}>All</option>
+        <option value="unwatched" ${watchlistStatus==='unwatched'?'selected':''}>Unwatched</option>
+        <option value="watched" ${watchlistStatus==='watched'?'selected':''}>Watched</option>
+      </select></label></div>`;
+    html+=sortTools('titles',titleSort,titleSorts);
+    const source=libraryTab==='Watchlist'?window.ZeroWatchlist.filter(state.favorites,state.positions,watchlistStatus):
+      libraryTab==='Plan to watch'?state.planned:continueItems();
+    const items=sortedTitles(source);
+    html+=items.length?`<div class="grid">${items.map(item=>libraryTab==='Watchlist'?`<article class="zero-watchlist-item">
+      ${card(item)}<button type="button" data-watchlist-toggle="${key(item)}">${window.ZeroWatchlist.watched(state.positions,item)?'Mark unwatched':'Mark watched'}</button>
+      </article>`:card(item)).join('')}</div>`:empty('No matching titles.','Try a different watchlist filter or save another movie or series.');
+  }$('#content').innerHTML=html;status('Saved on this computer');}
 async function details(item){window.zeroExperience?.stop();activeDetail=item;atmosphere(item);const token=++detailRequest;$('#detail-body').innerHTML='<div class="settings-body"><h2>'+escape(item.title)+'</h2><p>Loading title details…</p></div>';if(!$('#detail').open)$('#detail').showModal();if(category==='Search')state=await window.zero.change('search',submittedQuery);try{const data=await api('/'+item.type+'/'+item.id,{append_to_response:'credits,videos,recommendations'});if(token!==detailRequest||!$('#detail').open)return;const genres=(data.genres||[]).map(x=>x.name).join(' · ');const creator=item.type==='movie'?(data.credits?.crew||[]).filter(x=>x.job==='Director').map(x=>x.name).join(', '):(data.created_by||[]).map(x=>x.name).join(', ');const trailer=(data.videos?.results||[]).filter(x=>x.site==='YouTube'&&x.type==='Trailer'&&/^[A-Za-z\d_-]{6,20}$/.test(x.key)).sort((a,b)=>Number(b.official)-Number(a.official))[0];item.originalTitle=data.original_title||data.original_name||item.title;item.trailer=trailer?'https://www.youtube.com/watch?v='+trailer.key:'';const related=list(data.recommendations,item.type);const collection=data.belongs_to_collection;const cast=(data.credits?.cast||[]).filter(x=>art(x.profile_path)).slice(0,14);const episodePicker=item.type==='tv'?'<div class="episode-picker"><label>Season<select id="season" aria-label="Season"></select></label><label>Episode<select id="episode" aria-label="Episode"></select></label></div>':'';$('#detail-body').innerHTML=`${item.backdrop?`<img class="detail-backdrop" src="${escape(item.backdrop)}" alt="">`:''}<div class="detail-main">${item.poster?`<img class="detail-poster" src="${escape(item.poster)}" alt="${escape(item.title)}">`:''}<div class="detail-info"><span class="eyebrow">${item.type==='tv'?'A SERIES TO GET LOST IN':'MAKE IT A MOVIE NIGHT'}</span><div class="detail-heading"><div><h2>${escape(item.title)}</h2>${badge(item)}</div><div class="watch-actions"><button class="primary" data-play="${key(item)}">▶ Watch now</button>${sourceButton(item)}</div></div>${episodePicker}<p>${escape(genres)}${data.runtime?' · '+Number(data.runtime)+' min':''}</p><p>${escape(data.overview||item.overview)}</p><small style="color:var(--muted)">${escape(creator?(item.type==='tv'?'Created by ':'Directed by ')+creator:'')}${data.production_countries?.length?' · '+escape(data.production_countries.map(x=>x.name).join(', ')):''}</small><div class="actions"><button data-favorite="${key(item)}">${state.favorites.some(x=>key(x)===key(item))?'✓ In watchlist':'+ Watchlist'}</button><button data-plan="${key(item)}">${state.planned.some(x=>key(x)===key(item))?'✓ Planned':'Plan to watch'}</button>${trailer?`<button data-trailer="${key(item)}">▷ Trailer</button>`:''}<button data-share="${key(item)}">TMDB page</button></div><div class="actions"><button class="primary" data-action="download-title">Find downloads</button><small>TSP Search · Up to 20 matching healthy torrents</small></div><div class="actions"><input id="collection-name" maxlength="60" placeholder="Collection name" aria-label="Collection name"><button data-action="collection">Add / remove collection</button></div><p style="font-size:11px">TMDB lists titles and metadata. Playback availability varies by source.</p></div></div><div class="detail-bottom">${cast.length?'<h3>Meet the cast</h3><div class="cast">'+cast.map(person=>`<div class="cast-person"><img loading="lazy" src="${escape(art(person.profile_path))}" alt=""><span>${escape(person.name)}</span></div>`).join('')+'</div>':''}${row('More like this',related)}${collection?.id?`<div class="actions"><button data-collection-id="${Number(collection.id)}" data-collection-name="${escape(collection.name||'Collection')}">View ${escape(collection.name||'movie collection')}</button></div>`:''}</div>`;
     if(item.type==='tv'){const seasons=(data.seasons||[]).filter(x=>x.season_number>=0&&x.episode_count>0);$('#season').innerHTML=seasons.map(x=>`<option value="${Number(x.season_number)}">${escape(x.name)}</option>`).join('');const resume=state.positions[key(item)];if(seasons.some(x=>x.season_number===resume?.season))$('#season').value=String(resume.season);$('#season').addEventListener('change',()=>loadEpisodes(item,token));await loadEpisodes(item,token,resume?.episode);}
   }catch(error){if(token===detailRequest)$('#detail-body').innerHTML=`<div class="settings-body"><h2>${escape(item.title)}</h2><p>${escape(error.message)}</p>${sourceButton(item)}<button class="primary" data-play="${key(item)}">Watch now</button></div>`;}}
@@ -320,6 +350,26 @@ document.addEventListener('click',async event=>{const target=event.target.closes
   if(target.dataset.share){const item=titles.get(target.dataset.share);await window.zero.external('https://www.themoviedb.org/'+item.type+'/'+item.id);return;}
   if(target.dataset.library){libraryTab=target.dataset.library;renderLibrary();return;}
   if(target.dataset.query){category='Search';page=1;submittedQuery=target.dataset.query;$('#query').value=target.dataset.query;await change('search',target.dataset.query);await searchTitles();return;}
+  if(target.dataset.watchlistToggle){
+    const id=target.dataset.watchlistToggle;
+    const item=titles.get(id);
+    if(!item||!state.favorites.some(row=>key(row)===id))return;
+    await change('mark-watched',{key:id,watched:!window.ZeroWatchlist.watched(state.positions,item)});
+    renderLibrary();return;
+  }
+  if(target.dataset.collectionRename){
+    const from=target.dataset.collectionRename;
+    const to=window.prompt('Rename collection',from);
+    if(to===null||to.trim()===from)return;
+    await change('collection-rename',{from,to});
+    toast('Collection renamed');renderLibrary();return;
+  }
+  if(target.dataset.collectionDelete){
+    const name=target.dataset.collectionDelete;
+    if(!window.confirm('Delete collection "'+name+'"? Its titles will remain in your watchlist.'))return;
+    await change('collection-delete',{name});
+    toast('Collection removed');renderLibrary();return;
+  }
   if(target.dataset.removeQuery){await change('remove-search',target.dataset.removeQuery);category==='Library'?renderLibrary():searchTitles();return;}
   if(target.dataset.removeHistory){await change('remove-history',target.dataset.removeHistory);renderLibrary();return;}
   if(target.dataset.hero){heroIndex=Number(target.dataset.hero);renderHero();return;}
