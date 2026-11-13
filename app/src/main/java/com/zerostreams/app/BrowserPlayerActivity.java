@@ -15,6 +15,7 @@ public class BrowserPlayerActivity extends Activity {
     private TvMouse mouse;
     private PlayerAdScan adScan;
     private long lastProgressSaved;
+    private String verifiedSourceSession="";
     private long lastPlayerGesture;
     private volatile boolean blockAds;
     private TextView status;
@@ -120,7 +121,7 @@ public class BrowserPlayerActivity extends Activity {
             @Override public void onPageFinished(WebView v,String url){
                 CookieManager.getInstance().flush();currentAddress=url;
                 if(playerGuard!=null)v.evaluateJavascript(playerGuard,null);
-                if(!reader&&!liteTvPlayer){long elapsed=Math.max(1,android.os.SystemClock.elapsedRealtime()-loadStarted);PlaybackHealth.success(prefs,currentProvider(),elapsed);failoverTried=false;applySmartMode();scheduleLoadTimeout();}
+                if(!reader&&!liteTvPlayer){long elapsed=Math.max(1,android.os.SystemClock.elapsedRealtime()-loadStarted);PlaybackHealth.loaded(prefs,currentProvider(),elapsed);applySmartMode();scheduleLoadTimeout();}
                 else if(liteTvPlayer)failoverTried=false;
                 status.setText(reader?"Publisher reader · use Back to return":liteTvPlayer?"External player · use Back to return":"External player · use Menu for ZeroPlay controls");
             }
@@ -303,7 +304,7 @@ public class BrowserPlayerActivity extends Activity {
         String id=parent.substring(parent.lastIndexOf('-')+1),type=parent.startsWith("tmdb-series-")?"tv":"movie";
         int season=1,episode=1;
         if(type.equals("tv")){int[] pos=currentEpisodePosition();season=pos[0];episode=pos[1];}
-        String current=currentProvider(),next=current.equals("vidstuck")?"zxcstream":current.equals("zxcstream")?"embedwave":current.equals("embedwave")?"vidnest":current.equals("vidrock")?"vidnest":current.equals("vidnest")?"vidrift":current.equals("vidrift")?"vidfast":current.equals("vidfast")?"vidapi":current.equals("vidapi")?"vidsrc-sh":"vidstuck";
+        String current=currentProvider(),next=PlaybackHealth.next(prefs,current);if(next==null||next.equals(current))return "";
         try{return PlaybackSources.url(id,type,season,episode,next);}catch(Exception e){return "";}
     }
     private boolean loadNextSource(){String next=alternateUrl();if(next.isEmpty())return false;currentAddress=next;reloadSourceNavigationMode();loadStarted=android.os.SystemClock.elapsedRealtime();status.setText("Trying next source…");web.loadUrl(next);scheduleLoadTimeout();return true;}
@@ -401,7 +402,14 @@ public class BrowserPlayerActivity extends Activity {
             if(now-lastProgressSaved<2500)return;
             try{
                 org.json.JSONObject event=new org.json.JSONObject(data);
-                history.progress(parent,type,event);if(type.equals("tv")){int season=event.optInt("season",-1),episode=event.optInt("episode",-1);if(season>=0&&episode>0){observedSeason=season;observedEpisode=episode;if(prefs.getBoolean("autoplayNext",true)&&event.optDouble("duration",0)>30&&event.optDouble("timestamp",0)/event.optDouble("duration",1)>=.985)scheduleNextEpisode(parent,season,episode);}}
+                history.progress(parent,type,event);
+                // Count a source as successful only once real media progress has been observed.
+                if(event.optDouble("timestamp",0)>=8&&event.optDouble("duration",0)>8&&
+                   !currentProvider().equals(verifiedSourceSession)){
+                    PlaybackHealth.success(prefs,currentProvider(),0);
+                    verifiedSourceSession=currentProvider();
+                }
+                if(type.equals("tv")){int season=event.optInt("season",-1),episode=event.optInt("episode",-1);if(season>=0&&episode>0){observedSeason=season;observedEpisode=episode;if(prefs.getBoolean("autoplayNext",true)&&event.optDouble("duration",0)>30&&event.optDouble("timestamp",0)/event.optDouble("duration",1)>=.985)scheduleNextEpisode(parent,season,episode);}}
                 lastProgressSaved=now;
             }catch(org.json.JSONException ignored){}
         });
