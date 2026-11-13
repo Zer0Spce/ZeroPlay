@@ -47,7 +47,8 @@ final class ContentApi {
 
     static JSONObject tmdb(String path,String key,String extra) throws Exception {
         if(key.isEmpty())throw new IOException("Add your TMDB API key in Settings");
-        return (JSONObject)json("https://api.themoviedb.org/3"+path+"?api_key="+URLEncoder.encode(key,"UTF-8")+"&language=en-US"+extra);
+        String url="https://api.themoviedb.org/3"+path+"?api_key="+URLEncoder.encode(key,"UTF-8")+"&language=en-US"+extra;
+        return TmdbRequestCache2260.load(url,()->(JSONObject)json(url));
     }
     static List<Catalog.Item> tmdbRows(JSONArray data,String mediaDefault,boolean search) throws JSONException {
         List<Catalog.Item> rows=new ArrayList<>();
