@@ -14,8 +14,8 @@ test('Android TV provider wordmarks are compiled alpha-trimmed left-aligned reso
 test('Android TV Continue Watching reads playback history and is pinned when resumable',()=>{
  const a=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  assert.match(a,/JSONArray played=new JSONArray\(prefs\.getString\("watchHistory"/);
- assert.match(a,/BuildConfig\.TV&&!resumes\.isEmpty\(\)\)posterRow\("Continue watching",resumes,token\)/);
- assert.match(a,/BuildConfig\.TV&&id\.equals\("continue"\)\)continue/);
+ assert.match(a,/BuildConfig\.TV&&id\.equals\("continue"\)\)\{if\(!resumes\.isEmpty\(\)\)posterRow\("Continue watching",resumes,token\)/);
+ assert.match(a,/BuildConfig\.TV&&id\.equals\("continue"\)\)\{if/);
  assert.match(a,/percent<95/);
 });
 test('TV-only Refresh picks appears beside carousel actions and changes source candidates',()=>{
