@@ -48,10 +48,23 @@ final class StreamingTopTen {
             if(item.raw.optInt("voteCount",0)<10||item.raw.optDouble("popularity",0)<2)continue;
             unique.put(item.id,item);
         }
-        List<Catalog.Item> result=new ArrayList<>(unique.values());
-        result.sort((a,b)->Double.compare(score(b,seed,cutoff),score(a,seed,cutoff)));
-        if(result.size()>10)return new ArrayList<>(result.subList(0,10));
-        return result;
+        List<Catalog.Item> scored=new ArrayList<>(unique.values());
+        scored.sort((a,b)->Double.compare(score(b,seed,cutoff),score(a,seed,cutoff)));
+        LinkedHashMap<String,Catalog.Item> balanced=new LinkedHashMap<>();
+        String[] names={"netflix","hulu","disney","max","apple","paramount","peacock","youtube-tv"};
+        int offset=Math.floorMod((int)seed,names.length);
+        for(int i=0;i<names.length;i++){
+            String provider=names[(i+offset)%names.length];
+            for(Catalog.Item movie:scored)
+                if(provider.equals(movie.raw.optString("providerBrand"))&&!balanced.containsKey(movie.id)){
+                    balanced.put(movie.id,movie);break;
+                }
+        }
+        for(Catalog.Item movie:scored){
+            if(balanced.size()>=10)break;
+            balanced.putIfAbsent(movie.id,movie);
+        }
+        return new ArrayList<>(balanced.values());
     }
     private static double score(Catalog.Item x,long seed,String cutoff){
         double days=0;
@@ -65,22 +78,38 @@ final class StreamingTopTen {
         long noise=Integer.toUnsignedLong((x.id+":"+seed).hashCode());
         return freshness*.30+popularity*.28+confidence*.12+(noise/4294967295.0)*.30;
     }
+    static List<Catalog.Item> withProvider(List<Catalog.Item> movies,String provider){
+        for(Catalog.Item item:movies)try{item.raw.put("providerBrand",provider);}catch(JSONException ignored){}
+        return movies;
+    }
     static List<Catalog.Item> load(String key,long time) throws Exception {
         JSONObject catalog=ContentApi.tmdb("/watch/providers/movie",key,"&watch_region=US");
-        List<Integer> services=providerIds(catalog.optJSONArray("results"));
-        if(services.isEmpty())return new ArrayList<>();
-        List<String> ids=new ArrayList<>();for(int id:services)ids.add(String.valueOf(id));
-        String providers=java.net.URLEncoder.encode(String.join("|",ids),"UTF-8");
+        JSONArray providers=catalog.optJSONArray("results");
+        String[] serviceNames={"netflix","hulu","disney","max","apple","paramount","peacock","youtube-tv"};
+        Map<String,Integer> serviceIds=new LinkedHashMap<>();
+        for(int n=0;n<(providers==null?0:providers.length());n++){
+            JSONObject row=providers.optJSONObject(n);if(row==null)continue;
+            String name=brand(row.optString("provider_name"));int id=row.optInt("provider_id");
+            if(name.isEmpty()||id<=0||serviceIds.containsKey(name))continue;
+            JSONObject country=row.optJSONObject("display_priorities");
+            if(country!=null&&!country.has("US"))continue;
+            serviceIds.put(name,id);
+        }
+        if(serviceIds.isEmpty())return new ArrayList<>();
         String today=date(time),cutoff=date(time-420L*86400000L);
-        String filters="&include_adult=false&watch_region=US&with_watch_providers="+providers
-            +"&with_watch_monetization_types=flatrate&primary_release_date.gte="+cutoff
-            +"&primary_release_date.lte="+today+"&sort_by=primary_release_date.desc&vote_count.gte=10&page=";
-        int[] pages={1,2,3+Math.floorMod((int)(time/21600000L),3)};
+        String filters="&include_adult=false&watch_region=US"+
+            "&with_watch_monetization_types=flatrate&primary_release_date.gte="+cutoff+
+            "&primary_release_date.lte="+today+"&sort_by=primary_release_date.desc&vote_count.gte=10";
         List<Catalog.Item> movies=new ArrayList<>();Exception error=null;
-        for(int page:pages)try {
-            JSONArray rows=ContentApi.tmdb("/discover/movie",key,filters+page).optJSONArray("results");
-            if(rows!=null)movies.addAll(ContentApi.tmdbRows(rows,"movie",false));
-        }catch(Exception failure){error=failure;}
+        for(String name:serviceNames){
+            Integer provider=serviceIds.get(name);if(provider==null)continue;
+            int page=1+Math.floorMod((int)(time/21600000L+provider),2);
+            try{
+                JSONArray rows=ContentApi.tmdb("/discover/movie",key,filters+"&with_watch_providers="+provider+"&page="+page)
+                    .optJSONArray("results");
+                if(rows!=null)movies.addAll(withProvider(ContentApi.tmdbRows(rows,"movie",false),name));
+            }catch(Exception failed){error=failed;}
+        }
         if(movies.isEmpty()&&error!=null)throw error;
         return select(movies,time/21600000L,time);
     }
