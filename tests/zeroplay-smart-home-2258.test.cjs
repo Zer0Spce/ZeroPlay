@@ -196,6 +196,9 @@ test('Streaming providers render as large two-row desktop grid below real TMDB T
   assert.match(native,/if\(displayed>=8\)break/);
   assert.match(native,/dp\(BuildConfig\.TV\?165:125\)/);
   assert.match(native,/line\.addView\(tile,cp\)/);
-  assert.ok(!native.includes('rail.addView(cards);content.addView(rail)'),
-    'Android must not show the old one-row provider strip');
+  const providerSection=native.slice(native.indexOf('void providerSection(int token)'),
+    native.indexOf('GradientDrawable providerTileBackground('));
+  assert.ok(!providerSection.includes('HorizontalScrollView'),
+    'Streaming providers must not use a horizontal rail');
+  assert.match(providerSection,/content\.addView\(cards,new LinearLayout\.LayoutParams\(-1,-2\)\)/);
 });
