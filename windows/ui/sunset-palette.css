@@ -252,3 +252,6 @@
 @media(prefers-reduced-motion:reduce){
   .zero-provider-section .provider{transition:none!important}
 }
+
+/* v2.2.5.9 fixed streaming-carousel Settings readout */
+.zero-fixed-carousel{margin-top:7px;padding:14px 16px;background:#202126;color:#fff;border:1px solid #DF2531;border-radius:10px;font-size:15px;font-weight:700}
