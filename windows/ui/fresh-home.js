@@ -24,26 +24,49 @@ function previous(profile,seed){
 async function gather(load,state){
   const profile=profileOf(state),c=cycle(profile);
   const page=(base,range)=>base+(c.base+c.bump)%range;
-  const endYear=new Date().getFullYear()-8,history=[...(state.history||[]),...(state.favorites||[])];
-  const favoriteGenreCounts=new Map();
-  for(const row of history.slice(0,20))for(const g of row?.genreIds||[])favoriteGenreCounts.set(g,(favoriteGenreCounts.get(g)||0)+1);
-  const bestGenre=[...favoriteGenreCounts].sort((a,b)=>b[1]-a[1])[0]?.[0];
-  const lang=['ja','ko','fr','es','hi','tl'][(c.base+c.bump)%6];
+  const endYear=new Date().getFullYear()-12;
+  const today=new Date().toISOString().slice(0,10);
+  const daysAgo=days=>new Date(Date.now()-days*86400000).toISOString().slice(0,10);
+  const history=[...(state.history||[]),...(state.favorites||[])];
+  const frequency=new Map();
+  for(const row of history.slice(0,20))for(const g of row?.genreIds||[])frequency.set(g,(frequency.get(g)||0)+1);
+  const bestGenre=[...frequency].sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const hollywood={with_original_language:'en',with_origin_country:'US'};
+  // TMDB digital release type 4, distinct from first theatrical run (type 3).
+  // A digital date in the US is NOT a guarantee of availability on a particular streaming service.
+  const vodFilter={...hollywood,region:'US',with_release_type:'4',
+    'release_date.gte':daysAgo(180),'release_date.lte':today,
+    'primary_release_date.gte':daysAgo(550),
+    sort_by:'primary_release_date.desc','vote_count.gte':10};
+  const streamsFilter={...hollywood,watch_region:state.settings.region,
+    with_watch_monetization_types:'flatrate',
+    'primary_release_date.gte':daysAgo(365),'primary_release_date.lte':today,
+    sort_by:'primary_release_date.desc','vote_count.gte':20};
   const tasks=[
+    ['vod','/discover/movie',{...vodFilter,page:1},'movie'],
+    ['vod','/discover/movie',{...vodFilter,page:page(2,3)},'movie'],
+    ['streaming','/discover/movie',{...streamsFilter,page:1},'movie'],
     ['day','/trending/all/day',{},null],
-    ['trending','/trending/all/week',{page:page(2,6)},null],
-    ['popular','/movie/popular',{page:page(2,8)},'movie'],
-    ['recommended','/movie/top_rated',{page:page(2,8)},'movie'],
-    ['series','/tv/popular',{page:page(2,6)},'tv'],
-    ['now','/movie/now_playing',{page:page(2,5)},'movie'],
-    ['gems','/discover/movie',{sort_by:'vote_average.desc','vote_count.gte':200,'vote_average.gte':7,page:page(1,5)},'movie'],
-    ['classics','/discover/movie',{sort_by:'vote_count.desc','primary_release_date.lte':endYear+'-12-31',page:page(1,5)},'movie'],
-    ['thrillers','/discover/movie',{with_genres:53,'vote_count.gte':200,sort_by:'vote_average.desc',page:page(1,4)},'movie'],
-    ['world','/discover/movie',{with_original_language:lang,'vote_count.gte':80,sort_by:'popularity.desc',page:page(1,3)},'movie'],
-    ['new','/movie/now_playing',{page:1},'movie']
+    ['trending','/trending/all/week',{page:page(2,5)},null],
+    ['popular','/discover/movie',{...hollywood,'primary_release_date.gte':daysAgo(850),
+      sort_by:'popularity.desc',page:page(1,6)},'movie'],
+    ['recommended','/discover/movie',{...hollywood,'primary_release_date.gte':daysAgo(850),
+      sort_by:'vote_average.desc','vote_count.gte':180,page:page(1,4)},'movie'],
+    ['series','/tv/popular',{page:page(2,5)},'tv'],
+    ['now','/discover/movie',{...hollywood,'primary_release_date.gte':daysAgo(365),
+      sort_by:'primary_release_date.desc',page:page(1,3)},'movie'],
+    ['gems','/discover/movie',{...hollywood,'primary_release_date.gte':daysAgo(1400),
+      sort_by:'vote_average.desc','vote_count.gte':120,page:page(1,4)},'movie'],
+    ['classics','/discover/movie',{...hollywood,sort_by:'vote_count.desc',
+      'primary_release_date.gte':endYear+'-01-01',
+      'primary_release_date.lte':new Date().getFullYear()-5+'-12-31',page:page(1,4)},'movie'],
+    ['thrillers','/discover/movie',{...hollywood,with_genres:53,
+      'primary_release_date.gte':daysAgo(850),'vote_count.gte':120,
+      sort_by:'vote_average.desc',page:page(1,4)},'movie']
   ];
-  if(bestGenre)tasks.push(['similar','/discover/movie',{
-    with_genres:String(bestGenre),sort_by:'popularity.desc',page:page(1,4)},'movie']);
+  if(bestGenre)tasks.push(['similar','/discover/movie',{...hollywood,
+    with_genres:String(bestGenre),sort_by:'popularity.desc',
+    'primary_release_date.gte':daysAgo(850),page:page(1,3)},'movie']);
   const done=await Promise.allSettled(tasks.map(async ([name,path,params,type])=>
     [name,await load(path,params,type)]));
   const pools={};
