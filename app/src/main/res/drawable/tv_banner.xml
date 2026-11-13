@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Full 16:9 Leanback launcher banner, using the official PNG wordmark. -->
+<!-- Balanced 320x180 TV banner featuring the user's exact approved red ZeroPlay square icon. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <shape android:shape="rectangle">
-            <size android:width="320dp" android:height="180dp"/>
-            <solid android:color="@color/zeroplay_launcher_charcoal"/>
-        </shape>
-    </item>
-    <item android:gravity="center" android:width="278dp" android:height="76dp"
-          android:drawable="@drawable/zeroplay_wordmark"/>
+    <item><shape android:shape="rectangle"><size android:width="320dp" android:height="180dp"/><solid android:color="@color/zeroplay_launcher_charcoal"/></shape></item>
+    <!-- 82dp each horizontal side, 12dp top and bottom. -->
+    <item android:gravity="center" android:width="156dp" android:height="156dp" android:drawable="@drawable/zeroplay_appicon"/>
 </layer-list>

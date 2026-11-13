@@ -1,0 +1,6 @@
+/* Official supplied red-and-white ZeroPlay wordmark. Eliminate legacy pseudo-text. */
+aside .brand,.brand{align-items:center!important;gap:0!important;font-size:0!important;line-height:1!important}
+aside .brand::before,.brand::before,.brand>span::after{content:none!important;display:none!important}
+aside .brand img.zp-official-wordmark,.brand img.zp-official-wordmark{display:block!important;width:184px!important;max-width:100%!important;height:auto!important;max-height:51px!important;object-fit:contain!important;object-position:center!important}
+:root{--zp-mint:#DF2531;--zp-mint-2:#FC3A47}
+@media(max-width:780px){aside .brand{display:none!important}}

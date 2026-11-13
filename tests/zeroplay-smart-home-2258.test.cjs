@@ -356,7 +356,7 @@ test('approved uploaded ZeroPlay icon and wordmark are high resolution, consiste
   assert.ok(adaptive.includes('android:inset="20dp"'));
   assert.ok(round.includes('android:inset="20dp"'));
   assert.ok(colors.includes('#202126'));
-  assert.ok(banner.includes('@drawable/zeroplay_wordmark'),'TV banner must contain approved wordmark');
+  assert.ok(banner.includes('@drawable/zeroplay_appicon'),'TV banner must contain approved icon artwork');
   assert.ok(banner.includes('android:width="320dp"'));
   assert.ok(banner.includes('android:height="180dp"'));
   assert.ok(banner.includes('android:gravity="center"'));
@@ -365,4 +365,22 @@ test('approved uploaded ZeroPlay icon and wordmark are high resolution, consiste
   assert.ok(winHtml.includes('../assets/zeroplay-home-logo.png?v=2258-approved-logo'));
   const winPack=read('scripts/prepare-2258-windows-test.cjs');
   assert.ok(winPack.includes("const sizes=[16,24,32,48,64,128,256]"));
+});
+
+test('Android TV Full and Lite render the approved Z/play icon, centered independently of mobile',()=>{
+ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
+ for(const manifest of ['app/src/tv/AndroidManifest.xml','app/src/liteTv/AndroidManifest.xml']){
+  const s=read(manifest);assert.ok(s.includes('android:icon="@mipmap/zeroplay_tv_launcher"'));assert.ok(s.includes('android:banner="@drawable/tv_banner"'));
+ }
+ const adaptive=read('app/src/main/res/mipmap-anydpi-v26/zeroplay_tv_launcher.xml');
+ const legacy=read('app/src/main/res/mipmap/zeroplay_tv_launcher.xml');
+ const banner=read('app/src/main/res/drawable/tv_banner.xml');
+ assert.ok(adaptive.includes('@drawable/zeroplay_appicon')&&adaptive.includes('android:inset="18dp"'));
+ assert.ok(legacy.includes('@drawable/zeroplay_appicon')&&legacy.includes('android:gravity="center"'));
+ assert.ok(banner.includes('@drawable/zeroplay_appicon')&&!banner.includes('@drawable/zeroplay_wordmark'));
+ assert.ok(banner.includes('android:width="156dp" android:height="156dp"'));
+ assert.ok(banner.includes('android:gravity="center"'));
+ const html=read('web/public/index.html');
+ assert.ok(html.includes('/assets/zeroplay-wordmark.png?v=2258'));
+ assert.ok(html.includes('/assets/icon.png?v=2258'));
 });
