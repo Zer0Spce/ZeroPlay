@@ -7,7 +7,7 @@ android {
     defaultConfig {
         applicationId 'com.zerostreams.app'
         // Production: preserve official application identity and signing.
-        manifestPlaceholders = [appLabel: 'ZeroPlay', appLabelLite: 'ZeroPlay Lite']
+        manifestPlaceholders = [appLabel: 'ZeroPlay 225 TEST', appLabelLite: 'ZeroPlay 225 TEST']
         minSdk 23
         targetSdk 35
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' }
@@ -23,32 +23,32 @@ android {
     productFlavors {
         mobile {
             dimension 'device'
-            applicationIdSuffix '.mobile'
+            applicationIdSuffix '.mobile.test225'
             buildConfigField 'boolean', 'TV', 'false'
             buildConfigField 'boolean', 'LITE', 'false'
         }
         tv {
             dimension 'device'
-            applicationIdSuffix '.tv'
+            applicationIdSuffix '.tv.test225'
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'false'
         }
         privateTv {
             dimension 'device'
-            applicationIdSuffix '.tv' // Private TV flavor retains official TV identity
+            applicationIdSuffix '.tv.test225' // Private TV flavor retains official TV identity
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'false'
             buildConfigField 'String', 'DEFAULT_TSP_KEY', groovy.json.JsonOutput.toJson(System.getenv('TSP_API_KEY') ?: '')
         }
         liteMobile {
             dimension 'device'
-            applicationIdSuffix '.lite.mobile'
+            applicationIdSuffix '.lite.mobile.test225'
             buildConfigField 'boolean', 'TV', 'false'
             buildConfigField 'boolean', 'LITE', 'true'
         }
         liteTv {
             dimension 'device'
-            applicationIdSuffix '.lite.tv'
+            applicationIdSuffix '.lite.tv.test225'
             buildConfigField 'boolean', 'TV', 'true'
             buildConfigField 'boolean', 'LITE', 'true'
         }
