@@ -27,6 +27,7 @@
     for(const p of Array.isArray(rows)?rows:[]){
       const service=brand(p?.provider_name),number=Number(p?.provider_id);
       if(!service||!Number.isSafeInteger(number)||number<=0)continue;
+      if(p.display_priorities&&typeof p.display_priorities==='object'&&!Object.hasOwn(p.display_priorities,'US'))continue;
       const label=String(p.provider_name).toLowerCase().trim();
       const score=label===({netflix:'netflix',hulu:'hulu',disney:'disney+',max:'hbo max',apple:'apple tv+',paramount:'paramount+',peacock:'peacock', 'youtube-tv':'youtube tv'})[service]?10:1;
       if(!matched.has(service)||matched.get(service).score<score)matched.set(service,{id:number,score});
