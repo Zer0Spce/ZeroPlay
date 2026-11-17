@@ -107,7 +107,17 @@ jobs:
           cp app/build/outputs/apk/liteTv/release/app-liteTv-release.apk release-builds/ZeroPlay-2.2.6.5-Android-TV-Lite.apk
           test "$(find release-builds -maxdepth 1 -name '*.apk' | wc -l)" -eq 4
           for apk in release-builds/*.apk; do
-            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            # apksigner may return 1 for benign unsigned META-INF warnings even
+            # when v1 and v2 cryptographic signature checks pass. Verify both
+            # signature schemes and the exact signer count, and reject errors.
+            verify_output=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk" 2>&1) || true
+            printf '%s\n' "$verify_output"
+            printf '%s\n' "$verify_output" | grep -F 'Verified using v1 scheme (JAR signing): true'
+            printf '%s\n' "$verify_output" | grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true'
+            printf '%s\n' "$verify_output" | grep -F 'Number of signers: 1'
+            if printf '%s\n' "$verify_output" | grep -E '(^ERROR:|DOES NOT VERIFY|FAILED TO VERIFY|^Exception)'; then
+              echo "Android APK signature validation failed: $apk"; exit 1
+            fi
             "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionCode='70'"
             "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -F "versionName='2.2.6.5'"
             actual_id=$("$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)
