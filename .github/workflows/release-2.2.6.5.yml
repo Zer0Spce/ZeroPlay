@@ -1,5 +1,5 @@
-name: ZeroPlay 2.2.6.5 — Confirmed Android TV Provider Logo and Refresh Picks
-# v2.2.6.5 CI: revalidate modern below-metadata provider-logo assertions with real Android TV release activity.
+name: ZeroPlay 2.2.6.5 — TMDB Popular Home Speed Fix
+# v2.2.6.5 CI: validate fast TMDB Popular home carousel across Android and Windows.
 # Revalidated both isolated QA and established signed production Android app IDs.
 on:
   push:
@@ -197,7 +197,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw '2.2.5.7 source verification failed' }
           node scripts/prepare-2265-windows-release.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Windows production package preparation failed' }
-          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.6-4')!=='2.2.6.5')throw Error('Production version mapping failed')"
+          node -e "if(require('./windows/version-manager.cjs').publicVersion('2.2.6-5')!=='2.2.6.5')throw Error('Production version mapping failed')"
           if ($LASTEXITCODE -ne 0) { throw 'Production version check failed' }
       - name: Test Discovery 2.0 and Zero Crimson branding
         shell: pwsh
@@ -226,7 +226,7 @@ jobs:
           node --test ../tests/zeroplay-2264-release-carousel.test.cjs
           node --test ../tests/zeroplay-2265-startup-carousel.test.cjs
           node --test test/smart-status-2.2.5.7.test.cjs
-          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.6\\.4$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.6.5')"
+          node -e "const fs=require('fs'),s=fs.readFileSync('main.cjs','utf8');if(!s.includes('2\\.2\\.6\\.5$/.test(result.version)'))throw Error('Packaged UI smoke must expect version 2.2.6.5')"
       - name: Build self-contained visible ZeroPlayUpdater.exe
         shell: pwsh
         run: |
@@ -331,5 +331,5 @@ jobs:
           fi
           gh release create v2.2.6.5 release-assets/*.apk release-assets/*.zip release-assets/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title 'ZeroPlay v2.2.6.5 — Carousel Provider Logos and Refresh Picks' \
+            --title 'ZeroPlay v2.2.6.5 — TMDB Popular Home Speed Fix' \
             --notes-file docs/releases/v2.2.6.5.md --latest

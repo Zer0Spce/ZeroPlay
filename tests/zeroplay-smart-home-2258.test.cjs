@@ -170,8 +170,8 @@ test('new default home sections, VOD source and provider cards are wired on Wind
   assert.match(native,/providerTileBackground/);
   assert.match(native,/case "top10":/);
   assert.match(api,/trendingToday/);
-  assert.match(native,/header\.addView\(refreshPicks,rp\)/);
-  assert.match(native,/if\(category\.equals\("Home"\)&&!BuildConfig\.TV\)/);
+  assert.doesNotMatch(native,/header\.addView\(refreshPicks,rp\)/);
+  assert.doesNotMatch(native,/if\(category\.equals\("Home"\)&&!BuildConfig\.TV\)/);
   assert.match(read('windows/ui/layouts.js'),/dataset\.nav==='Home'\?'Home'/);
 });
 
@@ -325,9 +325,9 @@ test('Android launcher has charcoal adaptive and legacy icons, never a white lau
 test('Android TV refreshes its recommendations at launch without a Refresh Picks button',()=>{
   const root=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
   const native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
-  assert.ok(native.includes('if(category.equals("Home")&&!BuildConfig.TV){'));
+  assert.ok(!native.includes('if(category.equals("Home")&&!BuildConfig.TV){'));
   assert.ok(!native.includes('Button shuffle=button("↻ Refresh Picks"'));
-  assert.ok(native.includes('if(BuildConfig.TV)SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());ready=true;load();'));
+  assert.ok(native.includes('if(BuildConfig.TV)SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());ready=true;load();if(category.equals("Home"))primePopularCarousel();'));
   assert.ok(native.includes('protected void onNewIntent(Intent intent)'));
   assert.ok(native.includes('intent.hasCategory("android.intent.category.LEANBACK_LAUNCHER")'));
   assert.ok(native.includes('Intent.ACTION_MAIN.equals(intent.getAction())'));
