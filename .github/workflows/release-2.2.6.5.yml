@@ -59,7 +59,7 @@ jobs:
           const fs=require('node:fs'),file='app/build.gradle';let s=fs.readFileSync(file,'utf8');
           if(!s.includes("versionName '2.2.5-test1'")||!s.includes('versionCode 51'))throw Error('Unexpected baseline');
           s=s.replace("versionName '2.2.5-test1'","versionName '2.2.6.5'");
-          s=s.replace('versionCode 51','versionCode 69');
+          s=s.replace('versionCode 51','versionCode 70');
           fs.writeFileSync(file,s);
           NODE
           node --test tests/android-native-live-ppv-v2.2.5.6.test.cjs
