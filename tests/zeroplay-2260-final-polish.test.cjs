@@ -8,16 +8,15 @@ test('Android filmography cards activate native details on tap and TV remote',()
  assert.match(main,/void openFilmographyCredit\(Intent intent\)/);
  assert.match(main,/details\(selected\)/);
 });
-test('Carousel logos appear below metadata and Android TV Modern UI suppresses diagnostics',()=>{
+test('Featured carousel shows TMDB popular titles without provider logos',()=>{
  const android=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  const windows=read('windows/ui/app.js');
- assert.match(android,/getAssets\(\)\.open\("provider-logos\/"\+logoAsset\)/);
- assert.match(android,/if\(BuildConfig\.TV&&googleLayout\(\)\)status\.setVisibility\(View\.GONE\)/);
+ assert.ok(android.includes('String carouselSource(){return "popular";}'));
+ assert.ok(android.includes('status.setVisibility(View.GONE)'));
  const hero=windows.slice(windows.indexOf('function hero(){'),windows.indexOf('function watchlistHome(){'));
- const meta=hero.indexOf('${badge(item)}'),logo=hero.indexOf('class="hero-provider-logo"'),synopsis=hero.indexOf('<p>${escape(item.overview');
- assert.ok(meta>=0&&meta<logo&&logo<synopsis,'Provider wordmark must follow movie metadata and precede synopsis');
- assert.doesNotMatch(hero,/<div class="hero-title-line">\$\{providerName\?/);
- assert.doesNotMatch(windows,/<span class="eyebrow">\$\{escape\(heroEyebrow\(\)\)\}<\/span>/);
+ assert.ok(hero.includes('POPULAR ON TMDB'));
+ assert.ok(!hero.includes('hero-provider-logo'));
+ assert.ok(!hero.includes('data-fresh-picks'));
 });
 test('Rejected add-on search and guide features are disabled; basics remain',()=>{
  const android=read('app/src/main/java/com/zerostreams/app/MainActivity.java');

@@ -40,10 +40,10 @@ test('app launcher and Windows player use new streaming-only carousel and Crimso
  const native=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  const sources=read('app/src/main/java/com/zerostreams/app/PlaybackSources.java');
  assert.match(html,/streaming-carousel\.js/);
- assert.match(html,/Top 10 New Streaming Movies/);
+ assert.match(html,/What.s Popular on TMDB/);
  assert.ok(!html.includes('<option value="watchlist">Watchlist</option>'));
- assert.match(main,/carouselSource:'streaming'/);
- assert.match(native,/String carouselSource\(\)\{return "streaming";\}/);
+ assert.match(main,/carouselSource:'popular'/);
+ assert.match(native,/String carouselSource\(\)\{return "popular";\}/);
  assert.ok(!native.includes('This Week Top Picks - Default'));
  assert.match(api,/color:'DF2531'/);
  assert.match(sources,/color=DF2531/);
@@ -66,17 +66,12 @@ test('duplicate films merge verified provider tags without inventing unavailable
  assert.deepEqual(res.find(x=>x.id===11).providerBrands,[]);
 });
 
-test('featured carousel provider SVG appears below metadata above synopsis, with no full-width text banner',()=>{
- const source=fs.readFileSync(path.join(__dirname,'..','ui','app.js'),'utf8');
- const style=fs.readFileSync(path.join(__dirname,'..','ui','sunset-palette.css'),'utf8');
- const hero=source.slice(source.indexOf('function hero(){'),source.indexOf('function watchlistHome()'));
- assert.ok(hero.includes('class="hero-title-line"'));
- assert.ok(hero.includes('class="hero-provider-logo"'));
- assert.ok(hero.includes('provider-logos/${service}.svg'));
- assert.ok(!hero.includes('US subscription listing ·'));
- assert.ok(!hero.includes('<span class="badge">US subscription listing'));
- assert.match(style,/\.hero \.hero-provider-logo/);
- assert.match(style,/max-width:140px/);
- const metadata=hero.indexOf('${badge(item)}'),logo=hero.indexOf('class="hero-provider-logo"'),synopsis=hero.indexOf('<p>${escape(item.overview');
- assert.ok(metadata>=0&&metadata<logo&&logo<synopsis,'Provider logo must sit under metadata before synopsis');
+test('featured carousel uses TMDB Popular without streaming badges or Refresh Picks',()=>{
+ const src=fs.readFileSync(path.join(__dirname,'..','ui','app.js'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'..','ui','index.html'),'utf8');
+ const hero=src.slice(src.indexOf('function hero(){'),src.indexOf('function watchlistHome(){'));
+ assert.ok(hero.includes('hero-popular-label'));
+ assert.ok(!hero.includes('hero-provider-logo'));
+ assert.ok(!hero.includes('data-fresh-picks'));
+ assert.ok(!html.includes('data-fresh-picks'));
 });

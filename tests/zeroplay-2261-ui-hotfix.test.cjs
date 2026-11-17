@@ -9,12 +9,13 @@ test('Android TV carousel movie title and metadata are left aligned',()=>{
  assert.match(s,/facts\.setGravity\(Gravity\.START\)/);
  assert.match(s,/description\.setGravity\(Gravity\.START\)/);
 });
-test('Android streaming provider logos load from bundled assets with visible fallback',()=>{
+test('Bundled provider branding remains, but the carousel no longer uses logos',()=>{
  const s=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  for(const brand of ['netflix','hulu','disney','max','apple','paramount','peacock','youtube-tv'])assert.ok(s.includes('"'+brand+'"'));
- assert.match(s,/providerWordmarkAsset\(brand\)/);
- assert.match(s,/getAssets\(\)\.open\("provider-logos\/"\+logoAsset\)/);
- assert.match(s,/providerFallback\.setVisibility\(View\.VISIBLE\)/);
+ assert.ok(s.includes('void providerCards('));
+ const hero=s.slice(s.indexOf('    void carousel(List<Catalog.Item> all,int token)'),s.indexOf('    void upcomingRow('));
+ assert.ok(!hero.includes('providerBadge'));
+ assert.ok(!hero.includes('providerFallback'));
 });
 test('Provider Hub clutter is removed but platform browse paths survive',()=>{
  const w=read('windows/ui/app.js'),a=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
