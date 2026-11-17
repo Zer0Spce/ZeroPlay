@@ -1,11 +1,12 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
-test('Compiled provider icons stay available outside the featured carousel',()=>{
+test('Provider Hub assets remain while carousel no longer needs compiled logo drawables',()=>{
  const a=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  const script=read('scripts/render-provider-wordmarks.py');
- for(const key of ['netflix','hulu','disney','max','apple','paramount','peacock','youtube_tv'])assert.ok(a.includes('R.drawable.zero_provider_'+key));
  assert.ok(script.includes('drawable-nodpi'));
+ assert.ok(a.includes('void providerCards('));
+ assert.ok(!a.includes('int providerCarouselDrawable('));
  const hero=a.slice(a.indexOf('    void carousel(List<Catalog.Item> all,int token)'),a.indexOf('    void upcomingRow('));
  assert.ok(!hero.includes('providerBadge'));
 });
