@@ -155,7 +155,7 @@ test('new default home sections, VOD source and provider cards are wired on Wind
     discovery=read('windows/ui/fresh-home.js'),
     native=read('app/src/main/java/com/zerostreams/app/MainActivity.java'),
     api=read('app/src/main/java/com/zerostreams/app/ContentApi.java');
-  assert.match(html,/class="refresh-recommendations home-refresh-button" data-fresh-picks/);
+  assert.doesNotMatch(html,/class="refresh-recommendations home-refresh-button" data-fresh-picks/);
   assert.match(css,/:not\(\[data-rail-expanded="true"\]\) aside \.brand/);
   assert.ok(!app.includes('zero-fresh-controls'));
   assert.match(app,/row\('Latest VOD Releases',zeroHomeDeck\.shelves\.vod/);
