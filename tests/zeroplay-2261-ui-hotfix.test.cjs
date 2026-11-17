@@ -12,7 +12,7 @@ test('Android TV carousel movie title and metadata are left aligned',()=>{
 test('Bundled provider branding remains, but the carousel no longer uses logos',()=>{
  const s=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
  for(const brand of ['netflix','hulu','disney','max','apple','paramount','peacock','youtube-tv'])assert.ok(s.includes('"'+brand+'"'));
- assert.ok(s.includes('providerCarouselDrawable(String brand)'));
+ assert.ok(s.includes('void providerCards('));
  const hero=s.slice(s.indexOf('    void carousel(List<Catalog.Item> all,int token)'),s.indexOf('    void upcomingRow('));
  assert.ok(!hero.includes('providerBadge'));
  assert.ok(!hero.includes('providerFallback'));
