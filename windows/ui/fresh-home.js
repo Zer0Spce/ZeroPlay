@@ -45,7 +45,6 @@ async function gather(load,state,loadProviderCatalog){
   const tasks=[
     ['vod','/discover/movie',{...vodFilter,page:1},'movie'],
     ['vod','/discover/movie',{...vodFilter,page:page(2,3)},'movie'],
-    ['streaming','/discover/movie',{...streamsFilter,page:1},'movie'],
     ['day','/trending/all/day',{},null],
     ['trending','/trending/all/week',{page:page(2,5)},null],
     ['popular','/discover/movie',{...hollywood,'primary_release_date.gte':daysAgo(850),
@@ -74,27 +73,6 @@ async function gather(load,state,loadProviderCatalog){
     const [name,rows]=entry.value;(pools[name] ||= []).push(...rows);
   }
 
-  // Strict US flatrate selections from only the eight approved streaming providers.
-  let streaming=[];
-  try {
-    const catalog=await loadProviderCatalog('/watch/providers/movie',{watch_region:'US'});
-    const services=window.ZeroStreamingCarousel.providers(catalog?.results);
-    if(services.length){
-      // Discover separately by provider so each movie has evidence for its badge.
-      // Aggregate successful responses; a failed provider never becomes a fabricated one.
-      const filters={watch_region:'US',with_watch_monetization_types:'flatrate',
-        'primary_release_date.gte':daysAgo(420),'primary_release_date.lte':today,
-        sort_by:'primary_release_date.desc','vote_count.gte':10};
-      const responses=await Promise.allSettled(services.map(async service=>{
-        const page=1+(c.base+c.bump)%2;
-        const titles=await load('/discover/movie',{...filters,with_watch_providers:service.provider_id,page},'movie');
-        return titles.map(movie=>({...movie,providerBrand:service.brand}));
-      }));
-      const movies=responses.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
-      streaming=window.ZeroStreamingCarousel.topTen(movies,c.seed,today);
-    }
-  }catch(error){console.warn('US streaming carousel unavailable',error?.message||error);}
-  pools.streaming=streaming;
   return {profile,seed:c.seed,pools};
 }
 function prepare(base,additions,state){
@@ -105,8 +83,10 @@ function prepare(base,additions,state){
     pools,now:Date.now(),seed:additions.seed,seen:previous(additions.profile,additions.seed),
     positions:state.positions||{},history:state.history||[],
     favorites:state.favorites||[],notInterested:state.notInterested||[],
-    carouselSource:'streaming'
+    carouselSource:'popular'
   });
+  // The hero is TMDB /movie/popular in TMDB's order, not streaming curation.
+  selected.hero=(base.popular||[]).filter(item=>item&&item.type==='movie'&&item.backdrop).slice(0,10);
   const seen=engine.prune(getJSON(PREFIX+additions.profile+':seen',{}));
   for(const k of selected.used)seen[k]=Date.now();
   put(PREFIX+additions.profile+':seen',seen);
