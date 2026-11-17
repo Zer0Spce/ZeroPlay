@@ -905,19 +905,6 @@ public class MainActivity extends Activity {
             }catch(Exception ignored){}
         });
     }
-    int providerCarouselDrawable(String brand){
-        switch(brand){
-            case "netflix":return R.drawable.zero_provider_netflix;
-            case "hulu":return R.drawable.zero_provider_hulu;
-            case "disney":return R.drawable.zero_provider_disney;
-            case "max":return R.drawable.zero_provider_max;
-            case "apple":return R.drawable.zero_provider_apple;
-            case "paramount":return R.drawable.zero_provider_paramount;
-            case "peacock":return R.drawable.zero_provider_peacock;
-            case "youtube-tv":return R.drawable.zero_provider_youtube_tv;
-            default:return 0;
-        }
-    }
     void providerCards(LinearLayout cards,JSONArray data,int token,String type,String region){
         cards.removeAllViews();
         cards.setOrientation(LinearLayout.HORIZONTAL);
