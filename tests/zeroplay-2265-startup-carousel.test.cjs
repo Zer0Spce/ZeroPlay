@@ -8,6 +8,8 @@ test('Native popular carousel caches last results and fetches fresh TMDB at star
  assert.ok(app.includes('CatalogDiskCache.load(this,"carousel:tmdb-popular")'));
  assert.ok(app.includes('CatalogDiskCache.save(this,"carousel:tmdb-popular",ready)'));
  assert.ok(app.includes('ensureCarouselSource("popular")'));
+ assert.ok(app.includes('carouselSourceCycles.remove("popular")'));
+ assert.ok(app.includes('// Keep the existing home visible; reload TMDB Popular on launcher reopen.'));
  assert.ok(api.includes('mode.equals("popular")'));
  assert.ok(api.includes('path="/movie/popular"'));
 });

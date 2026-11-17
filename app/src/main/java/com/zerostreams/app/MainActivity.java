@@ -221,7 +221,9 @@ public class MainActivity extends Activity {
             intent.hasCategory("android.intent.category.LEANBACK_LAUNCHER"))){
             SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());
             if(ready&&"Home".equals(category)){
-                catalog=new ArrayList<>();browse=new ArrayList<>();
+                // Keep the existing home visible; reload TMDB Popular on launcher reopen.
+                carouselSourceCycles.remove("popular");
+                ensureCarouselSource("popular");
                 load();
             }
         }
