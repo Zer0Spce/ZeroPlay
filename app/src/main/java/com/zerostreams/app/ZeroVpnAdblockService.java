@@ -26,6 +26,12 @@ public final class ZeroVpnAdblockService extends VpnService {
     static final String START="com.zerostreams.app.VPN_START";
     static final String STOP="com.zerostreams.app.VPN_STOP";
     static volatile boolean running=false;
+    private static volatile ZeroVpnAdblockService current;
+    // Go blocklists also protect WebView subresources, without tunneling video.
+    static boolean blocksPlayerHost(String host){
+        ZeroVpnAdblockService service=current;
+        return service!=null&&service.active&&service.shouldBlock(host);
+    }
     private static final String TAG="ZeroPlayBlockAds",CHANNEL="zeroplay_native_blockads";
     private static final int NOTICE=2691;
     private static final String DEFAULT_HOSTS="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
@@ -118,7 +124,7 @@ public final class ZeroVpnAdblockService extends VpnService {
                         }
                     }
                 });
-                running=true;active=true;
+                running=true;active=true;current=this;
                 getSharedPreferences("zero",MODE_PRIVATE).edit()
                     .putString("vpnDnsSelfTestStatus","checking").putBoolean("blockAds",true)
                     .putString("adBlockingMode","blockads").putBoolean("vpnAdblockActive",true)
@@ -180,6 +186,7 @@ public final class ZeroVpnAdblockService extends VpnService {
         }
     }
     private void refreshUpstreamFilters(){
+        getSharedPreferences("zero",MODE_PRIVATE).edit().putString("vpnBlocklistStatus","loading").apply();
         // Original BlockAds publishes binary trie + bloom filters. Use those
         // with the ORIGINAL Go Engine.SetTries rather than a copied DNS engine.
         try{
@@ -202,10 +209,17 @@ public final class ZeroVpnAdblockService extends VpnService {
             if(active&&(!adTries.isEmpty()||!secTries.isEmpty())){
                 engine.setTries(String.join(",",adTries),String.join(",",secTries),
                     String.join(",",adBlooms),String.join(",",secBlooms));
+                getSharedPreferences("zero",MODE_PRIVATE).edit().putString("vpnBlocklistStatus","native trie filters ready").apply();
                 Log.i(TAG,"Loaded upstream BlockAds binary filter tries");
             }
-        }catch(Exception e){Log.w(TAG,"Upstream binary filters unavailable; using cached hosts",e);}
+        }catch(Exception e){
+            getSharedPreferences("zero",MODE_PRIVATE).edit().putString("vpnBlocklistStatus","upstream failed; using hosts").apply();
+            Log.w(TAG,"Upstream binary filters unavailable; using cached hosts",e);
+        }
         refreshHosts();
+        if(active&&"loading".equals(getSharedPreferences("zero",MODE_PRIVATE).getString("vpnBlocklistStatus",""))){
+            getSharedPreferences("zero",MODE_PRIVATE).edit().putString("vpnBlocklistStatus","hosts + built-in rules").apply();
+        }
     }
     private JSONArray readUpstreamJson(String url)throws Exception{
         HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
@@ -275,6 +289,7 @@ public final class ZeroVpnAdblockService extends VpnService {
     @Override public void onRevoke(){stopSelf();super.onRevoke();}
     @Override public void onDestroy(){
         active=false;running=false;
+        if(current==this)current=null;
         try{if(tun!=null)tun.close();}catch(IOException ignored){}
         try{if(engine!=null)engine.stop();}catch(Throwable e){Log.w(TAG,"Native engine stop failed",e);}
         if(worker!=null)worker.interrupt();

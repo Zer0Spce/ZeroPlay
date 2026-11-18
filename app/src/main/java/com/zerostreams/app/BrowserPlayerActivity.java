@@ -19,6 +19,7 @@ public class BrowserPlayerActivity extends Activity {
     private String verifiedSourceSession="";
     private long lastPlayerGesture;
     private volatile boolean blockAds;
+    private final java.util.concurrent.atomic.AtomicLong playerBlockedRequests=new java.util.concurrent.atomic.AtomicLong();
     private TextView status;
     private FrameLayout screen;
     private View fullscreen;
@@ -36,7 +37,11 @@ public class BrowserPlayerActivity extends Activity {
         String address=getIntent().getStringExtra("url");
         if(address==null||!address.startsWith("https://")){finish();return;}
         tvPlayer=BuildConfig.TV&&!reader;liteTvPlayer=BuildConfig.TV&&BuildConfig.LITE&&!reader;prefs=getSharedPreferences("zero",MODE_PRIVATE);currentAddress=address;navigationMode=tvPlayer&&!liteTvPlayer?TvSourceNavigation.effective(prefs,currentProvider()):TvSourceNavigation.global(prefs);
-        blockAds=!reader&&prefs.getBoolean("blockAds",true);
+        // Do not let a stale Settings preference silently disable the original
+        // WebView blocker while the experimental VPN mode is selected.
+        blockAds=!reader&&(prefs.getBoolean("blockAds",true)||
+            "blockads".equals(prefs.getString("adBlockingMode","original")));
+        if(!reader)prefs.edit().putLong("playerAdRequestsBlocked",0L).apply();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         LinearLayout root=new LinearLayout(this);
@@ -120,7 +125,16 @@ public class BrowserPlayerActivity extends Activity {
                 return (blockAds&&AdBlockRules.blocks(request.getUrl().getHost())) || !"https".equals(request.getUrl().getScheme()) || (request.isForMainFrame()&&!PlaybackSources.trusted(request.getUrl().toString()));
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest request){
-                if(blockAds&&!request.isForMainFrame()&&AdBlockRules.blocks(request.getUrl().getHost()))return new WebResourceResponse("text/plain","UTF-8",new java.io.ByteArrayInputStream(new byte[0]));
+                // Apply BOTH ZeroPlay's player rules and the active VPN's downloaded
+                // hosts rules directly to WebView subresources. This also catches
+                // blocked ad hosts when WebView uses a cached/alternate DNS path.
+                String host=request.getUrl().getHost();
+                if(blockAds&&!request.isForMainFrame()&&
+                   (AdBlockRules.blocks(host)||ZeroVpnAdblockService.blocksPlayerHost(host))){
+                    long n=playerBlockedRequests.incrementAndGet();
+                    if(n<=5||n%5==0)prefs.edit().putLong("playerAdRequestsBlocked",n).apply();
+                    return new WebResourceResponse("text/plain","UTF-8",new java.io.ByteArrayInputStream(new byte[0]));
+                }
                 return null;
             }
             @Override public void onPageFinished(WebView v,String url){

@@ -50,7 +50,35 @@ public class FixedMainActivity extends MainActivity {
             Button surprise=button("🎲",this::surpriseMovie);surprise.setContentDescription("Surprise me");surprise.setTextSize(17);surprise.setBackground(pill(alphaColor(SURFACE,0x78),0));surprise.setOnFocusChangeListener((v,f)->surprise.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(surprise,new LinearLayout.LayoutParams(dp(42),dp(40)));
             boolean isLight="light".equals(getSharedPreferences("zero",MODE_PRIVATE).getString("theme","dark"));Button theme=button(isLight?"☾":"☀",this::toggleTheme);theme.setContentDescription("Toggle theme");theme.setTextSize(18);theme.setBackground(pill(alphaColor(SURFACE,0x78),0));theme.setOnFocusChangeListener((v,f)->theme.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(theme,new LinearLayout.LayoutParams(dp(42),dp(40)));
         }
-        top.addView(row);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,dp(BuildConfig.TV?54:58));tp.setMargins(dp(BuildConfig.TV?18:14),dp(8),dp(BuildConfig.TV?18:14),dp(BuildConfig.TV?5:8));body.addView(top,tp);refreshModernTabs();
+        top.addView(row);
+        LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,dp(BuildConfig.TV?54:58));
+        tp.setMargins(dp(BuildConfig.TV?18:14),dp(8),dp(BuildConfig.TV?18:14),dp(BuildConfig.TV?5:8));
+        if(BuildConfig.TV){
+            // This OVERRIDE is the actual Modern TV navigation, not MainActivity's
+            // otherwise-unused addGoogleNavigation implementation.
+            // A shield inside the HorizontalScrollView disappears whenever TV
+            // focus scrolls the tabs. Keep it permanently visible outside.
+            LinearLayout modernFixedBar=new LinearLayout(this);
+            modernFixedBar.setGravity(Gravity.CENTER_VERTICAL);
+            modernFixedBar.addView(top,new LinearLayout.LayoutParams(0,dp(54),1));
+            Switch shield=subtleAdModeChip();
+            shield.setTextColor(INK);
+            shield.setTextSize(12);
+            shield.setBackground(pill(alphaColor(SURFACE,0xE0),alphaColor(ACCENT,0x80)));
+            shield.setContentDescription("VPN ad blocking switch, Modern UI");
+            shield.setOnFocusChangeListener((v,focused)->{
+                v.setBackground(pill(alphaColor(SURFACE,focused?0xFF:0xE0),focused?ACCENT:alphaColor(ACCENT,0x80)));
+            });
+            LinearLayout.LayoutParams shieldLp=new LinearLayout.LayoutParams(dp(168),dp(44));
+            shieldLp.setMargins(dp(8),0,0,0);
+            modernFixedBar.addView(shield,shieldLp);
+            body.addView(modernFixedBar,tp);
+        }else{
+            // Original mobile Modern navigation: same chip beside brand.
+            row.addView(subtleAdModeChip(),1,new LinearLayout.LayoutParams(-2,dp(46)));
+            body.addView(top,tp);
+        }
+        refreshModernTabs();
     }
 
     private LinearLayout mainContent(){
