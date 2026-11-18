@@ -9,6 +9,9 @@ jobs:
   vpn-adblock-qa:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,6 +35,10 @@ jobs:
           node --test tests/zeroplay-2269-vidstuck-default.test.cjs
           node --test tests/zeroplay-2267-mapple-guard.test.cjs
           node --test tests/source-selection-regression.test.cjs
+      - name: Require actual catalog API keys for the standalone first-launch build
+        run: |
+          test -n "$TMDB_API_KEY" || { echo "Missing TMDB_API_KEY for QA build"; exit 1; }
+          test -n "$OMDB_API_KEY" || { echo "Missing OMDB_API_KEY for QA build"; exit 1; }
       - name: Prepare original Android app baseline
         run: |
           node scripts/apply-2.2.4-volume-boost.cjs

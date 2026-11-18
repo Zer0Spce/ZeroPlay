@@ -5,6 +5,7 @@ const main=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
 const player=read('app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java');
 const vpn=read('app/src/main/java/com/zerostreams/app/ZeroVpnAdblockService.java');
 const manifest=read('app/src/main/AndroidManifest.xml');
+const main=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
 test('Home two-state toggle offers Original on left and VPN DNS on right',()=>{
  assert.match(main,/LEFT: Original · RIGHT: VPN DNS/);
  assert.match(main,/if\(right\)requestVpnAdblockMode\(\)/);
@@ -33,4 +34,19 @@ test('Original restored when VPN is denied stopped or revoked',()=>{
  assert.match(vpn,/putBoolean\("blockAds",true\)/);
  assert.match(player,/blockAds=!reader&&prefs\.getBoolean\("blockAds",true\)/);
  assert.match(read('app/src/main/assets/mappletv-guard-267.js'),/__zeroMappleGuard267/);
+});
+
+test('Home always renders the ad mode toggle when catalog has zero rows',()=>{
+ const begin=main.indexOf('if(rows.isEmpty()){');
+ const end=main.indexOf('if(category.equals("Home")&&displayQuery.isEmpty())',begin+120);
+ assert.ok(begin>0);
+ assert.match(main.slice(begin,begin+400),/if\(category\.equals\("Home"\)&&displayQuery\.isEmpty\(\)\)homeAdBlockingSwitch\(\)/);
+ assert.match(main,/void renderHome22\(List<Catalog\.Item> rows,int token\)/);
+ assert.match(main,/homeAdBlockingSwitch\(\);\s*List<Catalog.Item> clean=/);
+});
+test('Isolated QA embeds the same catalog secrets as production build',()=>{
+ const workflow=read('.github/workflows/test-vpn-adblock-android-tv.yml');
+ assert.match(workflow,/TMDB_API_KEY: \$\{\{ secrets\.TMDB_API_KEY \}\}/);
+ assert.match(workflow,/OMDB_API_KEY: \$\{\{ secrets\.OMDB_API_KEY \}\}/);
+ assert.match(workflow,/test -n "\$TMDB_API_KEY"/);
 });
