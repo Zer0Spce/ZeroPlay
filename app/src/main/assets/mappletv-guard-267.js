@@ -4,8 +4,8 @@
  * removes verified playback, or interferes with CAPTCHA/Cloudflare. */
 (function(){
 'use strict';
-if(!window.__zeroBlockAds || !window.__zeroMappleGuardEnabled || window.__zeroMappleAdGuard28)return;
-window.__zeroMappleAdGuard28=true;
+if(!window.__zeroBlockAds || !window.__zeroMappleGuardEnabled || window.__zeroMappleGuard267)return;
+window.__zeroMappleGuard267=true;
 const media='video,audio,.jwplayer,.plyr,.vjs-player,[data-player]';
 const challenge='iframe[src*="recaptcha"],iframe[src*="hcaptcha"],iframe[src*="challenges.cloudflare.com"],.g-recaptcha,.h-captcha,.cf-turnstile,input[name="cf-turnstile-response"],[role="checkbox"]';
 const patterns=[
