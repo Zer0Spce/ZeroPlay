@@ -111,7 +111,7 @@ public class BrowserPlayerActivity extends Activity {
 
         web.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest request){
-                if(tvPlayer&&request.isForMainFrame()&&request.hasGesture()&&java.util.Arrays.asList("vidstuck.cc","zxcstream.cc","embedwave.cc","vidsrc.sh","vidrock.to","vidnest.fun","embed.vidrift.net","vidfast.vc","vaplayer.ru").contains(request.getUrl().getHost())&&!("zxcstream.cc".equals(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).startsWith("/player/"):(java.util.Arrays.asList("vidrock.to","vidnest.fun","vidfast.vc").contains(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).matches("/(movie|tv)/.*"):String.valueOf(request.getUrl().getPath()).startsWith("/embed/")))){confirmExit();return true;}
+                if(tvPlayer&&request.isForMainFrame()&&request.hasGesture()&&java.util.Arrays.asList("vidstuck.cc","zxcstream.cc","embedwave.cc","vidsrc.sh","vidrock.to","vidnest.fun","embed.vidrift.net","vidfast.vc","vaplayer.ru","mapple.fun","vidly.pro","vidcore.org","www.chillflix.pw").contains(request.getUrl().getHost())&&!("zxcstream.cc".equals(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).startsWith("/player/"):(java.util.Arrays.asList("vidrock.to","vidnest.fun","vidfast.vc","vidly.pro").contains(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).matches("/(movie|tv)/.*"):("mapple.fun".equals(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).startsWith("/watch/"):String.valueOf(request.getUrl().getPath()).startsWith("/embed/"))))){confirmExit();return true;}
                 return (blockAds&&AdBlockRules.blocks(request.getUrl().getHost())) || !"https".equals(request.getUrl().getScheme()) || (request.isForMainFrame()&&!PlaybackSources.trusted(request.getUrl().toString()));
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest request){
@@ -278,7 +278,7 @@ public class BrowserPlayerActivity extends Activity {
         });
     }
 
-    private String currentProvider(){try{String host=Uri.parse(currentAddress).getHost();return "zxcstream.cc".equals(host)?"zxcstream":"embedwave.cc".equals(host)?"embedwave":"vidsrc.sh".equals(host)?"vidsrc-sh":"vidrock.to".equals(host)?"vidrock":"vidnest.fun".equals(host)?"vidnest":"embed.vidrift.net".equals(host)?"vidrift":"vidfast.vc".equals(host)?"vidfast":"vaplayer.ru".equals(host)?"vidapi":"vidstuck";}catch(Exception e){return "vidstuck";}}
+    private String currentProvider(){try{String host=Uri.parse(currentAddress).getHost();return "zxcstream.cc".equals(host)?"zxcstream":"embedwave.cc".equals(host)?"embedwave":"vidsrc.sh".equals(host)?"vidsrc-sh":"vidrock.to".equals(host)?"vidrock":"vidnest.fun".equals(host)?"vidnest":"embed.vidrift.net".equals(host)?"vidrift":"vidfast.vc".equals(host)?"vidfast":"vaplayer.ru".equals(host)?"vidapi":"mapple.fun".equals(host)?"mappletv":"vidly.pro".equals(host)?"vidly":"vidcore.org".equals(host)?"vidcore":"www.chillflix.pw".equals(host)?"chillflix":"vidstuck";}catch(Exception e){return "vidstuck";}}
     private String navigationModeLabel(){return navigationMode.equals("mouse")?"Mouse":navigationMode.equals("focus")?"D-pad navigation":"Smart / Hybrid";}
     private void applyNavigationMode(String mode){
         navigationMode=TvSourceNavigation.sanitize(mode);

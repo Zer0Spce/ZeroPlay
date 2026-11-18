@@ -3,7 +3,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 public class PlaybackSourcesTest {
     @Test public void allSourcesUseTmdbMovieAndEpisodeIds(){
-        for(String provider:PlaybackSources.IDS){if(provider.equals("rawcast"))continue;String movie=PlaybackSources.url("299534","movie",1,1,provider),tv=PlaybackSources.url("1399","tv",0,2,provider);assertTrue(PlaybackSources.trusted(movie));assertTrue(movie.contains("299534"));assertTrue(tv.contains("1399"));assertTrue(tv.contains("/tv/1399/0/2"));}
+        for(String provider:PlaybackSources.IDS){if(provider.equals("rawcast"))continue;String movie=PlaybackSources.url("299534","movie",1,1,provider),tv=PlaybackSources.url("1399","tv",0,2,provider);assertTrue(PlaybackSources.trusted(movie));assertTrue(movie.contains("299534"));assertTrue(tv.contains("1399"));assertTrue(tv.contains(provider.equals("mappletv")?"/watch/tv/1399-0-2":"/tv/1399/0/2"));}
         assertTrue(PlaybackSources.url("299534","movie",1,1,"vidstuck").contains("vidstuck.cc/embed/movie/299534"));
         assertTrue(PlaybackSources.url("299534","movie",1,1,"embedwave").contains("embedwave.cc/embed/movie/299534"));
         String zxc=PlaybackSources.url("299534","movie",1,1,"zxcstream");
@@ -19,6 +19,11 @@ public class PlaybackSourcesTest {
         assertEquals("https://vidfast.vc/tv/1399/1/2",PlaybackSources.url("1399","tv",1,2,"vidfast"));
         assertEquals("https://vaplayer.ru/embed/movie/299534",PlaybackSources.url("299534","movie",1,1,"vidapi"));
         assertEquals("https://vaplayer.ru/embed/tv/1399/1/2",PlaybackSources.url("1399","tv",1,2,"vidapi"));
+        assertEquals("https://mapple.fun/watch/movie/299534",PlaybackSources.url("299534","movie",1,1,"mappletv"));
+        assertEquals("https://mapple.fun/watch/tv/1399-0-2",PlaybackSources.url("1399","tv",0,2,"mappletv"));
+        assertEquals("https://vidly.pro/movie/299534",PlaybackSources.url("299534","movie",1,1,"vidly"));
+        assertEquals("https://vidcore.org/embed/tv/1399/0/2",PlaybackSources.url("1399","tv",0,2,"vidcore"));
+        assertTrue(PlaybackSources.url("299534","movie",1,1,"chillflix").contains("prefer4k=1"));
         assertEquals("VidSrc [Offline]",PlaybackSources.NAMES[3]);
         assertEquals("Vidrock.to [Offline]",PlaybackSources.NAMES[4]);
     }
@@ -34,7 +39,9 @@ public class PlaybackSourcesTest {
         assertTrue(PlaybackSources.trusted("https://vidrock.to/movie/1"));
         assertTrue(PlaybackSources.trusted("https://vidnest.fun/tv/1399/1/2"));
         assertTrue(PlaybackSources.trusted("https://embed.vidrift.net/embed/movie/1"));assertTrue(PlaybackSources.trusted("https://vidfast.vc/movie/1"));assertTrue(PlaybackSources.trusted("https://vaplayer.ru/embed/movie/1"));
-        assertFalse(PlaybackSources.trusted("https://embed.vidrift.net.attacker.example/embed/movie/1"));assertEquals(10,PlaybackSources.IDS.length);assertEquals(0,PlaybackSources.index("unknown"));}
+        for(String origin:new String[]{"https://mapple.fun/watch/movie/1","https://vidly.pro/movie/1","https://vidcore.org/embed/movie/1","https://www.chillflix.pw/embed/movie/1"})assertTrue(PlaybackSources.trusted(origin));
+        assertFalse(PlaybackSources.trusted("https://mapple.fun.attacker.example/watch/movie/1"));
+        assertFalse(PlaybackSources.trusted("https://embed.vidrift.net.attacker.example/embed/movie/1"));assertEquals(14,PlaybackSources.IDS.length);assertEquals(0,PlaybackSources.index("unknown"));}
     @Test(expected=IllegalArgumentException.class) public void rawcastRequiresSecureApi(){PlaybackSources.url("550","movie",1,1,"rawcast");}
     @Test(expected=IllegalArgumentException.class) public void rejectsMalformedIds(){PlaybackSources.url("../private","movie",1,1,"vidstuck");}
 }

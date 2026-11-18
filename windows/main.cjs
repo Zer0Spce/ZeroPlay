@@ -113,7 +113,7 @@ function closePlayer(){
   if(main&&!main.isDestroyed()){main.setTitle('ZeroPlay');main.webContents.focus();refresh();}
 }
 async function openPlayer(value,selected,fixture,prepare=false,sourceOverride,recovering=false){
-  value=core.cleanItem(value);let requestedSource=["vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","rawcast"].includes(sourceOverride)?sourceOverride:(state.settings.source||"vidstuck");if(!sourceOverride)requestedSource=bestSource(requestedSource);const playbackSource=requestedSource==="rawcast"&&state.settings.rawcastPlayback!==true?"vidstuck":requestedSource;currentPlaybackSource=playbackSource;sourceRecoveryAttempted=recovering;lastVerifiedPlaybackKey='';const playerLoadStarted=Date.now();const saved=state.positions[core.key(value)];let position=selected?core.episode(selected):saved||{};
+  value=core.cleanItem(value);let requestedSource=["vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","mappletv","vidly","vidcore","chillflix","rawcast"].includes(sourceOverride)?sourceOverride:(state.settings.source||"vidstuck");if(!sourceOverride)requestedSource=bestSource(requestedSource);const playbackSource=requestedSource==="rawcast"&&state.settings.rawcastPlayback!==true?"vidstuck":requestedSource;currentPlaybackSource=playbackSource;sourceRecoveryAttempted=recovering;lastVerifiedPlaybackKey='';const playerLoadStarted=Date.now();const saved=state.positions[core.key(value)];let position=selected?core.episode(selected):saved||{};
   if(selected&&saved&&saved.season===position.season&&saved.episode===position.episode)position=saved;
   if(playbackSource==='rawcast'&&state.settings.rawcastPlayback===true&&!fixture){if(!rawcastKey())throw Error('RawCast key required. Enable RawCast and add your key in Settings. Streaming uses your limited API quota.');const media=await rawcast.stream(value,core.episode(position));await openLive('RawCast',0,{name:value.title,...media,headers:{},vod:true,rawcastItem:value,rawcastEpisode:core.episode(position),start:position.timestamp||0});current=value;core.record(state,value,position);persist();refresh();return;}
   closePlayer();
@@ -131,7 +131,7 @@ async function openPlayer(value,selected,fixture,prepare=false,sourceOverride,re
   qrWorker.on('message',confirmed=>{scanning=false;if(confirmed&&!contents.isDestroyed())for(const frame of contents.mainFrame.framesInSubtree)frame.executeJavaScript('if(window.__zeroDismissQrAd)window.__zeroDismissQrAd();').catch(()=>{});});
   qrWorker.on('error',()=>{scanning=false;});
   contents.setWindowOpenHandler(()=>({action:'deny'}));
-  const check=(event,url)=>{if(!playerOrigin(url))event.preventDefault();};contents.on('will-navigate',(event,url)=>{check(event,url);try{const u=new URL(url);if(['vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh','vidrock.to','vidnest.fun','embed.vidrift.net','vidfast.vc','vaplayer.ru'].includes(u.hostname)&&!(u.hostname==='zxcstream.cc'?u.pathname.startsWith('/player/'):['vidrock.to','vidnest.fun','vidfast.vc'].includes(u.hostname)?/^\/(movie|tv)\//.test(u.pathname):u.pathname.startsWith('/embed/'))){event.preventDefault();if(player===view)closePlayer();}}catch{}});contents.on('will-redirect',check);
+  const check=(event,url)=>{if(!playerOrigin(url))event.preventDefault();};contents.on('will-navigate',(event,url)=>{check(event,url);try{const u=new URL(url);if(['vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh','vidrock.to','vidnest.fun','embed.vidrift.net','vidfast.vc','vaplayer.ru','mapple.fun','vidly.pro','vidcore.org','www.chillflix.pw'].includes(u.hostname)&&!(u.hostname==='zxcstream.cc'?u.pathname.startsWith('/player/'):['vidrock.to','vidnest.fun','vidfast.vc','vidly.pro'].includes(u.hostname)?/^\/(movie|tv)\//.test(u.pathname):u.hostname==='mapple.fun'?/^\/watch\/(movie|tv)\//.test(u.pathname):u.pathname.startsWith('/embed/'))){event.preventDefault();if(player===view)closePlayer();}}catch{}});contents.on('will-redirect',check);
   let backPending=false;
   contents.on('before-input-event',async(event,input)=>{
     if(input.type!=='keyDown'||player!==view)return;
@@ -318,7 +318,7 @@ app.whenReady().then(async()=>{
     try{
       const result=await main.webContents.executeJavaScript(
         'window.zero.state().then(data=>({version:data.version,rail:!!document.querySelector(\'[data-nav="Home"]\'),status:!!document.querySelector(\'#status\')}))');
-      if(!/^2\.2\.6\.5$/.test(result.version)||!result.rail||!result.status)
+      if(!/^2\.2\.6\.6$/.test(result.version)||!result.rail||!result.status)
         throw Error('Desktop interface did not initialize: '+JSON.stringify(result));
       console.log('ZERO_WINDOWS_UI_SMOKE_PASS '+JSON.stringify(result));
       app.exit(0);

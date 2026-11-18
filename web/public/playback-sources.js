@@ -1,14 +1,14 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.playbackSources=factory();})(typeof globalThis==='object'?globalThis:this,()=>{
-  const sources=[{id:'vidstuck',name:'VidStuck'},{id:'zxcstream',name:'ZXCStream (Beta)'},{id:'embedwave',name:'Embedwave (BETA)'},{id:'vidsrc-sh',name:'VidSrc [Offline]'},{id:'vidrock',name:'Vidrock.to [Offline]'},{id:'vidnest',name:'VidNest'},{id:'vidrift',name:'VidRift'},{id:'vidfast',name:'VidFast'},{id:'vidapi',name:'VidAPI'}];
-  const hosts=['vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh','vidrock.to','vidnest.fun','embed.vidrift.net','vidfast.vc','vaplayer.ru'];
+  const sources=[{id:'vidstuck',name:'VidStuck'},{id:'zxcstream',name:'ZXCStream (Beta)'},{id:'embedwave',name:'Embedwave (BETA)'},{id:'vidsrc-sh',name:'VidSrc [Offline]'},{id:'vidrock',name:'Vidrock.to [Offline]'},{id:'vidnest',name:'VidNest'},{id:'vidrift',name:'VidRift'},{id:'vidfast',name:'VidFast'},{id:'vidapi',name:'VidAPI'},{id:'mappletv',name:'MappleTV (4K HDR)'},{id:'vidly',name:'Vidly (4K)'},{id:'vidcore',name:'Vidcore (4K)'},{id:'chillflix',name:'Chillflix (4K)'}];
+  const hosts=['vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh','vidrock.to','vidnest.fun','embed.vidrift.net','vidfast.vc','vaplayer.ru','mapple.fun','vidly.pro','vidcore.org','www.chillflix.pw'];
   function source(id){return sources.find(row=>row.id===id)||sources[0];}
   function trusted(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.port&&hosts.includes(u.hostname);}catch{return false;}}
   function url(item,position={},provider='vidstuck'){
     if(!['movie','tv'].includes(item?.type)||!Number.isSafeInteger(item.id)||item.id<1)throw Error('Invalid title');
     const season=Number.isInteger(position.season)&&position.season>=0?position.season:1,episode=Number.isInteger(position.episode)&&position.episode>0?position.episode:1;
     const suffix=`${item.type}/${item.id}`+(item.type==='tv'?`/${season}/${episode}`:'');const id=source(provider).id;
-    const host=id==='vidsrc-sh'?'vidsrc.sh':id==='vidrock'?'vidrock.to':id==='vidnest'?'vidnest.fun':id==='vidrift'?'embed.vidrift.net':id==='vidfast'?'vidfast.vc':id==='vidapi'?'vaplayer.ru':id==='embedwave'?'embedwave.cc':id==='zxcstream'?'zxcstream.cc':'vidstuck.cc';const u=id==='vidrock'||id==='vidnest'||id==='vidfast'?new URL(`https://${host}/${suffix}`):id==='zxcstream'?new URL(`https://${host}/player/${suffix}`):new URL(`https://${host}/embed/${suffix}`);if(id==='zxcstream'){u.searchParams.set('domainAd','zeroplay');u.searchParams.set('color','DF2531');u.searchParams.set('autoplay','true');}
-    if(id==='vidapi')u.searchParams.set('ds_lang','en');
+    const host=id==='mappletv'?'mapple.fun':id==='vidly'?'vidly.pro':id==='vidcore'?'vidcore.org':id==='chillflix'?'www.chillflix.pw':id==='vidsrc-sh'?'vidsrc.sh':id==='vidrock'?'vidrock.to':id==='vidnest'?'vidnest.fun':id==='vidrift'?'embed.vidrift.net':id==='vidfast'?'vidfast.vc':id==='vidapi'?'vaplayer.ru':id==='embedwave'?'embedwave.cc':id==='zxcstream'?'zxcstream.cc':'vidstuck.cc';const u=id==='mappletv'?new URL('https://mapple.fun/watch/'+item.type+'/'+item.id+(item.type==='tv'?'-'+season+'-'+episode:'')):id==='vidrock'||id==='vidnest'||id==='vidfast'||id==='vidly'?new URL(`https://${host}/${suffix}`):id==='zxcstream'?new URL(`https://${host}/player/${suffix}`):new URL(`https://${host}/embed/${suffix}`);if(id==='zxcstream'){u.searchParams.set('domainAd','zeroplay');u.searchParams.set('color','DF2531');u.searchParams.set('autoplay','true');}
+    if(id==='vidapi')u.searchParams.set('ds_lang','en');if(id==='chillflix'){u.searchParams.set('prefer4k','1');u.searchParams.set('watchparty','false');}
     if(id==='vidstuck'){
       for(const [k,v]of Object.entries({branding:'ZeroPlay',color:'DF2531',subtitle:'english',overlay:'true'}))u.searchParams.set(k,v);
       if(item.type==='tv')for(const k of ['nextEpisode','episodeSelector','autoplayNextEpisode'])u.searchParams.set(k,'true');
@@ -16,6 +16,6 @@
     }
     return u.href;
   }
-  function normalize(data){if(data?.type!=='PLAYER_EVENT')return data;const p=data.data,info=p?.player_info;if(!info?.tmdb)return null;return {id:info.tmdb,type:info.mediaType,timestamp:p.player_progress,duration:p.player_duration,season:info.season,episode:info.episode};}
+  function normalize(data){if(['PLAYER_EVENT','VIDLY_PLAYER_EVENT'].includes(data?.type)&&data?.data?.tmdbId){const p=data.data;return {id:p.tmdbId,type:p.mediaType,timestamp:p.currentTime,duration:p.duration,season:p.season,episode:p.episode};}if(data?.type!=='PLAYER_EVENT')return data;const p=data.data,info=p?.player_info;if(!info?.tmdb)return null;return {id:info.tmdb,type:info.mediaType,timestamp:p.player_progress,duration:p.player_duration,season:info.season,episode:info.episode};}
   return {sources,source,trusted,url,normalize};
 });
