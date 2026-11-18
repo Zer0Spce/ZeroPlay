@@ -8,7 +8,7 @@ function label(node){return String(node.getAttribute('aria-label')||node.textCon
 function isWatchOption(node){return /^watch options(?:\s*[⌄▼▾])?$/i.test(label(node));}
 function guardOptions(){
 var idle=Date.now()-lastUser>=IDLE_MS;
-for(var node of document.querySelectorAll('button,[role="button"],summary')){
+for(var node of document.querySelectorAll('button,[role="button"],summary,[aria-haspopup]')){
  if(!isWatchOption(node))continue;
  options.add(node);
 }
