@@ -61,6 +61,8 @@ public class MainActivity extends Activity {
     void message(String value){Toast.makeText(this,value,Toast.LENGTH_LONG).show();}
     @Override public void onCreate(Bundle state){
         prefs=getSharedPreferences("zero",MODE_PRIVATE);
+        // Fail safe if Android killed the VPN service in an earlier session.
+        if("vpn".equals(prefs.getString("adBlockingMode","original"))&&!ZeroVpnAdblockService.isRunning()&&!prefs.getBoolean("vpnAdblockStarting",false))selectOriginalAdblockMode();
         if(!prefs.getBoolean("vidstuckDefault269Migrated",false)){
             android.content.SharedPreferences.Editor migration=prefs.edit()
                 .putString("playbackSource","vidstuck")
@@ -249,33 +251,69 @@ public class MainActivity extends Activity {
         browse=new ArrayList<>();
         load();
     }
+    private static final int VPN_PERMISSION_REQUEST=2691;
+    void startVpnAdblockMode(){
+        try{
+            prefs.edit().putString("adBlockingMode","vpn").putBoolean("vpnAdblockStarting",true)
+                .putBoolean("blockAds",false).apply();
+            Intent intent=new Intent(this,ZeroVpnAdblockService.class);
+            intent.setAction(ZeroVpnAdblockService.START);
+            if(Build.VERSION.SDK_INT>=26)startForegroundService(intent);
+            else startService(intent);
+            message("Starting DNS VPN protection. Streaming traffic is not tunneled.");
+            ui.postDelayed(()->{if(category.equals("Home"))render();},1200);
+        }catch(Exception e){
+            selectOriginalAdblockMode();
+            message("VPN could not start. Original ad blocking restored.");
+        }
+    }
+    void selectOriginalAdblockMode(){
+        prefs.edit().putString("adBlockingMode","original")
+            .putBoolean("vpnAdblockStarting",false).putBoolean("vpnAdblockActive",false)
+            .putBoolean("blockAds",true).apply();
+        stopService(new Intent(this,ZeroVpnAdblockService.class));
+    }
+    void requestVpnAdblockMode(){
+        try{
+            Intent permission=android.net.VpnService.prepare(this);
+            if(permission!=null){startActivityForResult(permission,VPN_PERMISSION_REQUEST);}
+            else startVpnAdblockMode();
+        }catch(Exception e){
+            selectOriginalAdblockMode();
+            message("VPN permission unavailable; using Original blocking.");
+            render();
+        }
+    }
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=VPN_PERMISSION_REQUEST)return;
+        if(resultCode==RESULT_OK)startVpnAdblockMode();
+        else{
+            selectOriginalAdblockMode();
+            message("VPN permission was denied. Original ad blocking is still active.");
+            if(category.equals("Home"))render();
+        }
+    }
     void homeAdBlockingSwitch(){
-        // Local ZeroPlay WebView filtering only; NOT a device-wide VPN.
         LinearLayout row=new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(16),dp(8),dp(16),dp(8));
         row.setBackground(shape(SURFACE,12));
-        LinearLayout labels=new LinearLayout(this);
-        labels.setOrientation(LinearLayout.VERTICAL);
-        TextView title=text("Block player ads",BuildConfig.TV?18:16,INK);
-        bold(title);
+        LinearLayout labels=new LinearLayout(this);labels.setOrientation(LinearLayout.VERTICAL);
+        TextView title=text("Ad blocking mode",BuildConfig.TV?18:16,INK);bold(title);
         labels.addView(title);
-        labels.addView(text("ZeroPlay player only · May not block every ad",BuildConfig.TV?12:11,MUTED));
+        labels.addView(text("LEFT: Original · RIGHT: VPN DNS (system-wide)",BuildConfig.TV?12:11,MUTED));
         row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
         Switch toggle=new Switch(this);
-        toggle.setText(prefs.getBoolean("blockAds",true)?"ON":"OFF");
-        toggle.setTextColor(INK);
-        toggle.setChecked(prefs.getBoolean("blockAds",true));
-        toggle.setContentDescription("Block ads in ZeroPlay player");
-        toggle.setMinimumHeight(dp(BuildConfig.TV?52:44));
-        toggle.setOnCheckedChangeListener((button,enabled)->{
-            prefs.edit().putBoolean("blockAds",enabled).apply();
-            toggle.setText(enabled?"ON":"OFF");
-            Toast.makeText(this,enabled?"Player ad blocking enabled":"Player ad blocking disabled",Toast.LENGTH_SHORT).show();
+        boolean vpn="vpn".equals(prefs.getString("adBlockingMode","original"));
+        toggle.setText(vpn?"VPN":"Original");toggle.setTextColor(INK);
+        toggle.setChecked(vpn);toggle.setMinHeight(dp(BuildConfig.TV?52:44));
+        toggle.setContentDescription("Ad blocking mode: left Original player filtering, right VPN DNS filtering");
+        toggle.setOnCheckedChangeListener((button,right)->{
+            if(right)requestVpnAdblockMode();
+            else{selectOriginalAdblockMode();message("Original ZeroPlay ad blocking enabled.");render();}
         });
-        row.addView(toggle);
-        content.addView(row,new LinearLayout.LayoutParams(-1,-2));
+        row.addView(toggle);content.addView(row,new LinearLayout.LayoutParams(-1,-2));
         space(content,BuildConfig.TV?16:12);
     }
     void renderHome22(List<Catalog.Item> rows,int token){

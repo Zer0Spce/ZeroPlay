@@ -61,11 +61,16 @@ public class BrowserPlayerActivity extends Activity {
         }
         if(!reader){
             Button ads=new Button(this);
-            ads.setText(blockAds?"Ads blocked":"Blocking off");
+            ads.setText(ZeroVpnAdblockService.isRunning()?"VPN DNS active":blockAds?"Original blocking":"Blocking off");
             ads.setOnClickListener(v->{
-                blockAds=!blockAds;
-                getSharedPreferences("zero",MODE_PRIVATE).edit().putBoolean("blockAds",blockAds).apply();
-                // Recreate to reset document-start scripts and the QR scanner state.
+                if(ZeroVpnAdblockService.isRunning()){
+                    prefs.edit().putString("adBlockingMode","original")
+                        .putBoolean("blockAds",true).apply();
+                    stopService(new Intent(this,ZeroVpnAdblockService.class));
+                }else{
+                    blockAds=!blockAds;
+                    prefs.edit().putBoolean("blockAds",blockAds).apply();
+                }
                 recreate();
             });
             controls.addView(ads);
