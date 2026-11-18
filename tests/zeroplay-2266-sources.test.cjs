@@ -26,6 +26,7 @@ test('Android source lists retain trusted origin checks and source ordering',()=
  for(const [id,label,host] of expected){assert.ok(android.includes('"'+id+'"'));assert.ok(android.includes(label));assert.ok(android.includes('https://'+host));assert.ok(player.includes(host));}
  assert.ok(android.includes('"chillflix","rawcast"'));
 });
+test('Smart Playback includes selectable sources in its evidence-based ranking',()=>{const intel=require('../windows/source-intelligence.cjs');for(const [id] of expected){assert.ok(intel.ONLINE.includes(id));assert.equal(intel.best({},id),id);}});
 test('Web CSP allows only exact documented new player origins',()=>{
  const html=fs.readFileSync('web/public/index.html','utf8');
  for(const [, ,host] of expected)assert.ok(html.includes('https://'+host));

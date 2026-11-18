@@ -7,7 +7,7 @@ import java.util.*;
 final class PlaybackHealth {
     private PlaybackHealth(){}
     static final List<String> AUTOMATIC=Collections.unmodifiableList(Arrays.asList(
-        "vidstuck","zxcstream","embedwave","vidnest","vidrift","vidfast","vidapi"));
+        "vidstuck","zxcstream","embedwave","vidnest","vidrift","vidfast","vidapi","mappletv","vidly","vidcore","chillflix"));
     static final long COOLDOWN=30*60*1000L;
     static boolean automatic(String provider){return AUTOMATIC.contains(provider);}
     static void loaded(SharedPreferences prefs,String provider,long elapsed){
