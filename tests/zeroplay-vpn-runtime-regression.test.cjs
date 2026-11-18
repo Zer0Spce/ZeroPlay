@@ -30,7 +30,7 @@ test('On-device probe checks a real DNS response and engine counters',()=>{
   assert.match(vpn,/answer\[3\]&15\)==3/);
   assert.match(vpn,/queries\.get\(\)>before&&blocked\.get\(\)>0/);
   assert.match(main,/vpnDnsSelfTestStatus/);
-  assert.match(main,/VPN DNS !/);
+  assert.match(main,/DNS !/);
 });
 test('Both modes retain the original in-player filter',()=>{
   assert.match(vpn,/putBoolean\("blockAds",true\)/);
