@@ -284,16 +284,6 @@ public class MainActivity extends Activity {
             render();
         }
     }
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode!=VPN_PERMISSION_REQUEST)return;
-        if(resultCode==RESULT_OK)startVpnAdblockMode();
-        else{
-            selectOriginalAdblockMode();
-            message("VPN permission was denied. Original ad blocking is still active.");
-            if(category.equals("Home"))render();
-        }
-    }
     void homeAdBlockingSwitch(){
         LinearLayout row=new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);

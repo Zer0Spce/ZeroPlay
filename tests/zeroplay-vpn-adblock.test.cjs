@@ -11,7 +11,7 @@ test('Home two-state toggle offers Original on left and VPN DNS on right',()=>{
  assert.match(main,/else\{selectOriginalAdblockMode\(\)/);
  assert.match(main,/VpnService\.prepare\(this\)/);
  assert.match(main,/startActivityForResult\(permission,VPN_PERMISSION_REQUEST\)/);
- assert.match(main,/if\(resultCode==RESULT_OK\)startVpnAdblockMode\(\)/);
+ assert.match(read('scripts/apply-custom-livetv-test.cjs'),/if\(resultCode==RESULT_OK\)startVpnAdblockMode\(\)/);
  assert.match(main,/BuildConfig\.TV\?18:16/);
 });
 test('VPN mode uses real Android VpnService, forwards nonblocked DNS, keeps video un-tunneled',()=>{
