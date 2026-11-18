@@ -47,6 +47,12 @@ public final class ZeroVpnAdblockService extends VpnService {
     static boolean isRunning(){return running;}
     private static boolean matches(String host,String domain){return host.equals(domain)||host.endsWith("."+domain);}
     private static boolean valid(String host){return host.length()>3&&host.length()<=253&&host.matches("[a-z0-9][a-z0-9.-]*[a-z0-9]")&&!host.contains("..");}
+    // Keep the previously tested playback safety allowlist contract stable.
+    static boolean allowed(String host){
+        if(host==null)return false;
+        for(String safe:SAFE)if(matches(host.toLowerCase(Locale.ROOT),safe))return true;
+        return false;
+    }
     private boolean shouldBlock(String name){
         if(name==null)return false;
         String d=name.toLowerCase(Locale.ROOT);
