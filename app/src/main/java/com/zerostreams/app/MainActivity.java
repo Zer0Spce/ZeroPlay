@@ -62,7 +62,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state){
         prefs=getSharedPreferences("zero",MODE_PRIVATE);
         // Fail safe if Android killed the VPN service in an earlier session.
-        if("vpn".equals(prefs.getString("adBlockingMode","original"))&&!ZeroVpnAdblockService.isRunning()&&!prefs.getBoolean("vpnAdblockStarting",false))selectOriginalAdblockMode();
+        if("vpn".equals(prefs.getString("adBlockingMode","original"))){stopService(new Intent(this,ZeroVpnAdblockService.class));prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();}
         if(!prefs.getBoolean("vidstuckDefault269Migrated",false)){
             android.content.SharedPreferences.Editor migration=prefs.edit()
                 .putString("playbackSource","vidstuck")
@@ -75,10 +75,10 @@ public class MainActivity extends Activity {
         }
         if(!prefs.getBoolean("autoSourceRecoveryDefaultOff22",false)){prefs.edit().putBoolean("autoSourceRecovery",false).putBoolean("autoSourceRecoveryDefaultOff22",true).apply();}if(!prefs.getBoolean("trailerDelay175",false)){if(prefs.getInt("previewDelay",900)==900)prefs.edit().putInt("previewDelay",2000).apply();prefs.edit().putBoolean("trailerDelay175",true).apply();}lightTheme=prefs.getString("theme","dark").equals("light");setTheme(lightTheme?R.style.AppThemeLight:R.style.AppTheme);if(lightTheme){BG=Color.rgb(243,245,249);SURFACE=Color.WHITE;INK=Color.rgb(24,33,48);MUTED=Color.rgb(83,97,116);ACCENT=Color.rgb(10,113,94);}super.onCreate(state);updater=new AppUpdater(this,prefs);applyPalette(prefs.getString("theme","dark"));history=new HistoryStore(prefs);if(state!=null){category=state.getString("category","Home");query=state.getString("query","");collection=state.getString("collection","");genreType=state.getString("genreType","movie");genreName=state.getString("genreName","");genreId=state.getInt("genreId",0);browsePage=1;submittedQuery=state.getString("submittedQuery",query);channelGroup=state.getString("channelGroup","All");}if(getIntent().getBooleanExtra("downloads",false))category="Downloads";if(category.equals("Live")||category.equals("Manga")){category="Home";query="";collection="";}
         LinearLayout outer=new LinearLayout(this);outer.setBackgroundColor(youtubeLayout()&&!lightTheme&&!"dark".equals(prefs.getString("theme","dark"))?Color.rgb(15,15,15):BG);
-        if(BuildConfig.TV&&classicLayout()){LinearLayout rail=column();sidebar=rail;rail.setPadding(dp(20),dp(32),dp(12),dp(20));rail.setBackground(shape(SURFACE,0));TextView z=text("Z",34,ACCENT);bold(z);z.setFocusable(true);z.setClickable(true);z.setOnClickListener(v->easterEgg());rail.addView(z);space(rail,28);rail.addView(text("DISCOVER",11,MUTED));space(rail,8);for(String tab:new String[]{"Home","Movies","Series","Categories","LiveTV","IPTV","Live Sports"}){Button b=nav(tab);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(46));p.setMargins(0,0,0,dp(8));rail.addView(b,p);}space(rail,10);rail.addView(button("Search",this::focusSearch));space(rail,16);rail.addView(text("YOUR SPACE",11,MUTED));space(rail,8);rail.addView(nav("Downloads"));space(rail,8);rail.addView(button("My library",this::libraryMenu));space(rail,10);rail.addView(button("Settings",this::settings));ScrollView railScroll=new ScrollView(this);railScroll.setFillViewport(true);railScroll.addView(rail);outer.addView(railScroll,new LinearLayout.LayoutParams(dp(144),-1));}
+        if(BuildConfig.TV&&classicLayout()){LinearLayout rail=column();sidebar=rail;rail.setPadding(dp(20),dp(32),dp(12),dp(20));rail.setBackground(shape(SURFACE,0));TextView z=text("Z",34,ACCENT);bold(z);z.setFocusable(true);z.setClickable(true);z.setOnClickListener(v->easterEgg());rail.addView(z);space(rail,28);rail.addView(text("DISCOVER",11,MUTED));space(rail,8);for(String tab:new String[]{"Home","Movies","Series","Categories","LiveTV","IPTV","Live Sports"}){Button b=nav(tab);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(46));p.setMargins(0,0,0,dp(8));rail.addView(b,p);}space(rail,10);rail.addView(button("Search",this::focusSearch));space(rail,16);rail.addView(text("YOUR SPACE",11,MUTED));space(rail,8);rail.addView(nav("Downloads"));space(rail,8);rail.addView(button("My library",this::libraryMenu));space(rail,10);rail.addView(button("Settings",this::settings));rail.addView(subtleAdModeChip(),new LinearLayout.LayoutParams(-1,dp(46)));ScrollView railScroll=new ScrollView(this);railScroll.setFillViewport(true);railScroll.addView(rail);outer.addView(railScroll,new LinearLayout.LayoutParams(dp(144),-1));}
         if(youtubeLayout())addLayoutRail(outer);if(flixLayout()&&BuildConfig.TV)addFlixRail(outer);
         LinearLayout body=column();outer.addView(body,new LinearLayout.LayoutParams(0,-1,1));
-        LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);if(BuildConfig.TV)header.setBackground(shape(tint(0xDC),0));header.setPadding(dp(BuildConfig.TV?30:20),dp(14),dp(20),dp(12));TextView logo=text("ZEROPLAY",googleLayout()?(BuildConfig.TV?25:22):(BuildConfig.TV?23:19),INK);eggLogo=logo;bold(logo);logo.setFocusable(true);logo.setClickable(true);logo.setOnClickListener(v->easterEgg());logo.setSingleLine(true);logo.setEllipsize(TextUtils.TruncateAt.END);logo.setLetterSpacing(.06f);header.addView(logo,new LinearLayout.LayoutParams(0,-2,1));Button library=button(BuildConfig.TV?"My library":"♡",this::libraryMenu);library.setContentDescription("My library");header.addView(library);Button settings=button(BuildConfig.TV?"Settings":"⚙",this::settings);settings.setContentDescription("Settings");LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-2,dp(40));hp.setMargins(dp(8),0,0,0);header.addView(settings,hp);surpriseButton=button(BuildConfig.TV?"🎲 Surprise me":"🎲",this::surpriseMovie);surpriseButton.setContentDescription("Surprise me with a random TMDB movie");surpriseButton.setTextSize(BuildConfig.TV?14:19);if(!BuildConfig.TV)surpriseButton.setPadding(0,0,0,0);surpriseButton.setTextColor(Color.WHITE);surpriseButton.setBackground(shape(Color.rgb(223,37,49),0));surpriseButton.setOnFocusChangeListener((v,f)->v.setBackground(shape(f?Color.rgb(175,24,39):Color.rgb(223,37,49),f?INK:0)));surpriseButton.setOnLongClickListener(v->{moodDialog();return true;});LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(BuildConfig.TV?-2:dp(44),dp(40));sp.setMargins(dp(8),0,0,0);header.addView(surpriseButton,sp);
+        LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);if(BuildConfig.TV)header.setBackground(shape(tint(0xDC),0));header.setPadding(dp(BuildConfig.TV?30:20),dp(14),dp(20),dp(12));TextView logo=text("ZEROPLAY",googleLayout()?(BuildConfig.TV?25:22):(BuildConfig.TV?23:19),INK);eggLogo=logo;bold(logo);logo.setFocusable(true);logo.setClickable(true);logo.setOnClickListener(v->easterEgg());logo.setSingleLine(true);logo.setEllipsize(TextUtils.TruncateAt.END);logo.setLetterSpacing(.06f);header.addView(logo,new LinearLayout.LayoutParams(0,-2,1));Button library=button(BuildConfig.TV?"My library":"♡",this::libraryMenu);library.setContentDescription("My library");header.addView(library);Button settings=button(BuildConfig.TV?"Settings":"⚙",this::settings);settings.setContentDescription("Settings");LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-2,dp(40));hp.setMargins(dp(8),0,0,0);header.addView(settings,hp);if(!((googleLayout()||flixLayout())&&BuildConfig.TV)){LinearLayout.LayoutParams ac=new LinearLayout.LayoutParams(-2,dp(42));ac.setMargins(dp(7),0,0,0);header.addView(subtleAdModeChip(),ac);}surpriseButton=button(BuildConfig.TV?"🎲 Surprise me":"🎲",this::surpriseMovie);surpriseButton.setContentDescription("Surprise me with a random TMDB movie");surpriseButton.setTextSize(BuildConfig.TV?14:19);if(!BuildConfig.TV)surpriseButton.setPadding(0,0,0,0);surpriseButton.setTextColor(Color.WHITE);surpriseButton.setBackground(shape(Color.rgb(223,37,49),0));surpriseButton.setOnFocusChangeListener((v,f)->v.setBackground(shape(f?Color.rgb(175,24,39):Color.rgb(223,37,49),f?INK:0)));surpriseButton.setOnLongClickListener(v->{moodDialog();return true;});LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(BuildConfig.TV?-2:dp(44),dp(40));sp.setMargins(dp(8),0,0,0);header.addView(surpriseButton,sp);
         Button updaterButton=button(BuildConfig.TV?"⇩ Update":"⇩",()->updater.check(true));updaterButton.setContentDescription("Check for ZeroPlay updates");updaterButton.setTextSize(BuildConfig.TV?13:19);updaterButton.setPadding(BuildConfig.TV?dp(10):0,0,BuildConfig.TV?dp(10):0,0);LinearLayout.LayoutParams up=new LinearLayout.LayoutParams(BuildConfig.TV?-2:dp(44),dp(40));up.setMargins(dp(8),0,0,0);header.addView(updaterButton,up);Button theme=button(lightTheme?"☾":"☀",this::toggleTheme);theme.setContentDescription(lightTheme?"Switch to night mode":"Switch to light mode");theme.setTextSize(19);theme.setPadding(0,0,0,0);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(dp(44),dp(40));tp.setMargins(dp(8),0,0,0);header.addView(theme,tp);if(!((googleLayout()||flixLayout())&&BuildConfig.TV))body.addView(header);if(googleLayout())addGoogleNavigation(body);
         search=new EditText(this);search.setSingleLine(true);search.setTextColor(youtubeLayout()&&!lightTheme?Color.WHITE:INK);search.setHintTextColor(youtubeLayout()&&!lightTheme?Color.rgb(170,170,170):MUTED);search.setTextSize(15);search.setHint(category.equals("Live Sports")?"Search sports events":playlistTab()?"Search channels":"Search movies and series");search.setText(query);search.setBackground(youtubeLayout()&&!lightTheme?pill(Color.rgb(39,39,39),0):shape(SURFACE,0));search.setPadding(dp(16),dp(8),dp(16),dp(8));search.setContentDescription("Search titles");if(youtubeLayout()&&!lightTheme)search.setOnFocusChangeListener((v,f)->search.setBackground(pill(f?Color.rgb(47,47,47):Color.rgb(39,39,39),f?Color.WHITE:0)));search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);search.setInputType(android.text.InputType.TYPE_CLASS_TEXT);search.setSelectAllOnFocus(BuildConfig.TV);search.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH){submitSearch();return true;}return false;});LinearLayout searchRow=new LinearLayout(this);searchRow.setGravity(Gravity.CENTER_VERTICAL);searchRow.addView(search,new LinearLayout.LayoutParams(0,dp(46),1));Button submit=button("Search",this::submitSearch);submit.setContentDescription("Search submitted text");if(youtubeLayout()&&!lightTheme){submit.setTextColor(Color.WHITE);submit.setBackground(pill(Color.rgb(39,39,39),0));submit.setOnFocusChangeListener((v,f)->submit.setBackground(pill(f?Color.rgb(55,55,55):Color.rgb(39,39,39),f?Color.WHITE:0)));}LinearLayout.LayoutParams submitParams=new LinearLayout.LayoutParams(-2,dp(46));submitParams.setMargins(dp(8),0,0,0);searchRow.addView(submit,submitParams);LinearLayout.LayoutParams qp=new LinearLayout.LayoutParams(-1,dp(46));qp.setMargins(dp(BuildConfig.TV?30:20),0,dp(20),dp(6));body.addView(searchRow,qp);if((googleLayout()||flixLayout())&&BuildConfig.TV&&!category.equals("Search"))searchRow.setVisibility(View.GONE);
         status=text("Loading…",12,MUTED);status.setPadding(dp(BuildConfig.TV?30:20),dp(4),dp(20),dp(4));body.addView(status);if(BuildConfig.TV&&googleLayout())status.setVisibility(View.GONE);
@@ -111,11 +111,11 @@ public class MainActivity extends Activity {
     static boolean descendant(View parent,View child){for(View current=child;current!=null;){if(current==parent)return true;android.view.ViewParent next=current.getParent();current=next instanceof View?(View)next:null;}return false;}
     String layoutLabel(String tab){return tab.equals("LiveTV")?"Live PPV":tab.equals("IPTV")?"Live TV":tab.equals("Library")?"My library":tab;}
     void layoutOpen(String tab){if(tab.equals("Settings"))settings();else if(tab.equals("Search"))focusSearch();else if(tab.equals("Library"))libraryMenu();else open(tab);if(!BuildConfig.TV)setRailExpanded(false);}
-    void addLayoutRail(LinearLayout outer){sidebar=column();sidebar.setPadding(dp(3),dp(16),dp(3),dp(12));if(BuildConfig.TV)sidebar.setGravity(Gravity.CENTER_HORIZONTAL);sidebar.setBackgroundColor(youtubeLayout()&&!lightTheme?Color.rgb(15,15,15):BG);layoutMenu=button("☰",()->setRailExpanded(!railExpanded));if(youtubeLayout()&&!lightTheme){layoutMenu.setBackground(pill(Color.rgb(15,15,15),0));layoutMenu.setOnFocusChangeListener((v,f)->layoutMenu.setBackground(pill(f?Color.rgb(39,39,39):Color.rgb(15,15,15),f?Color.WHITE:0)));}layoutMenu.setContentDescription("Expand or collapse navigation");sidebar.addView(layoutMenu,new LinearLayout.LayoutParams(-1,dp(44)));space(sidebar,12);for(String tab:new String[]{"Home","Movies","Series","Categories","LiveTV","IPTV","Live Sports","Search","Downloads","Library","Settings"}){Button b=button("",()->layoutOpen(tab));b.setContentDescription(layoutLabel(tab));b.setCompoundDrawablesWithIntrinsicBounds(new LayoutIcon(this,tab,INK),null,null,null);b.setCompoundDrawablePadding(dp(12));layoutRailButtons.put(b,layoutLabel(tab));if(!tab.equals("Settings")&&!tab.equals("Library")&&!tab.equals("Search"))navigation.put(tab,b);LinearLayout.LayoutParams row=new LinearLayout.LayoutParams(-1,dp(46));row.setMargins(0,0,0,dp(5));sidebar.addView(b,row);}layoutRailScroll=new ScrollView(this);layoutRailScroll.setContentDescription("Navigation rail");layoutRailScroll.setFillViewport(true);layoutRailScroll.addView(sidebar);outer.addView(layoutRailScroll,new LinearLayout.LayoutParams(dp(BuildConfig.TV?56:52),-1));setRailExpanded(false);}
+    void addLayoutRail(LinearLayout outer){sidebar=column();sidebar.setPadding(dp(3),dp(16),dp(3),dp(12));if(BuildConfig.TV)sidebar.setGravity(Gravity.CENTER_HORIZONTAL);sidebar.setBackgroundColor(youtubeLayout()&&!lightTheme?Color.rgb(15,15,15):BG);layoutMenu=button("☰",()->setRailExpanded(!railExpanded));if(youtubeLayout()&&!lightTheme){layoutMenu.setBackground(pill(Color.rgb(15,15,15),0));layoutMenu.setOnFocusChangeListener((v,f)->layoutMenu.setBackground(pill(f?Color.rgb(39,39,39):Color.rgb(15,15,15),f?Color.WHITE:0)));}layoutMenu.setContentDescription("Expand or collapse navigation");sidebar.addView(layoutMenu,new LinearLayout.LayoutParams(-1,dp(44)));space(sidebar,12);sidebar.addView(subtleAdModeChip(),new LinearLayout.LayoutParams(-1,dp(46)));for(String tab:new String[]{"Home","Movies","Series","Categories","LiveTV","IPTV","Live Sports","Search","Downloads","Library","Settings"}){Button b=button("",()->layoutOpen(tab));b.setContentDescription(layoutLabel(tab));b.setCompoundDrawablesWithIntrinsicBounds(new LayoutIcon(this,tab,INK),null,null,null);b.setCompoundDrawablePadding(dp(12));layoutRailButtons.put(b,layoutLabel(tab));if(!tab.equals("Settings")&&!tab.equals("Library")&&!tab.equals("Search"))navigation.put(tab,b);LinearLayout.LayoutParams row=new LinearLayout.LayoutParams(-1,dp(46));row.setMargins(0,0,0,dp(5));sidebar.addView(b,row);}layoutRailScroll=new ScrollView(this);layoutRailScroll.setContentDescription("Navigation rail");layoutRailScroll.setFillViewport(true);layoutRailScroll.addView(sidebar);outer.addView(layoutRailScroll,new LinearLayout.LayoutParams(dp(BuildConfig.TV?56:52),-1));setRailExpanded(false);}
     void setRailExpanded(boolean expanded){if(layoutRailScroll==null)return;railExpanded=expanded;ViewGroup.LayoutParams lp=layoutRailScroll.getLayoutParams();lp.width=dp(expanded?(BuildConfig.TV?205:185):(BuildConfig.TV?56:52));layoutRailScroll.setLayoutParams(lp);for(Map.Entry<Button,String> entry:layoutRailButtons.entrySet()){Button b=entry.getKey();String label=entry.getValue();String iconTab=label.equals("Live PPV")?"LiveTV":label.equals("Live TV")?"IPTV":label.equals("My library")?"Library":label;b.setText(expanded?label:"");b.setGravity(expanded?(Gravity.CENTER_VERTICAL|Gravity.START):Gravity.CENTER);if(expanded){b.setForeground(null);b.setCompoundDrawablesWithIntrinsicBounds(new LayoutIcon(this,iconTab,INK),null,null,null);b.setCompoundDrawablePadding(dp(12));b.setPadding(dp(12),dp(5),dp(12),dp(5));}else{b.setCompoundDrawables(null,null,null,null);b.setCompoundDrawablePadding(0);b.setPadding(0,0,0,0);b.setForeground(new LayoutIcon(this,iconTab,INK));b.setForegroundGravity(Gravity.CENTER);}if(BuildConfig.TV){ViewGroup.LayoutParams bp=b.getLayoutParams();bp.width=expanded?ViewGroup.LayoutParams.MATCH_PARENT:dp(46);bp.height=dp(46);b.setLayoutParams(bp);}}layoutMenu.setContentDescription(expanded?"Collapse navigation":"Expand navigation");}
     void addFlixRail(LinearLayout outer){
         LinearLayout rail=column();sidebar=rail;rail.setGravity(Gravity.CENTER_HORIZONTAL);rail.setPadding(dp(5),dp(22),dp(5),dp(14));rail.setBackgroundColor(Color.rgb(8,8,8));
-        TextView mark=text("Z",25,ACCENT);bold(mark);mark.setGravity(Gravity.CENTER);mark.setFocusable(true);mark.setClickable(true);mark.setContentDescription("ZeroPlay home");mark.setOnClickListener(v->open("Home"));rail.addView(mark,new LinearLayout.LayoutParams(dp(48),dp(52)));space(rail,18);
+        TextView mark=text("Z",25,ACCENT);bold(mark);mark.setGravity(Gravity.CENTER);mark.setFocusable(true);mark.setClickable(true);mark.setContentDescription("ZeroPlay home");mark.setOnClickListener(v->open("Home"));rail.addView(mark,new LinearLayout.LayoutParams(dp(48),dp(52)));space(rail,18);rail.addView(subtleAdModeChip(),new LinearLayout.LayoutParams(dp(48),dp(46)));space(rail,8);
         for(String tab:new String[]{"Search","Home","Series","Movies","LiveTV","IPTV","Live Sports","Downloads","Library","Settings"}){Button b=button("",()->layoutOpen(tab));b.setContentDescription(layoutLabel(tab));b.setCompoundDrawablesWithIntrinsicBounds(new LayoutIcon(this,tab,Color.WHITE),null,null,null);b.setGravity(Gravity.CENTER);b.setPadding(0,0,0,0);b.setBackground(shape(Color.TRANSPARENT,0));b.setOnFocusChangeListener((v,f)->{b.setBackground(shape(f?Color.rgb(38,38,38):Color.TRANSPARENT,f?ACCENT:0));if(prefs.getBoolean("uiAnimations",true))b.animate().scaleX(f?1.08f:1f).scaleY(f?1.08f:1f).setDuration(110).start();});if(!tab.equals("Settings")&&!tab.equals("Library")&&!tab.equals("Search"))navigation.put(tab,b);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(48),dp(48));lp.setMargins(0,0,0,dp(7));rail.addView(b,lp);}
         ScrollView railScroll=new ScrollView(this);railScroll.setFillViewport(true);railScroll.setVerticalScrollBarEnabled(false);railScroll.addView(rail);outer.addView(railScroll,new LinearLayout.LayoutParams(dp(60),-1));
     }
@@ -125,6 +125,7 @@ public class MainActivity extends Activity {
         LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(12),dp(7),dp(12),dp(7));ImageView brand=new ImageView(this);brand.setContentDescription("ZeroPlay");brand.setImageResource(R.drawable.zeroplay_wordmark);brand.setScaleType(ImageView.ScaleType.FIT_CENTER);LinearLayout.LayoutParams brandLp=new LinearLayout.LayoutParams(dp(BuildConfig.TV?168:140),dp(46));brandLp.setMargins(0,0,dp(8),0);row.addView(brand,brandLp);
         for(String tab:new String[]{"Search","Home","Movies","Series","IPTV","LiveTV","Live Sports","Categories"}){String label=tab.equals("Home")?"Home":tab.equals("Series")?"Shows":layoutLabel(tab);Button b=modernTab(tab,label);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,dp(46));lp.setMargins(0,0,dp(7),0);row.addView(b,lp);}
         Button library=modernTab("Library","Library");LinearLayout.LayoutParams libp=new LinearLayout.LayoutParams(-2,dp(46));libp.setMargins(0,0,dp(10),0);row.addView(library,libp);
+        row.addView(subtleAdModeChip(),new LinearLayout.LayoutParams(-2,dp(46)));
         if(BuildConfig.TV){Button settings=button("⚙",this::settings);settings.setContentDescription("Settings");settings.setTextSize(20);settings.setBackground(pill(alphaColor(SURFACE,0x78),0));settings.setOnFocusChangeListener((v,f)->settings.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(46)));surpriseButton=button("🎲",this::surpriseMovie);surpriseButton.setContentDescription("Surprise me");surpriseButton.setTextSize(18);surpriseButton.setBackground(pill(alphaColor(SURFACE,0x78),0));surpriseButton.setOnFocusChangeListener((v,f)->surpriseButton.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(surpriseButton,new LinearLayout.LayoutParams(dp(48),dp(46)));Button theme=button(lightTheme?"☾":"☀",this::toggleTheme);theme.setContentDescription("Toggle theme");theme.setTextSize(19);theme.setBackground(pill(alphaColor(SURFACE,0x78),0));theme.setOnFocusChangeListener((v,f)->theme.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(theme,new LinearLayout.LayoutParams(dp(48),dp(46)));}
         top.addView(row);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,dp(BuildConfig.TV?64:58));tp.setMargins(dp(BuildConfig.TV?24:14),dp(BuildConfig.TV?14:8),dp(BuildConfig.TV?24:14),dp(8));body.addView(top,tp);refreshModernTabs();
     }
@@ -211,7 +212,7 @@ public class MainActivity extends Activity {
         if(tvAtmosphere!=null&&!rows.isEmpty())atmosphere(rows.get(0),token);
         if(rows.isEmpty()){
             // Show VPN mode control even before any TMDB content is available.
-            if(category.equals("Home")&&displayQuery.isEmpty())homeAdBlockingSwitch();
+            /* Header mode control remains visible with an empty catalog. */
             TextView empty=text(!displayQuery.trim().isEmpty()?"No matches for “"+displayQuery.trim()+"”":category.equals("Watchlist")?"Your watchlist starts here.":category.equals("Continue")?"Pick a title to start watching.":"No titles to show right now.",23,INK);bold(empty);content.addView(empty);space(content,10);content.addView(text("Search another title, refresh the catalog, or return to Home.",15,MUTED));space(content,18);if(!displayQuery.trim().isEmpty()){content.addView(button("Clear search",()->{search.setText("");submitSearch();}));space(content,12);}content.addView(button("Refresh",this::load));return;}
         if(category.equals("Home")&&displayQuery.isEmpty()){
             renderHome22(rows,token);
@@ -254,69 +255,65 @@ public class MainActivity extends Activity {
         browse=new ArrayList<>();
         load();
     }
-    private static final int VPN_PERMISSION_REQUEST=2691;
-    void startVpnAdblockMode(){
-        try{
-            prefs.edit().putString("adBlockingMode","vpn").putBoolean("vpnAdblockStarting",true)
-                // VPN DNS is additive: NEVER disable the original WebView blocker.
-                .putBoolean("blockAds",true).apply();
-            Intent intent=new Intent(this,ZeroVpnAdblockService.class);
-            intent.setAction(ZeroVpnAdblockService.START);
-            if(Build.VERSION.SDK_INT>=26)startForegroundService(intent);
-            else startService(intent);
-            message("Starting DNS VPN protection. Streaming traffic is not tunneled.");
-            ui.postDelayed(()->{if(category.equals("Home"))render();},1200);
-        }catch(Exception e){
-            selectOriginalAdblockMode();
-            message("VPN could not start. Original ad blocking restored.");
-        }
+    // The real GPLv3 BlockAds companion owns the VPN service and Go tunnel.
+    private static final String BLOCKADS_PACKAGE="app.pwhs.blockads.zeroplayqa";
+    private Switch adModeSwitch;
+    boolean realBlockAdsSelected(){return "blockads".equals(prefs.getString("adBlockingMode","original"));}
+    void updateAdModeSwitch(){
+        if(adModeSwitch==null)return;
+        adModeSwitch.setOnCheckedChangeListener(null);
+        adModeSwitch.setText(realBlockAdsSelected()?"BlockAds":"Ads");
+        adModeSwitch.setChecked(realBlockAdsSelected());
+        adModeSwitch.setContentDescription(realBlockAdsSelected()?
+            "BlockAds mode selected; verify VPN connected in BlockAds":
+            "Original ad blocking; switch right to launch real BlockAds");
+        adModeSwitch.setOnCheckedChangeListener((v,right)->{
+            if(right)requestVpnAdblockMode();else selectOriginalAdblockMode();
+        });
     }
-    void selectOriginalAdblockMode(){
-        prefs.edit().putString("adBlockingMode","original")
-            .putBoolean("vpnAdblockStarting",false).putBoolean("vpnAdblockActive",false)
-            .putBoolean("blockAds",true).apply();
-        stopService(new Intent(this,ZeroVpnAdblockService.class));
+    Switch subtleAdModeChip(){
+        Switch s=new Switch(this);s.setTextSize(BuildConfig.TV?13:12);
+        s.setTextColor(MUTED);s.setPadding(dp(5),0,dp(6),0);
+        s.setMinimumHeight(dp(42));s.setFocusable(true);
+        s.setBackground(pill(alphaColor(SURFACE,0x60),0));
+        adModeSwitch=s;updateAdModeSwitch();return s;
     }
     void requestVpnAdblockMode(){
         try{
-            Intent permission=android.net.VpnService.prepare(this);
-            if(permission!=null){startActivityForResult(permission,VPN_PERMISSION_REQUEST);}
-            else startVpnAdblockMode();
+            // The companion displays Android's VPN permission request itself.
+            Intent i=new Intent(Intent.ACTION_MAIN);
+            i.setClassName(BLOCKADS_PACKAGE,BuildConfig.TV?
+                "app.pwhs.blockadstv.MainActivity":"app.pwhs.blockads.MainActivity");
+            if(BuildConfig.TV)i.putExtra("zeroplay_command","start");
+            else i.putExtra("extra_start_vpn",true);
+            startActivity(i);
+            stopService(new Intent(this,ZeroVpnAdblockService.class));
+            prefs.edit().putString("adBlockingMode","blockads").putBoolean("blockAds",true).apply();
+            message("BlockAds opened. Approve VPN access in BlockAds; ZeroPlay player filtering stays on.");
         }catch(Exception e){
-            selectOriginalAdblockMode();
-            message("VPN permission unavailable; using Original blocking.");
-            render();
+            prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();
+            new AlertDialog.Builder(this).setTitle("Install BlockAds companion")
+                .setMessage("This option requires the separate test companion built from the actual GPLv3 BlockAds project. Install its APK alongside ZeroPlay VPN Test.")
+                .setPositiveButton("OK",null).show();
         }
+        updateAdModeSwitch();
+    }
+    void selectOriginalAdblockMode(){
+        stopService(new Intent(this,ZeroVpnAdblockService.class));
+        try{
+            Intent i=new Intent(BuildConfig.TV?
+                "app.pwhs.blockads.ZEROPLAY_STOP":"app.pwhs.blockads.TASKER_STOP");
+            i.setClassName(BLOCKADS_PACKAGE,BuildConfig.TV?
+                "app.pwhs.blockadstv.ZeroPlayStopReceiver":"app.pwhs.blockads.receiver.TaskerReceiver");
+            sendBroadcast(i);
+        }catch(Exception e){android.util.Log.w("ZeroPlay","Could not stop BlockAds",e);}
+        prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true)
+            .putBoolean("vpnAdblockStarting",false).putBoolean("vpnAdblockActive",false).apply();
+        updateAdModeSwitch();
+        message("Original ad blocking selected; requested BlockAds VPN stop.");
     }
     void homeAdBlockingSwitch(){
-        LinearLayout row=new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(16),dp(8),dp(16),dp(8));
-        row.setBackground(shape(SURFACE,12));
-        LinearLayout labels=new LinearLayout(this);labels.setOrientation(LinearLayout.VERTICAL);
-        TextView title=text("Ad blocking mode",BuildConfig.TV?18:16,INK);bold(title);
-        labels.addView(title);
-        labels.addView(text("LEFT: Original · RIGHT: Original + VPN DNS",BuildConfig.TV?12:11,MUTED));
-        boolean running=ZeroVpnAdblockService.isRunning();
-        if("vpn".equals(prefs.getString("adBlockingMode","original"))){
-            long seen=prefs.getLong("vpnDnsQueryCount",0),blocked=prefs.getLong("vpnDnsBlockedCount",0);
-            String description=running?(seen>0?"DNS queries: "+seen+" · Blocked: "+blocked:
-                "VPN connected · No DNS requests captured yet"):
-                "VPN starting · Original blocker stays on";
-            labels.addView(text(description,BuildConfig.TV?12:11,running?INK:MUTED));
-        }
-        row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
-        Switch toggle=new Switch(this);
-        boolean vpn="vpn".equals(prefs.getString("adBlockingMode","original"));
-        toggle.setText(vpn?"VPN":"Original");toggle.setTextColor(INK);
-        toggle.setChecked(vpn);toggle.setMinimumHeight(dp(BuildConfig.TV?52:44));
-        toggle.setContentDescription("Ad blocking mode: left Original player filtering, right VPN DNS filtering");
-        toggle.setOnCheckedChangeListener((button,right)->{
-            if(right)requestVpnAdblockMode();
-            else{selectOriginalAdblockMode();message("Original ZeroPlay ad blocking enabled.");render();}
-        });
-        row.addView(toggle);content.addView(row,new LinearLayout.LayoutParams(-1,-2));
-        space(content,BuildConfig.TV?16:12);
+        // Kept only for backward-compatible callers. Navigation owns the compact mode chip.
     }
     void renderHome22(List<Catalog.Item> rows,int token){
         // Apply the new requested default homepage preset only once.
@@ -326,7 +323,6 @@ public class MainActivity extends Activity {
                 "thrillers","recent","different","classics","providers","now");
             prefs.edit().putStringSet("homePanels",enabled).putBoolean("discoveryVODPreset2258",true).apply();
         }
-        homeAdBlockingSwitch();
         List<Catalog.Item> clean=Zero22.visible(prefs,rows),resumes=continuing(),
             movies=new ArrayList<>(),shows=new ArrayList<>(),
             upcoming=new ArrayList<>(),trending=new ArrayList<>(),

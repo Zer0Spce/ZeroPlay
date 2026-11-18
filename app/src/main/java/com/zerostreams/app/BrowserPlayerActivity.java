@@ -62,7 +62,7 @@ public class BrowserPlayerActivity extends Activity {
         }
         if(!reader){
             Button ads=new Button(this);
-            ads.setText(ZeroVpnAdblockService.isRunning()?"VPN + Player blocker":blockAds?"Original blocking":"Blocking off");
+            ads.setText("blockads".equals(prefs.getString("adBlockingMode","original"))?"Player filter + BlockAds":blockAds?"Original blocking":"Blocking off");
             ads.setOnClickListener(v->{
                 if(ZeroVpnAdblockService.isRunning()){
                     // Avoid accidentally disabling protection: the Home mode switch owns VPN selection.
