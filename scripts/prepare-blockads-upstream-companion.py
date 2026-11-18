@@ -16,6 +16,12 @@ for module in ("app", "blockadstv"):
     patch(f"{module}/build.gradle.kts",
           'applicationId = "app.pwhs.blockads"',
           'applicationId = "app.pwhs.blockads.zeroplayqa"')
+    # Upstream compiles with SDK 37, not published in this test runner yet.
+    # Only lower the Android compile platform for reproducible test artifacts;
+    # leave the Go tunnel, service, repositories, and target SDK untouched.
+    patch(f"{module}/build.gradle.kts",
+          'version = release(37)',
+          'version = release(36)')
 
 tv="blockadstv/src/main/java/app/pwhs/blockadstv/MainActivity.kt"
 patch(tv,
