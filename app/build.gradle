@@ -8,7 +8,8 @@ android {
         applicationId 'com.zerostreams.app'
         // Production: preserve official application identity and signing.
         manifestPlaceholders = [appLabel: 'ZeroPlay', appLabelLite: 'ZeroPlay Lite']
-        minSdk 23
+        // Upstream BlockAds Go tunnel requires API 24; adjust only the isolated test build.
+        minSdk providers.gradleProperty('zeroVpnQaIsolated').getOrElse('false') == 'true' ? 24 : 23
         targetSdk 35
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' }
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
