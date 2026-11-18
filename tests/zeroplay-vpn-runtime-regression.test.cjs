@@ -61,3 +61,20 @@ test('VPN shares safe host blocklist with WebView and reports blocked subresourc
   assert.match(player,/putLong\("playerAdRequestsBlocked",n\)/);
   assert.match(vpn,/vpnBlocklistStatus/);
 });
+
+test('Visual ad cleanup removes explicit ad slots while protecting playback and verification frames',()=>{
+  const guard=read('app/src/main/assets/player-guard.js');
+  assert.match(guard,/function playbackFrame\(frame\)/);
+  assert.match(guard,/function removeAdOverlay\(node\)/);
+  assert.match(guard,/hide\(node,'slot'\)/);
+  assert.match(guard,/window\.__zeroAdCleanupStats/);
+  assert.doesNotMatch(guard,/!adHost\(new URL\(frame\.src,location\.href\)\.hostname\)/);
+  assert.match(guard,/node\.querySelector\(media\+'\,'\+challenge\)/);
+});
+test('Device diagnostics distinguish native DNS, WebView blocking and DOM removal',()=>{
+  assert.match(main,/\?"DNS "\+blockCount/);
+  assert.match(player,/webRequestsSeen\.incrementAndGet\(\)/);
+  assert.match(player,/playerWebOtherHostRequests/);
+  assert.match(player,/window\.__zeroAdCleanupStats\|\|/);
+  assert.match(main,/WebView requests seen \(last session\)/);
+});

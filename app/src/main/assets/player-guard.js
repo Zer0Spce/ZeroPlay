@@ -269,11 +269,28 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupControls, {once: true});
     else setupControls();
   }
-  function hide(node) {
+  // Count only removals of positively identified ad elements. Frames propagate
+  // the number upward; no native JS bridge or privileged web API is exposed.
+  window.__zeroAdCleanupStats = {hidden:0,slots:0,overlays:0};
+  function recordAdRemoval(kind) {
+    const stats=window.__zeroAdCleanupStats;
+    stats.hidden++;
+    if(kind==='slot')stats.slots++;
+    else if(kind==='overlay')stats.overlays++;
+    if(window.parent!==window)window.parent.postMessage({type:'zeroplay-ad-cleanup',kind},'*');
+  }
+  window.addEventListener('message',event=>{
+    const data=event.data;
+    if(!data||data.type!=='zeroplay-ad-cleanup')return;
+    if(!Array.from(document.querySelectorAll('iframe')).some(frame=>frame.contentWindow===event.source))return;
+    recordAdRemoval(data.kind==='slot'?'slot':'overlay');
+  });
+  function hide(node,kind='overlay') {
     if (node.dataset.zeroQrHidden) return;
     node.dataset.zeroQrHidden = 'true';
     node.style.setProperty('display', 'none', 'important');
     node.style.setProperty('pointer-events', 'none', 'important');
+    recordAdRemoval(kind);
   }
   function graphic(node) {
     return Array.from(node.querySelectorAll('img,canvas,svg')).some(el => {
@@ -304,15 +321,41 @@
     }
     return null;
   }
+  const playbackHosts = ['mapple.fun','vidstuck.cc','zxcstream.cc','embedwave.cc','vidsrc.sh',
+    'vidrock.to','vidnest.fun','vidfast.vc','vidly.pro','vidcore.org','chillflix.pw',
+    'videodelivery.net','cloudflarestream.com'];
+  function playbackFrame(frame) {
+    if(frame.closest('[data-player],.jwplayer,.plyr,.vjs-player'))return true;
+    try {
+      const host=new URL(frame.getAttribute('src')||'',location.href).hostname.toLowerCase();
+      return playbackHosts.some(base=>host===base||host.endsWith('.'+base));
+    } catch (_) {return false;}
+  }
+  function removeAdOverlay(node) {
+    if(node.dataset.zeroQrHidden || node.querySelector(media+','+challenge))return;
+    if(Array.from(node.querySelectorAll('iframe')).some(playbackFrame))return;
+    const description=String(node.getAttribute('aria-label')||'')+' '+String(node.getAttribute('data-ad')||'')+
+      ' '+String(node.innerText||'').slice(0,280);
+    if(!/(?:^|\\b)(advertisement|sponsored|skip ad|close ad|advertising)(?:\\b|$)/i.test(description))return;
+    const bounds=node.getBoundingClientRect(),style=getComputedStyle(node);
+    if(bounds.width<100||bounds.height<35||bounds.width>=innerWidth*.98||bounds.height>=innerHeight*.98)return;
+    if(!node.matches('[role="dialog"],[aria-modal="true"],dialog') &&
+       !['fixed','absolute','sticky'].includes(style.position))return;
+    hide(node,'overlay');
+  }
   function scan() {
     if (!document.body || !window.__zeroBlockAds) return;
-    // Explicit ad slots only: never remove containers holding movie media,
-    // genuine verification, or a non-ad frame used by the player.
+    // An explicit ad slot may contain arbitrary third-party ad iframes: the old
+    // guard accidentally exempted ALL frames except the one known QR host.
+    // Protect playback frames and verification challenges rather than allowing
+    // unrelated ad iframes to bypass visual filtering.
     all('.adsbygoogle,.advertisement,.ad-banner,.banner-ad,.ad-container,.ad-overlay,.ad-popup,.popup-ad,[data-ad-slot],[data-ad-client],ins[data-ad-unit],iframe[id^="google_ads_iframe"]',true).forEach(node=>{
       if(node.matches(media+','+challenge)||node.querySelector(media+','+challenge))return;
-      if(Array.from(node.querySelectorAll('iframe')).some(frame=>{try{return !adHost(new URL(frame.src,location.href).hostname);}catch{return true;}}))return;
-      hide(node);
+      if(playbackFrame(node)||Array.from(node.querySelectorAll('iframe')).some(playbackFrame))return;
+      hide(node,'slot');
     });
+    all('dialog,[role="dialog"],[aria-modal="true"],.interstitial-ad,.sponsored-overlay',true)
+      .forEach(removeAdOverlay);
     // The exact destination decoded from the reported advertising QR code.
     document.querySelectorAll('iframe[src],a[href]').forEach(el => {
       try {

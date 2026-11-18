@@ -284,8 +284,8 @@ public class MainActivity extends Activity {
         String probe=prefs.getString("vpnDnsSelfTestStatus","idle");
         long queryCount=prefs.getLong("vpnDnsQueryCount",0),blockCount=prefs.getLong("vpnDnsBlockedCount",0);
         adModeSwitch.setText(realBlockAdsSelected()?
-            (running?("passed".equals(probe)?"VPN ✓ "+blockCount+"/"+queryCount:
-                "checking".equals(probe)?"VPN checking…":"VPN DNS !"):"VPN starting…"):"Ads");
+            (running?("passed".equals(probe)?"DNS "+blockCount+"/"+queryCount:
+                "checking".equals(probe)?"DNS checking…":"DNS !"):"VPN starting…"):"Ads");
         adModeSwitch.setChecked(realBlockAdsSelected());
         adModeSwitch.setContentDescription(realBlockAdsSelected()?
             "ZeroPlay built-in BlockAds VPN "+(running?"service running":"service starting")+
@@ -337,13 +337,17 @@ public class MainActivity extends Activity {
         long count=prefs.getLong("vpnDnsQueryCount",0);
         long denied=prefs.getLong("vpnDnsBlockedCount",0);
         long player=prefs.getLong("playerAdRequestsBlocked",0);
+        long seen=prefs.getLong("playerWebRequestsSeen",0);
+        long other=prefs.getLong("playerWebOtherHostRequests",0);
         String filters=prefs.getString("vpnBlocklistStatus","not loaded");
         String details="Mode: "+("blockads".equals(mode)?"Original player blocking + VPN":"Original player blocking")+
             "\nVPN service: "+(running?"started":"not running")+
             "\nSynthetic DNS self-test: "+probe+
             "\nGo DNS queries: "+count+" (includes test queries)"+
             "\nGo DNS blocked: "+denied+
-            "\nWebView ad requests blocked in last player session: "+player+
+            "\nWebView requests seen (last session): "+seen+
+            "\nOther-host requests: "+other+
+            "\nWebView ad requests blocked: "+player+
             "\nFilter lists: "+filters+
             "\n\nIf VPN queries stay near zero while watching, the player's DNS isn't reaching the tunnel."+
             "\nIf queries rise and ads remain, they may come from first-party video/HTTPS traffic or app-level DNS bypass."+

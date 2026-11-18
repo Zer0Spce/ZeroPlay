@@ -20,6 +20,8 @@ public class BrowserPlayerActivity extends Activity {
     private long lastPlayerGesture;
     private volatile boolean blockAds;
     private final java.util.concurrent.atomic.AtomicLong playerBlockedRequests=new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong webRequestsSeen=new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong webOtherHostRequests=new java.util.concurrent.atomic.AtomicLong();
     private TextView status;
     private FrameLayout screen;
     private View fullscreen;
@@ -41,7 +43,8 @@ public class BrowserPlayerActivity extends Activity {
         // WebView blocker while the experimental VPN mode is selected.
         blockAds=!reader&&(prefs.getBoolean("blockAds",true)||
             "blockads".equals(prefs.getString("adBlockingMode","original")));
-        if(!reader)prefs.edit().putLong("playerAdRequestsBlocked",0L).apply();
+        if(!reader)prefs.edit().putLong("playerAdRequestsBlocked",0L)
+            .putLong("playerWebRequestsSeen",0L).putLong("playerWebOtherHostRequests",0L).apply();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         LinearLayout root=new LinearLayout(this);
@@ -129,6 +132,16 @@ public class BrowserPlayerActivity extends Activity {
                 // hosts rules directly to WebView subresources. This also catches
                 // blocked ad hosts when WebView uses a cached/alternate DNS path.
                 String host=request.getUrl().getHost();
+                if(!request.isForMainFrame()){
+                    long seen=webRequestsSeen.incrementAndGet();
+                    try{
+                        String site=Uri.parse(currentAddress).getHost();
+                        if(host!=null&&site!=null&&!host.equalsIgnoreCase(site))webOtherHostRequests.incrementAndGet();
+                    }catch(Exception ignored){}
+                    if(seen<=5||seen%20==0)prefs.edit()
+                        .putLong("playerWebRequestsSeen",seen)
+                        .putLong("playerWebOtherHostRequests",webOtherHostRequests.get()).apply();
+                }
                 if(blockAds&&!request.isForMainFrame()&&
                    (AdBlockRules.blocks(host)||ZeroVpnAdblockService.blocksPlayerHost(host))){
                     long n=playerBlockedRequests.incrementAndGet();
@@ -381,7 +394,19 @@ public class BrowserPlayerActivity extends Activity {
         }catch(Exception e){tvUi.post(()->Toast.makeText(this,"Episodes unavailable",Toast.LENGTH_SHORT).show());}},"ZeroPlay-EpisodeMenu").start();
     }
     private void showQuickMenu(){java.util.List<String> items=new java.util.ArrayList<>();items.add("Navigation · Smart / Hybrid");items.add("Navigation · D-pad");items.add("Navigation · Mouse");items.add("Retry player");items.add("Next source");if(seriesPlayback())items.add("Episodes · previous / next / choose");items.add("Skip intro · "+prefs.getInt("skipIntroSeconds",90)+" sec");items.add("Skip recap · "+prefs.getInt("skipRecapSeconds",45)+" sec");items.add("Player diagnostics");items.add("Exit playback");new android.app.AlertDialog.Builder(this).setTitle("ZeroPlay player").setItems(items.toArray(new String[0]),(d,n)->{String picked=items.get(n);if(picked.startsWith("Navigation · Smart"))saveSourceNavigationMode("smart");else if(picked.startsWith("Navigation · D-pad"))saveSourceNavigationMode("focus");else if(picked.startsWith("Navigation · Mouse"))saveSourceNavigationMode("mouse");else if(picked.equals("Retry player")){failoverTried=false;loadStarted=android.os.SystemClock.elapsedRealtime();web.reload();scheduleLoadTimeout();}else if(picked.equals("Next source"))loadNextSource();else if(picked.startsWith("Episodes"))showEpisodeMenu();else if(picked.startsWith("Skip intro"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipIntroSeconds",90)+")");else if(picked.startsWith("Skip recap"))runPlayer("window.__zeroSeekBy&&window.__zeroSeekBy("+prefs.getInt("skipRecapSeconds",45)+")");else if(picked.equals("Player diagnostics"))showDiagnostics();else confirmExit();}).setNegativeButton("Close",null).show();}
-    private void showDiagnostics(){web.evaluateJavascript("JSON.stringify(window.__zeroPlayerDiagnostics?window.__zeroPlayerDiagnostics():{})",value->{String details=String.valueOf(value);new android.app.AlertDialog.Builder(this).setTitle("Player diagnostics").setMessage("Provider: "+currentProvider()+"\nNavigation: "+navigationModeLabel()+"\n"+PlaybackHealth.summary(prefs,currentProvider())+"\n\n"+details).setPositiveButton("Close",null).show();});}
+    private void showDiagnostics(){web.evaluateJavascript(
+        "JSON.stringify({player:window.__zeroPlayerDiagnostics?window.__zeroPlayerDiagnostics():{},adCleanup:window.__zeroAdCleanupStats||{hidden:0,slots:0,overlays:0}})",
+        value->{String details=String.valueOf(value);
+        String ads="VPN DNS blocked: "+prefs.getLong("vpnDnsBlockedCount",0)+
+            "/"+prefs.getLong("vpnDnsQueryCount",0)+
+            "\nWeb requests: "+webRequestsSeen.get()+
+            "\nDifferent-host requests: "+webOtherHostRequests.get()+
+            "\nWeb requests blocked: "+playerBlockedRequests.get();
+        new android.app.AlertDialog.Builder(this).setTitle("Player diagnostics")
+            .setMessage("Provider: "+currentProvider()+"\nNavigation: "+navigationModeLabel()+
+                "\n"+PlaybackHealth.summary(prefs,currentProvider())+"\n"+ads+
+                "\nDOM ad elements removed (including child frames): see adCleanup below\n\n"+details)
+            .setPositiveButton("Close",null).show();});}
     private void scheduleNextEpisode(String parent,int season,int episode){
         if(nextScheduled||!seriesPlayback()||season<0||episode<1)return;
         nextScheduled=true;
@@ -468,6 +493,9 @@ public class BrowserPlayerActivity extends Activity {
     }
 
     @Override protected void onPause(){
+        prefs.edit().putLong("playerWebRequestsSeen",webRequestsSeen.get())
+            .putLong("playerWebOtherHostRequests",webOtherHostRequests.get())
+            .putLong("playerAdRequestsBlocked",playerBlockedRequests.get()).apply();
         if(mouse!=null)mouse.stop();
         if(adScan!=null)adScan.stop();
         if(web!=null){CookieManager.getInstance().flush();web.onPause();}
