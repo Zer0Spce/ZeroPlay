@@ -1,0 +1,58 @@
+name: ZeroPlay Android and TV Ad Toggle — Test Only
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-android-ad-toggle.yml'
+      - 'app/src/main/java/com/zerostreams/app/MainActivity.java'
+      - 'app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java'
+      - 'tests/zeroplay-android-ad-toggle.test.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-ad-toggle-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Validate scope and on/off preference
+        run: |
+          node --test tests/zeroplay-android-ad-toggle.test.cjs
+          node --test tests/source-selection-regression.test.cjs
+          node --test tests/zeroplay-2267-mapple-guard.test.cjs
+          node --test tests/zeroplay-2269-vidstuck-default.test.cjs
+      - name: Prepare baseline Android build
+        run: |
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-test.cjs
+      - name: Run Android Mobile and TV unit tests
+        run: gradle :app:testMobileReleaseUnitTest :app:testTvReleaseUnitTest :app:testLiteMobileReleaseUnitTest :app:testLiteTvReleaseUnitTest
+      - name: Compile Android Mobile and TV test APKs, do not publish a release
+        run: gradle :app:assembleMobileDebug :app:assembleTvDebug :app:assembleLiteMobileDebug :app:assembleLiteTvDebug
+      - name: Store temporary unsigned QA artifacts only
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-Android-Ad-Toggle-TEST-ONLY
+          path: |
+            app/build/outputs/apk/mobile/debug/*.apk
+            app/build/outputs/apk/tv/debug/*.apk
+            app/build/outputs/apk/liteMobile/debug/*.apk
+            app/build/outputs/apk/liteTv/debug/*.apk
+          if-no-files-found: error
+          retention-days: 5

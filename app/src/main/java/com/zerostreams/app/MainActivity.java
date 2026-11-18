@@ -249,6 +249,35 @@ public class MainActivity extends Activity {
         browse=new ArrayList<>();
         load();
     }
+    void homeAdBlockingSwitch(){
+        // Local ZeroPlay WebView filtering only; NOT a device-wide VPN.
+        LinearLayout row=new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16),dp(8),dp(16),dp(8));
+        row.setBackground(shape(SURFACE,12));
+        LinearLayout labels=new LinearLayout(this);
+        labels.setOrientation(LinearLayout.VERTICAL);
+        TextView title=text("Block player ads",BuildConfig.TV?18:16,INK);
+        bold(title);
+        labels.addView(title);
+        labels.addView(text("ZeroPlay player only · May not block every ad",BuildConfig.TV?12:11,MUTED));
+        row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+        Switch toggle=new Switch(this);
+        toggle.setText(prefs.getBoolean("blockAds",true)?"ON":"OFF");
+        toggle.setTextColor(INK);
+        toggle.setChecked(prefs.getBoolean("blockAds",true));
+        toggle.setContentDescription("Block ads in ZeroPlay player");
+        toggle.setMinimumHeight(dp(BuildConfig.TV?52:44));
+        toggle.setOnCheckedChangeListener((button,enabled)->{
+            prefs.edit().putBoolean("blockAds",enabled).apply();
+            toggle.setText(enabled?"ON":"OFF");
+            Toast.makeText(this,enabled?"Player ad blocking enabled":"Player ad blocking disabled",Toast.LENGTH_SHORT).show();
+        });
+        row.addView(toggle);
+        content.addView(row,new LinearLayout.LayoutParams(-1,-2));
+        space(content,BuildConfig.TV?16:12);
+    }
     void renderHome22(List<Catalog.Item> rows,int token){
         // Apply the new requested default homepage preset only once.
         if(!prefs.getBoolean("discoveryVODPreset2258",false)){
@@ -257,6 +286,7 @@ public class MainActivity extends Activity {
                 "thrillers","recent","different","classics","providers","now");
             prefs.edit().putStringSet("homePanels",enabled).putBoolean("discoveryVODPreset2258",true).apply();
         }
+        homeAdBlockingSwitch();
         List<Catalog.Item> clean=Zero22.visible(prefs,rows),resumes=continuing(),
             movies=new ArrayList<>(),shows=new ArrayList<>(),
             upcoming=new ArrayList<>(),trending=new ArrayList<>(),

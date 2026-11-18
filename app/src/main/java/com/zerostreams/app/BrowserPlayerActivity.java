@@ -65,8 +65,8 @@ public class BrowserPlayerActivity extends Activity {
             ads.setOnClickListener(v->{
                 blockAds=!blockAds;
                 getSharedPreferences("zero",MODE_PRIVATE).edit().putBoolean("blockAds",blockAds).apply();
-                ads.setText(blockAds?"Ads blocked":"Blocking off");
-                web.reload();
+                // Recreate to reset document-start scripts and the QR scanner state.
+                recreate();
             });
             controls.addView(ads);
         }
@@ -102,11 +102,10 @@ public class BrowserPlayerActivity extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
 
         if(!reader&&PlaybackSources.trusted(address)){
-            blockAds=true;
             installProgressListener();
             installPlayerExitListener();
             installPlayerGuard();
-            adScan=new PlayerAdScan(this,web);
+            if(blockAds)adScan=new PlayerAdScan(this,web);
         }
 
         web.setWebViewClient(new WebViewClient(){
