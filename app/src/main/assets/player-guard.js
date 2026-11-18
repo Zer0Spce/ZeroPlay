@@ -325,9 +325,14 @@
     'vidrock.to','vidnest.fun','vidfast.vc','vidly.pro','vidcore.org','chillflix.pw',
     'videodelivery.net','cloudflarestream.com'];
   function playbackFrame(frame) {
+    // A non-iframe ad container must NOT inherit its current playback page URL.
+    // Otherwise ordinary ad divs on mapple.fun appear to be player frames.
+    if(frame.tagName!=='IFRAME')return false;
     if(frame.closest('[data-player],.jwplayer,.plyr,.vjs-player'))return true;
+    const src=frame.getAttribute('src');
+    if(!src)return false;
     try {
-      const host=new URL(frame.getAttribute('src')||'',location.href).hostname.toLowerCase();
+      const host=new URL(src,location.href).hostname.toLowerCase();
       return playbackHosts.some(base=>host===base||host.endsWith('.'+base));
     } catch (_) {return false;}
   }
