@@ -97,7 +97,12 @@ public final class ZeroVpnAdblockService extends VpnService {
                 engine.setDomainChecker(new tunnel.DomainChecker(){
                     @Override public boolean isBlocked(String domain){return shouldBlock(domain);}
                     @Override public String getBlockReason(String domain){return shouldBlock(domain)?"ZeroPlay BlockAds hosts":"";}
-                    @Override public long hasCustomRule(String domain){return -1L;}
+                    @Override public long hasCustomRule(String domain){
+                        // Upstream Go DNS pipeline checks custom overrides before native tries.
+                        // 1 = block, 0 = allow, -1 = defer to binary trie filters.
+                        if(allowed(domain))return 0L;
+                        return shouldBlock(domain)?1L:-1L;
+                    }
                 });
                 engine.setLogCallback(new tunnel.LogCallback(){
                     @Override public void onDNSQuery(String domain,boolean denied,long type,long ms,String app,String ip,String reason){
