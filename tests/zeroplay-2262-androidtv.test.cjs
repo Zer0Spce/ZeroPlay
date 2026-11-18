@@ -25,5 +25,5 @@ test('TMDB Popular replaces streaming source and removes Refresh Picks',()=>{
 });
 test('Windows UI and movie/provider functionality remain untouched',()=>{
  const main=read('windows/main.cjs');
- assert.ok(main.includes(String.raw`2\.2\.6\.5$/.test(result.version)`)||main.includes(String.raw`2\.2\.6\.6$/.test(result.version)`)||main.includes(String.raw`2\.2\.6\.7$/.test(result.version)`));
+ assert.ok(main.includes(String.raw`2\.2\.6\.5$/.test(result.version)`)||main.includes(String.raw`2\.2\.6\.6$/.test(result.version)`)||main.includes(String.raw`2\.2\.6\.7$/.test(result.version)`)||main.includes(String.raw`2\.2\.6\.8$/.test(result.version)`));
 });

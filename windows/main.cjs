@@ -118,11 +118,22 @@ async function openPlayer(value,selected,fixture,prepare=false,sourceOverride,re
   if(playbackSource==='rawcast'&&state.settings.rawcastPlayback===true&&!fixture){if(!rawcastKey())throw Error('RawCast key required. Enable RawCast and add your key in Settings. Streaming uses your limited API quota.');const media=await rawcast.stream(value,core.episode(position));await openLive('RawCast',0,{name:value.title,...media,headers:{},vod:true,rawcastItem:value,rawcastEpisode:core.episode(position),start:position.timestamp||0});current=value;core.record(state,value,position);persist();refresh();return;}
   closePlayer();
   current=value;core.record(state,value,position);persist();refresh();
-  guard='window.__zeroTv=false;window.__zeroBlockAds=true;window.__zeroGain='+state.settings.gain+';'+fs.readFileSync(path.join(__dirname,'assets/player-guard.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/mappletv-guard-267.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-exit.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-22.js'),'utf8')+"\nif(!window.__zeroDesktopMouse){window.__zeroDesktopMouse=true;let last=0;document.addEventListener('mousemove',()=>{if(Date.now()-last<350)return;last=Date.now();if(window.__zeroRemoteActivity)window.__zeroRemoteActivity();});}";
+  guard='window.__zeroMappleSession='+(playbackSource==='mappletv')+';window.__zeroTv=false;window.__zeroBlockAds=true;window.__zeroGain='+state.settings.gain+';'+fs.readFileSync(path.join(__dirname,'assets/player-guard.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/mappletv-guard-268.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-exit.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-22.js'),'utf8')+"\nif(!window.__zeroDesktopMouse){window.__zeroDesktopMouse=true;let last=0;document.addEventListener('mousemove',()=>{if(Date.now()-last<350)return;last=Date.now();if(window.__zeroRemoteActivity)window.__zeroRemoteActivity();});}";
   player=new WebContentsView({webPreferences:{partition:'persist:player',preload:path.join(__dirname,'player-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
   toolbar=new WebContentsView({webPreferences:{preload:path.join(__dirname,'player-tools.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
   player.setBackgroundColor('#000000');toolbar.setBackgroundColor('#101621');
   const view=player,contents=view.webContents;
+  if(playbackSource==='mappletv'){
+    const adHosts=["doubleclick.net","googlesyndication.com","googleadservices.com","adsterra.com","adsterra.org","popads.net","popcash.net","propellerads.com","onclicka.com","onclicksuper.com","exoclick.com","exosrv.com","trafficjunky.net","juicyads.com","hilltopads.net","adnxs.com","adskeeper.com","mgid.com","taboola.com","outbrain.com","revcontent.com","pubmatic.com","rubiconproject.com","openx.net","smartadserver.com","criteo.com","criteo.net","casalemedia.com","contextweb.com","lijit.com","yieldmo.com","sovrn.com","inmobi.com","applovin.com","adsrvr.org","bidr.io","sharethrough.com","media.net","adform.net","popmyads.com"];
+    contents.session.webRequest.onBeforeRequest((details,callback)=>{
+      let cancel=false;
+      if(details.webContentsId===contents.id)try{
+        const h=new URL(details.url).hostname.toLowerCase();
+        cancel=adHosts.some(d=>h===d||h.endsWith('.'+d));
+      }catch(_){}
+      callback({cancel});
+    });
+  }
   playerHost=new PlayerHost(main,view,toolbar,{toolbar:false});installPlayerScripts(contents);
   toolbar.webContents.setWindowOpenHandler(()=>({action:'deny'}));toolbar.webContents.on('will-navigate',event=>event.preventDefault());
   await toolbar.webContents.loadFile(path.join(__dirname,'ui/player-tools.html'));toolbar.webContents.send('player-title',value.title);
@@ -318,7 +329,7 @@ app.whenReady().then(async()=>{
     try{
       const result=await main.webContents.executeJavaScript(
         'window.zero.state().then(data=>({version:data.version,rail:!!document.querySelector(\'[data-nav="Home"]\'),status:!!document.querySelector(\'#status\')}))');
-      if(!/^2\.2\.6\.7$/.test(result.version)||!result.rail||!result.status)
+      if(!/^2\.2\.6\.8$/.test(result.version)||!result.rail||!result.status)
         throw Error('Desktop interface did not initialize: '+JSON.stringify(result));
       console.log('ZERO_WINDOWS_UI_SMOKE_PASS '+JSON.stringify(result));
       app.exit(0);

@@ -18,6 +18,6 @@ test('TV title image is left anchored app artwork, never a centered video logo',
 });
 test('Windows is version only, internal 2.2.6-5 public 2.2.6.5',()=>{
  const s=read('windows/main.cjs'),p=read('scripts/prepare-2265-windows-release.cjs');
- assert.ok(s.includes(String.raw`2\.2\.6\.5$/.test(result.version)`)||s.includes(String.raw`2\.2\.6\.6$/.test(result.version)`)||s.includes(String.raw`2\.2\.6\.7$/.test(result.version)`));
+ assert.ok(s.includes(String.raw`2\.2\.6\.5$/.test(result.version)`)||s.includes(String.raw`2\.2\.6\.6$/.test(result.version)`)||s.includes(String.raw`2\.2\.6\.7$/.test(result.version)`)||s.includes(String.raw`2\.2\.6\.8$/.test(result.version)`));
  assert.match(p,/pkg\.version='2\.2\.6-5'/);
 });
