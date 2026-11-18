@@ -5,7 +5,6 @@ const main=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
 const player=read('app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.java');
 const vpn=read('app/src/main/java/com/zerostreams/app/ZeroVpnAdblockService.java');
 const manifest=read('app/src/main/AndroidManifest.xml');
-const main=read('app/src/main/java/com/zerostreams/app/MainActivity.java');
 test('Home two-state toggle offers Original on left and VPN DNS on right',()=>{
  assert.match(main,/LEFT: Original · RIGHT: VPN DNS/);
  assert.match(main,/if\(right\)requestVpnAdblockMode\(\)/);
