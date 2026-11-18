@@ -1,0 +1,53 @@
+name: ZeroPlay VPN DNS Android Mobile + TV QA — TEST ONLY
+on:
+  push:
+    branches: [test/vpn-adblock-mode-android-tv]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  vpn-adblock-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify VPN service, player source and toggle scope
+        run: |
+          node --test tests/zeroplay-vpn-adblock.test.cjs
+          node --test tests/zeroplay-2269-vidstuck-default.test.cjs
+          node --test tests/zeroplay-2267-mapple-guard.test.cjs
+          node --test tests/source-selection-regression.test.cjs
+      - name: Prepare original Android app baseline
+        run: |
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-test.cjs
+      - name: Run Android Mobile, TV, Lite Java unit tests
+        run: gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest :app:testLiteMobileDebugUnitTest :app:testLiteTvDebugUnitTest
+      - name: Compile four unsigned QA-only APKs
+        run: gradle :app:assembleMobileDebug :app:assembleTvDebug :app:assembleLiteMobileDebug :app:assembleLiteTvDebug
+      - name: Upload temporary internal QA packages; no release
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-VPN-DNS-Android-TV-TEST-ONLY
+          path: |
+            app/build/outputs/apk/mobile/debug/*.apk
+            app/build/outputs/apk/tv/debug/*.apk
+            app/build/outputs/apk/liteMobile/debug/*.apk
+            app/build/outputs/apk/liteTv/debug/*.apk
+          if-no-files-found: error
+          retention-days: 5

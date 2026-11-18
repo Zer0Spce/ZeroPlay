@@ -43,7 +43,7 @@ public final class ZeroVpnAdblockService extends VpnService {
    if(tunnel==null)throw new IOException("Tunnel was not established");
    input=new FileInputStream(tunnel.getFileDescriptor());output=new FileOutputStream(tunnel.getFileDescriptor());
    workers=Executors.newFixedThreadPool(4);live=true;running=true;
-   getSharedPreferences("zero",MODE_PRIVATE).edit().putString(MODE,"vpn").putBoolean(ACTIVE,true).putBoolean("blockAds",false).apply();
+   getSharedPreferences("zero",MODE_PRIVATE).edit().putString(MODE,"vpn").putBoolean(ACTIVE,true).putBoolean("vpnAdblockStarting",false).putBoolean("blockAds",false).apply();
    reader=new Thread(this::readLoop,"ZeroPlay-VPN-DNS");reader.setDaemon(true);reader.start();
    Thread update=new Thread(this::refreshList,"ZeroPlay-DNS-Rules");update.setDaemon(true);update.start();
    return START_STICKY;
@@ -119,7 +119,7 @@ public final class ZeroVpnAdblockService extends VpnService {
    .setContentText("DNS ad blocking active").setContentIntent(pending).setOngoing(true).build();
  }
  private void revert(){running=false;getSharedPreferences("zero",MODE_PRIVATE).edit()
-  .putString(MODE,"original").putBoolean(ACTIVE,false).putBoolean("blockAds",true).apply();}
+  .putString(MODE,"original").putBoolean(ACTIVE,false).putBoolean("vpnAdblockStarting",false).putBoolean("blockAds",true).apply();}
  @Override public void onRevoke(){stopSelf();super.onRevoke();}
  @Override public void onDestroy(){
   live=false;running=false;

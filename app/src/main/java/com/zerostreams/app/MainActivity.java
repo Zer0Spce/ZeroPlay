@@ -307,7 +307,7 @@ public class MainActivity extends Activity {
         Switch toggle=new Switch(this);
         boolean vpn="vpn".equals(prefs.getString("adBlockingMode","original"));
         toggle.setText(vpn?"VPN":"Original");toggle.setTextColor(INK);
-        toggle.setChecked(vpn);toggle.setMinHeight(dp(BuildConfig.TV?52:44));
+        toggle.setChecked(vpn);toggle.setMinimumHeight(dp(BuildConfig.TV?52:44));
         toggle.setContentDescription("Ad blocking mode: left Original player filtering, right VPN DNS filtering");
         toggle.setOnCheckedChangeListener((button,right)->{
             if(right)requestVpnAdblockMode();
