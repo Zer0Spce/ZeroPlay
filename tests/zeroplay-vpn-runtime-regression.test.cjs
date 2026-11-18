@@ -78,3 +78,19 @@ test('Device diagnostics distinguish native DNS, WebView blocking and DOM remova
   assert.match(player,/window\.__zeroAdCleanupStats\|\|/);
   assert.match(main,/WebView requests seen \(last session\)/);
 });
+
+test('MappleTV popup guard covers both observed advertising creatives inside player frames',()=>{
+ const script=read('app/src/main/assets/mappletv-guard-267.js');
+ assert.match(player,/window\.__zeroMappleGuardEnabled/);
+ assert.match(script,/window\.__zeroMappleGuardEnabled/);
+ assert.match(script,/watch hit movies and hottest/);
+ assert.match(script,/big sale time!/);
+ assert.match(script,/great deals at the best prices!/);
+ assert.match(script,/querySelector\(media\+'\,'\+challenge\)/);
+ assert.match(script,/window\.parent\.postMessage\(\{type:'zeroplay-ad-cleanup'/);
+ assert.doesNotMatch(script,/location\.hostname!=='mapple\.fun'\|\|!/);
+});
+test('Upstream filter failures explain why native fallback is active',()=>{
+ assert.match(vpn,/filter JSON changed/);
+ assert.match(vpn,/cached hosts active/);
+});

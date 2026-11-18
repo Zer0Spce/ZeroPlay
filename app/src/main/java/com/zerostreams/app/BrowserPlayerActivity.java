@@ -469,7 +469,7 @@ public class BrowserPlayerActivity extends Activity {
             byte[] buffer=new byte[4096];int count;
             while((count=guardInput.read(buffer))!=-1)guardOutput.write(buffer,0,count);
             while((count=tvInput.read(buffer))!=-1)tvOutput.write(buffer,0,count);while((count=v22Input.read(buffer))!=-1)v22Output.write(buffer,0,count);while((count=mappleInput.read(buffer))!=-1)mappleOutput.write(buffer,0,count);
-            playerGuard="window.__zeroTv="+tvPlayer+";window.__zeroBlockAds="+blockAds+";window.__zeroGain="+prefs.getFloat("audioBoost",1f)+";"+guardOutput.toString("UTF-8")+(tvPlayer?tvOutput.toString("UTF-8"):"")+(liteTvPlayer?"":v22Output.toString("UTF-8"))+mappleOutput.toString("UTF-8");
+            playerGuard="window.__zeroTv="+tvPlayer+";window.__zeroBlockAds="+blockAds+";window.__zeroMappleGuardEnabled="+("mappletv".equals(currentProvider()))+";window.__zeroGain="+prefs.getFloat("audioBoost",1f)+";"+guardOutput.toString("UTF-8")+(tvPlayer?tvOutput.toString("UTF-8"):"")+(liteTvPlayer?"":v22Output.toString("UTF-8"))+mappleOutput.toString("UTF-8");
             if(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)){
                 androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web,playerGuard,java.util.Collections.singleton("*"));
             }else{

@@ -213,7 +213,15 @@ public final class ZeroVpnAdblockService extends VpnService {
                 Log.i(TAG,"Loaded upstream BlockAds binary filter tries");
             }
         }catch(Exception e){
-            getSharedPreferences("zero",MODE_PRIVATE).edit().putString("vpnBlocklistStatus","upstream failed; using hosts").apply();
+            // Report the actual failure class rather than implying that the
+            // native VPN engine stopped (the cached hosts still work).
+            String failure=e.getClass().getSimpleName();
+            if(e instanceof java.net.UnknownHostException)failure="DNS/reachability";
+            else if(e instanceof java.net.SocketTimeoutException)failure="network timeout";
+            else if(e instanceof java.io.FileNotFoundException)failure="filter endpoint 404";
+            else if(e instanceof org.json.JSONException)failure="filter JSON changed";
+            getSharedPreferences("zero",MODE_PRIVATE).edit().putString("vpnBlocklistStatus",
+                "upstream "+failure+"; cached hosts active").apply();
             Log.w(TAG,"Upstream binary filters unavailable; using cached hosts",e);
         }
         refreshHosts();
