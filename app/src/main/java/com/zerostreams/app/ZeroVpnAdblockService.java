@@ -31,8 +31,10 @@ public final class ZeroVpnAdblockService extends VpnService {
     private static final String DEFAULT_HOSTS="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
     private static final String UPSTREAM_INDEX="https://complier.pwhs.app/api/filters/default";
     private static final String[] BUILTIN={"doubleclick.net","googlesyndication.com","googleadservices.com",
-        "adsterra.com","popads.net","popcash.net","exoclick.com","exosrv.com",
-        "onclicka.com","mgid.com","taboola.com","outbrain.com","adnxs.com",
+        "adsterra.com","adsterra.org","popads.net","popcash.net","exoclick.com","exosrv.com",
+        "onclicka.com","onclicksuper.com","propellerads.com","trafficjunky.net","juicyads.com",
+        "hilltopads.net","histats.com","histats.net","gurlleviter.cyou",
+        "mgid.com","taboola.com","outbrain.com","adnxs.com",
         "criteo.com","pubmatic.com","rubiconproject.com","openx.net","adskeeper.com"};
     private static final String[] SAFE={"mapple.fun","vidstuck.cc","zxcstream.cc",
         "cloudflarestream.com","videodelivery.net","cloudfront.net","akamaized.net",
@@ -86,14 +88,17 @@ public final class ZeroVpnAdblockService extends VpnService {
                 // DNS-only split route matching the actual upstream TvVpnService configuration.
                 Builder builder=new Builder().setSession("ZeroPlay BlockAds")
                     .setMtu(1350).addAddress("100.64.100.2",32)
-                    .addDnsServer("100.64.100.1").addRoute("100.64.100.1",32);
+                    .addDnsServer("100.64.100.1").addRoute("100.64.100.1",32)
+                    // Match the original BlockAds TV IPv6 synthetic DNS route.
+                    .addAddress("fd00::2",128).addDnsServer("fd00::1").addRoute("fd00::1",128);
                 if(Build.VERSION.SDK_INT>=29)builder.setMetered(false);
                 // Do NOT disallow ZeroPlay: its player DNS must also be filtered.
                 tun=builder.establish();
                 if(tun==null)throw new IOException("VPN was not established");
                 engine=tunnel.Tunnel.newEngine();
                 engine.setDNS("PLAIN","9.9.9.9","94.140.14.14","https://dns.quad9.net/dns-query");
-                engine.setBlockResponseType("nxdomain");
+                // Go ParseResponseType is case-sensitive: lowercase silently selects CUSTOM_IP.
+                engine.setBlockResponseType("NXDOMAIN");
                 engine.setDomainChecker(new tunnel.DomainChecker(){
                     @Override public boolean isBlocked(String domain){return shouldBlock(domain);}
                     @Override public String getBlockReason(String domain){return shouldBlock(domain)?"ZeroPlay BlockAds hosts":"";}
@@ -114,7 +119,8 @@ public final class ZeroVpnAdblockService extends VpnService {
                     }
                 });
                 running=true;active=true;
-                getSharedPreferences("zero",MODE_PRIVATE).edit().putBoolean("blockAds",true)
+                getSharedPreferences("zero",MODE_PRIVATE).edit()
+                    .putString("vpnDnsSelfTestStatus","checking").putBoolean("blockAds",true)
                     .putString("adBlockingMode","blockads").putBoolean("vpnAdblockActive",true)
                     .putLong("vpnDnsQueryCount",0).putLong("vpnDnsBlockedCount",0).apply();
                 // gomobile start() blocks; must run off Android UI thread.
@@ -124,11 +130,53 @@ public final class ZeroVpnAdblockService extends VpnService {
                     finally{if(active)stopSelf();}
                 },"ZeroPlay-Upstream-BlockAds-Go");
                 worker.setDaemon(true);worker.start();
+                // A visible VPN icon is not evidence that DNS is intercepted. Exercise the
+                // synthetic resolver and require a blocked result from the real Go engine.
+                Thread probe=new Thread(this::verifyNativeDnsBlocking,"ZeroPlay-BlockAds-DNS-Verify");
+                probe.setDaemon(true);probe.start();
                 Thread filters=new Thread(this::refreshUpstreamFilters,"ZeroPlay-BlockAds-Filters");
                 filters.setDaemon(true);filters.start();
                 return START_STICKY;
             }catch(Throwable e){Log.e(TAG,"Native BlockAds VPN initialization failed",e);
                 restoreOriginal();stopSelf();return START_NOT_STICKY;}
+        }
+    }
+    private void verifyNativeDnsBlocking(){
+        String result="failed";
+        try{
+            Thread.sleep(900);
+            if(!active)return;
+            long before=queries.get();
+            ByteArrayOutputStream q=new ByteArrayOutputStream();
+            for(int b:new int[]{0x53,0x21,0x01,0x00,0x00,0x01,0,0,0,0,0,0})q.write(b);
+            for(String label:"doubleclick.net".split("\\.")){
+                byte[] part=label.getBytes(StandardCharsets.US_ASCII);
+                q.write(part.length);q.write(part,0,part.length);
+            }
+            for(int b:new int[]{0,0,1,0,1})q.write(b);
+            byte[] payload=q.toByteArray();
+            // This UDP packet uses the VPN's synthetic DNS server, not a public server.
+            try(DatagramSocket socket=new DatagramSocket()){
+                socket.setSoTimeout(3000);
+                socket.send(new DatagramPacket(payload,payload.length,
+                    InetAddress.getByAddress(new byte[]{100,64,100,1}),53));
+                byte[] answer=new byte[512];
+                DatagramPacket reply=new DatagramPacket(answer,answer.length);
+                socket.receive(reply);
+                boolean nxdomain=reply.getLength()>=12&&(answer[0]&255)==0x53&&
+                    (answer[1]&255)==0x21&&(answer[2]&0x80)!=0&&(answer[3]&15)==3;
+                // The native engine must also have logged the intercepted query.
+                Thread.sleep(120);
+                result=nxdomain&&queries.get()>before&&blocked.get()>0?"passed":"failed";
+            }
+        }catch(Exception e){
+            Log.w(TAG,"VPN DNS verification failed (the original player filter remains active)",e);
+        }finally{
+            if(active){
+                getSharedPreferences("zero",MODE_PRIVATE).edit()
+                    .putString("vpnDnsSelfTestStatus",result).apply();
+                Log.i(TAG,"Built-in BlockAds DNS self-check: "+result);
+            }
         }
     }
     private void refreshUpstreamFilters(){
@@ -221,7 +269,8 @@ public final class ZeroVpnAdblockService extends VpnService {
     private void restoreOriginal(){
         running=false;
         getSharedPreferences("zero",MODE_PRIVATE).edit().putString("adBlockingMode","original")
-            .putBoolean("blockAds",true).putBoolean("vpnAdblockActive",false).apply();
+            .putBoolean("blockAds",true).putBoolean("vpnAdblockActive",false)
+            .putString("vpnDnsSelfTestStatus","idle").apply();
     }
     @Override public void onRevoke(){stopSelf();super.onRevoke();}
     @Override public void onDestroy(){

@@ -86,7 +86,13 @@ public class MainActivity extends Activity {
         if(!BuildConfig.TV&&classicLayout()){HorizontalScrollView tabsScroll=new HorizontalScrollView(this);tabsScroll.setHorizontalScrollBarEnabled(false);LinearLayout bar=new LinearLayout(this);bar.setPadding(dp(8),dp(8),dp(8),dp(8));bar.setBackgroundColor(SURFACE);for(String tab:new String[]{"Home","Movies","Series","Categories","LiveTV","IPTV","Live Sports"})bar.addView(nav(tab),new LinearLayout.LayoutParams(dp(tab.equals("Categories")||tab.equals("LiveTV")?110:88),dp(46)));tabsScroll.addView(bar);body.addView(tabsScroll);}
         outer.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
         search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void afterTextChanged(Editable e){}public void onTextChanged(CharSequence s,int a,int b,int c){query=s.toString();}});
-        if(BuildConfig.TV){FrameLayout scene=new FrameLayout(this);scene.setBackgroundColor(BG);tvAtmosphere=new BlurArtwork(this);tvAtmosphere.setAlpha(flixLayout()?0f:googleLayout()?.76f:.35f);scene.addView(tvAtmosphere,new FrameLayout.LayoutParams(-1,-1));View veil=new View(this);veil.setBackgroundColor(flixLayout()?Color.TRANSPARENT:googleLayout()?tint(0x88):tint(0xC8));scene.addView(veil,new FrameLayout.LayoutParams(-1,-1));outer.setBackgroundColor(Color.TRANSPARENT);scene.addView(outer,new FrameLayout.LayoutParams(-1,-1));setContentView(scene);}else setContentView(outer);if(youtubeLayout()){outer.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus,newFocus)->{if(newFocus!=null&&newFocus!=layoutMenu)setRailExpanded(descendant(layoutRailScroll,newFocus));});body.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)setRailExpanded(false);return false;});scroll.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)setRailExpanded(false);return false;});}if(BuildConfig.TV)SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());ready=true;load();if(category.equals("Home"))primePopularCarousel();openFilmographyCredit(getIntent());ui.postDelayed(()->updater.check(false),1800);if(BuildConfig.TV)(navigation.containsKey(category)?navigation.get(category):navigation.get(category.equals("Genre")?"Categories":"Home")).requestFocus();
+        if(BuildConfig.TV){FrameLayout scene=new FrameLayout(this);scene.setBackgroundColor(BG);tvAtmosphere=new BlurArtwork(this);tvAtmosphere.setAlpha(flixLayout()?0f:googleLayout()?.76f:.35f);scene.addView(tvAtmosphere,new FrameLayout.LayoutParams(-1,-1));View veil=new View(this);veil.setBackgroundColor(flixLayout()?Color.TRANSPARENT:googleLayout()?tint(0x88):tint(0xC8));scene.addView(veil,new FrameLayout.LayoutParams(-1,-1));outer.setBackgroundColor(Color.TRANSPARENT);scene.addView(outer,new FrameLayout.LayoutParams(-1,-1));setContentView(scene);}else setContentView(outer);if(youtubeLayout()){outer.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus,newFocus)->{if(newFocus!=null&&newFocus!=layoutMenu)setRailExpanded(descendant(layoutRailScroll,newFocus));});body.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)setRailExpanded(false);return false;});scroll.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)setRailExpanded(false);return false;});}if(BuildConfig.TV)SmartHomeRecommendations.refresh(prefs,System.currentTimeMillis());ready=true;
+        // Keep the TV shield status current as the Go engine and blocklists start.
+        ui.postDelayed(new Runnable(){@Override public void run(){
+            if(isFinishing()||isDestroyed())return;
+            updateAdModeSwitch();ui.postDelayed(this,3000);
+        }},3000);
+        load();if(category.equals("Home"))primePopularCarousel();openFilmographyCredit(getIntent());ui.postDelayed(()->updater.check(false),1800);if(BuildConfig.TV)(navigation.containsKey(category)?navigation.get(category):navigation.get(category.equals("Genre")?"Categories":"Home")).requestFocus();
     }
 
     ScrollView layoutRailScroll;Button layoutMenu;boolean railExpanded;final Map<Button,String> layoutRailButtons=new LinkedHashMap<>();
@@ -123,12 +129,24 @@ public class MainActivity extends Activity {
     void addGoogleNavigation(LinearLayout body){
         HorizontalScrollView top=new HorizontalScrollView(this);top.setHorizontalScrollBarEnabled(false);top.setContentDescription("Modern UI top navigation");top.setClipToOutline(true);top.setBackground(pill(alphaColor(SURFACE,0x88),alphaColor(ACCENT,0x66)));top.setElevation(dp(6));
         LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(12),dp(7),dp(12),dp(7));ImageView brand=new ImageView(this);brand.setContentDescription("ZeroPlay");brand.setImageResource(R.drawable.zeroplay_wordmark);brand.setScaleType(ImageView.ScaleType.FIT_CENTER);LinearLayout.LayoutParams brandLp=new LinearLayout.LayoutParams(dp(BuildConfig.TV?168:140),dp(46));brandLp.setMargins(0,0,dp(8),0);row.addView(brand,brandLp);
-        // Small shield toggle stays beside branding, within the existing nav.
-        row.addView(subtleAdModeChip(),new LinearLayout.LayoutParams(-2,dp(46)));
+        // Mobile keeps the chip inside the scrollable navigation.
+        // Android TV must pin it OUTSIDE the HorizontalScrollView: moving TV focus
+        // to Home otherwise auto-scrolls the shield off-screen.
+        if(!BuildConfig.TV)row.addView(subtleAdModeChip(),new LinearLayout.LayoutParams(-2,dp(46)));
         for(String tab:new String[]{"Search","Home","Movies","Series","IPTV","LiveTV","Live Sports","Categories"}){String label=tab.equals("Home")?"Home":tab.equals("Series")?"Shows":layoutLabel(tab);Button b=modernTab(tab,label);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,dp(46));lp.setMargins(0,0,dp(7),0);row.addView(b,lp);}
         Button library=modernTab("Library","Library");LinearLayout.LayoutParams libp=new LinearLayout.LayoutParams(-2,dp(46));libp.setMargins(0,0,dp(10),0);row.addView(library,libp);
         if(BuildConfig.TV){Button settings=button("⚙",this::settings);settings.setContentDescription("Settings");settings.setTextSize(20);settings.setBackground(pill(alphaColor(SURFACE,0x78),0));settings.setOnFocusChangeListener((v,f)->settings.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(46)));surpriseButton=button("🎲",this::surpriseMovie);surpriseButton.setContentDescription("Surprise me");surpriseButton.setTextSize(18);surpriseButton.setBackground(pill(alphaColor(SURFACE,0x78),0));surpriseButton.setOnFocusChangeListener((v,f)->surpriseButton.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(surpriseButton,new LinearLayout.LayoutParams(dp(48),dp(46)));Button theme=button(lightTheme?"☾":"☀",this::toggleTheme);theme.setContentDescription("Toggle theme");theme.setTextSize(19);theme.setBackground(pill(alphaColor(SURFACE,0x78),0));theme.setOnFocusChangeListener((v,f)->theme.setBackground(pill(alphaColor(SURFACE,f?0xD8:0x78),f?ACCENT:0)));row.addView(theme,new LinearLayout.LayoutParams(dp(48),dp(46)));}
-        top.addView(row);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,dp(BuildConfig.TV?64:58));tp.setMargins(dp(BuildConfig.TV?24:14),dp(BuildConfig.TV?14:8),dp(BuildConfig.TV?24:14),dp(8));body.addView(top,tp);refreshModernTabs();
+        top.addView(row);LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,dp(BuildConfig.TV?64:58));tp.setMargins(dp(BuildConfig.TV?24:14),dp(BuildConfig.TV?14:8),dp(BuildConfig.TV?24:14),dp(8));
+        if(BuildConfig.TV){
+            LinearLayout fixedNav=new LinearLayout(this);fixedNav.setGravity(Gravity.CENTER_VERTICAL);
+            fixedNav.addView(top,new LinearLayout.LayoutParams(0,dp(64),1));
+            Switch shield=subtleAdModeChip();
+            shield.setTextColor(INK);shield.setContentDescription("Ad blocking mode. Switch right for built-in VPN DNS blocking.");
+            LinearLayout.LayoutParams fixedChip=new LinearLayout.LayoutParams(dp(146),dp(46));
+            fixedChip.setMargins(dp(8),0,0,0);fixedNav.addView(shield,fixedChip);
+            body.addView(fixedNav,tp);
+        }else body.addView(top,tp);
+        refreshModernTabs();
     }
 
     void focusSearch(){if((googleLayout()||flixLayout())&&BuildConfig.TV&&search!=null&&search.getParent() instanceof View)((View)search.getParent()).setVisibility(View.VISIBLE);++surpriseVersion;if(!category.equals("Live Sports")&&!playlistTab()&&!category.equals("Manga")&&!category.equals("Live")){saveTabSnapshot();category="Search";collection="";peopleSearch=new JSONArray();catalog=new ArrayList<>(browse);render();}search.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(search,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}
@@ -263,11 +281,17 @@ public class MainActivity extends Activity {
         if(adModeSwitch==null)return;
         adModeSwitch.setOnCheckedChangeListener(null);
         boolean running=ZeroVpnAdblockService.isRunning();
-        adModeSwitch.setText(realBlockAdsSelected()?(running?"BlockAds ✓":"BlockAds…"):"Ads");
+        String probe=prefs.getString("vpnDnsSelfTestStatus","idle");
+        long queryCount=prefs.getLong("vpnDnsQueryCount",0),blockCount=prefs.getLong("vpnDnsBlockedCount",0);
+        adModeSwitch.setText(realBlockAdsSelected()?
+            (running?("passed".equals(probe)?"VPN ✓ "+blockCount+"/"+queryCount:
+                "checking".equals(probe)?"VPN checking…":"VPN DNS !"):"VPN starting…"):"Ads");
         adModeSwitch.setChecked(realBlockAdsSelected());
         adModeSwitch.setContentDescription(realBlockAdsSelected()?
-            "BlockAds native VPN "+(running?"running":"starting")+" in ZeroPlay":
-            "Original ZeroPlay ad blocking, switch right to enable built-in BlockAds");
+            "ZeroPlay built-in BlockAds VPN "+(running?"service running":"service starting")+
+            ". DNS test "+probe+". Blocked "+blockCount+" of "+queryCount+
+            " DNS queries, including test traffic. Original player blocking remains on.":
+            "Original ZeroPlay ad blocking. Switch right to test native BlockAds DNS filtering.");
         adModeSwitch.setOnCheckedChangeListener((v,right)->{
             if(right)requestVpnAdblockMode();else selectOriginalAdblockMode();
         });

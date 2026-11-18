@@ -32,6 +32,7 @@ jobs:
       - name: Verify VPN service, player source and toggle scope
         run: |
           node --test tests/zeroplay-native-blockads.test.cjs
+          node --test tests/zeroplay-vpn-runtime-regression.test.cjs
           node --test tests/zeroplay-vpn-isolated-identity.test.cjs
           node --test tests/zeroplay-2269-vidstuck-default.test.cjs
           node --test tests/zeroplay-2267-mapple-guard.test.cjs
