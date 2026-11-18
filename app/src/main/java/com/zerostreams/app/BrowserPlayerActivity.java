@@ -493,7 +493,7 @@ public class BrowserPlayerActivity extends Activity {
     }
 
     @Override protected void onPause(){
-        prefs.edit().putLong("playerWebRequestsSeen",webRequestsSeen.get())
+        if(prefs!=null)prefs.edit().putLong("playerWebRequestsSeen",webRequestsSeen.get())
             .putLong("playerWebOtherHostRequests",webOtherHostRequests.get())
             .putLong("playerAdRequestsBlocked",playerBlockedRequests.get()).apply();
         if(mouse!=null)mouse.stop();
