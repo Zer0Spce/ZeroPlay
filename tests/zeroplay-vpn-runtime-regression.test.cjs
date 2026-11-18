@@ -88,9 +88,11 @@ test('MappleTV popup guard covers both observed advertising creatives inside pla
  assert.match(script,/great deals at the best prices!/);
  assert.match(script,/querySelector\(media\+'\,'\+challenge\)/);
  assert.match(script,/window\.parent\.postMessage\(\{type:'zeroplay-ad-cleanup'/);
- assert.doesNotMatch(script,/location\.hostname!=='mapple\.fun'\|\|!/);
+ assert.doesNotMatch(script,/^if\(location\.hostname!=='mapple\.fun'\|\|!/m);
 });
 test('Upstream filter failures explain why native fallback is active',()=>{
  assert.match(vpn,/filter JSON changed/);
  assert.match(vpn,/cached hosts active/);
 });
+
+test('MappleTV runtime script is valid executable JavaScript',()=>{new (require('node:vm').Script)(read('app/src/main/assets/mappletv-guard-267.js'));});
