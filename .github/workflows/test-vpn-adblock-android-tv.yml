@@ -1,4 +1,4 @@
-name: ZeroPlay VPN DNS Android Mobile + TV QA — TEST ONLY
+name: ZeroPlay VPN DNS Android + TV SIDE-BY-SIDE QA — TEST ONLY
 on:
   push:
     branches: [test/vpn-adblock-mode-android-tv]
@@ -28,6 +28,7 @@ jobs:
       - name: Verify VPN service, player source and toggle scope
         run: |
           node --test tests/zeroplay-vpn-adblock.test.cjs
+          node --test tests/zeroplay-vpn-isolated-identity.test.cjs
           node --test tests/zeroplay-2269-vidstuck-default.test.cjs
           node --test tests/zeroplay-2267-mapple-guard.test.cjs
           node --test tests/source-selection-regression.test.cjs
@@ -37,13 +38,32 @@ jobs:
           node scripts/apply-2.2.4.1-audio-hotfix.cjs
           node scripts/apply-custom-livetv-test.cjs
       - name: Run Android Mobile, TV, Lite Java unit tests
-        run: gradle :app:testMobileDebugUnitTest :app:testTvDebugUnitTest :app:testLiteMobileDebugUnitTest :app:testLiteTvDebugUnitTest
+        run: gradle -PzeroVpnQaIsolated=true :app:testMobileDebugUnitTest :app:testTvDebugUnitTest :app:testLiteMobileDebugUnitTest :app:testLiteTvDebugUnitTest
       - name: Compile four unsigned QA-only APKs
-        run: gradle :app:assembleMobileDebug :app:assembleTvDebug :app:assembleLiteMobileDebug :app:assembleLiteTvDebug
+        run: gradle -PzeroVpnQaIsolated=true :app:assembleMobileDebug :app:assembleTvDebug :app:assembleLiteMobileDebug :app:assembleLiteTvDebug
+      - name: Verify APK package IDs and launcher labels cannot replace the current release
+        run: |
+          set -euo pipefail
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          for edition in mobile tv liteMobile liteTv; do
+            apk="app/build/outputs/apk/$edition/debug/app-$edition-debug.apk"
+            test -s "$apk"
+            case "$edition" in
+              mobile) expected='com.zerostreams.app.mobile.vpntest'; label='ZeroPlay VPN Test' ;;
+              tv) expected='com.zerostreams.app.tv.vpntest'; label='ZeroPlay VPN Test' ;;
+              liteMobile) expected='com.zerostreams.app.lite.mobile.vpntest'; label='ZeroPlay VPN Test Lite' ;;
+              liteTv) expected='com.zerostreams.app.lite.tv.vpntest'; label='ZeroPlay VPN Test Lite' ;;
+            esac
+            badging="$("$AAPT" dump badging "$apk")"
+            printf '%s\\n' "$badging" | grep -F "package: name='$expected'"
+            printf '%s\\n' "$badging" | grep -F "application-label:'$label'"
+            ! printf '%s\\n' "$badging" | grep -E "package: name='com\\.zerostreams\\.app\\.(mobile|tv|lite\\.mobile|lite\\.tv)'"
+            echo "$edition is isolated from production: $expected ($label)"
+          done
       - name: Upload temporary internal QA packages; no release
         uses: actions/upload-artifact@v4
         with:
-          name: ZeroPlay-VPN-DNS-Android-TV-TEST-ONLY
+          name: ZeroPlay-VPN-TEST-SIDE-BY-SIDE-NO-OVERWRITE
           path: |
             app/build/outputs/apk/mobile/debug/*.apk
             app/build/outputs/apk/tv/debug/*.apk

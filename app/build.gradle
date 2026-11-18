@@ -53,6 +53,17 @@ android {
             buildConfigField 'boolean', 'LITE', 'true'
         }
     }
+    // Test-only package identity. NEVER enable in production builds.
+    // The four flavors become:
+    // com.zerostreams.app.mobile.vpntest / .tv.vpntest /
+    // com.zerostreams.app.lite.mobile.vpntest / .lite.tv.vpntest.
+    if (providers.gradleProperty('zeroVpnQaIsolated').getOrElse('false') == 'true') {
+        productFlavors.all { flavor ->
+            flavor.applicationIdSuffix = "${flavor.applicationIdSuffix}.vpntest"
+            flavor.manifestPlaceholders.put('appLabel', 'ZeroPlay VPN Test')
+            flavor.manifestPlaceholders.put('appLabelLite', 'ZeroPlay VPN Test Lite')
+        }
+    }
     signingConfigs {
         release {
             def keyFile = System.getenv('ANDROID_KEYSTORE_FILE')
