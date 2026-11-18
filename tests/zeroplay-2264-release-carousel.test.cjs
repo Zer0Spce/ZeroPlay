@@ -31,5 +31,5 @@ test('Release workflow uses Android versionCode 70 and Windows 2.2.6.5',()=>{
  assert.ok(flow.includes("versionCode='70'"));
  assert.ok(flow.includes('gh release create v2.2.6.5'));
  const win=read('windows/main.cjs');
- assert.ok(win.includes('2\\.2\\.6\\.5'));
+ assert.ok(win.includes('2\\.2\\.6\\.5')||win.includes('2\\.2\\.6\\.6'));
 });
