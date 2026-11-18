@@ -64,8 +64,8 @@ public class BrowserPlayerActivity extends Activity {
             Button ads=new Button(this);
             ads.setText("blockads".equals(prefs.getString("adBlockingMode","original"))?"Player filter + BlockAds":blockAds?"Original blocking":"Blocking off");
             ads.setOnClickListener(v->{
-                if(ZeroVpnAdblockService.isRunning()){
-                    // Avoid accidentally disabling protection: the Home mode switch owns VPN selection.
+                if("blockads".equals(prefs.getString("adBlockingMode","original"))){
+                    // Never disable original player filtering while the real BlockAds companion is selected.
                     android.widget.Toast.makeText(this,"Change VPN mode from the Home screen",android.widget.Toast.LENGTH_SHORT).show();
                     return;
                 }else{
