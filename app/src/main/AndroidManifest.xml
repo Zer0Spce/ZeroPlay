@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <queries><package android:name="app.pwhs.blockads.zeroplayqa" /></queries>
+    <queries>
+        <package android:name="app.pwhs.blockads" />
+        <package android:name="app.pwhs.blockadstv" />
+    </queries>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

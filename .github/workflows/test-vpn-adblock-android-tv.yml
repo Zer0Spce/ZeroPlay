@@ -7,58 +7,41 @@ permissions:
   contents: read
 jobs:
 
-  original-blockads-companion:
+  official-blockads-verified-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          packages: 'platform-tools build-tools;34.0.0'
           log-accepted-android-sdk-licenses: false
-      - name: Get exact upstream BlockAds source and verify license
+      - name: Download actual upstream BlockAds v7.1.2 signed APKs
         run: |
           set -euo pipefail
-          git init blockads-upstream
-          git -C blockads-upstream remote add origin https://github.com/pass-with-high-score/blockads-android.git
-          git -C blockads-upstream fetch --depth=1 origin 40bf7c959ed23dd3dcf3cb8577dc1b027c29c946
-          git -C blockads-upstream checkout --detach FETCH_HEAD
-          test "$(git -C blockads-upstream rev-parse HEAD)" = "40bf7c959ed23dd3dcf3cb8577dc1b027c29c946"
-          grep -F 'GNU GENERAL PUBLIC LICENSE' blockads-upstream/LICENSE
-          test -f blockads-upstream/blockadstv/src/main/java/app/pwhs/blockadstv/service/GoTunnelAdapter.kt
-          test -f blockads-upstream/blockadstv/src/main/java/app/pwhs/blockadstv/service/TvVpnService.kt
-          test -f blockads-upstream/blockadstv/src/main/java/app/pwhs/blockadstv/data/repository/FilterListRepository.kt
-          test -f blockads-upstream/gradle/tunnel.aar.sha256
-      - name: Apply minimal integration patch to actual upstream app
-        run: python3 scripts/prepare-blockads-upstream-companion.py blockads-upstream
-      - name: Compile original upstream BlockAds Android + TV engines
-        working-directory: blockads-upstream
-        run: |
-          chmod +x gradlew
-          ./gradlew --no-daemon :app:assembleGithubDebug :blockadstv:assembleGithubDebug
-      - name: Verify upstream app identity and genuine Go tunnel packaged
+          mkdir -p genuine-blockads
+          curl -fL --retry 3 --retry-delay 3 -o genuine-blockads/BlockAds-Official-Android.apk \
+            https://github.com/pass-with-high-score/blockads-android/releases/download/v7.1.2/app-universal-release.apk
+          curl -fL --retry 3 --retry-delay 3 -o genuine-blockads/BlockAds-Official-Android-TV.apk \
+            https://github.com/pass-with-high-score/blockads-android/releases/download/v7.1.2/blockadstv-release.apk
+          printf 'eb1f21f07a1a083f8ba3b4e3267e2b9217dacaf40e36c32250cbd4651aa3ec53  genuine-blockads/BlockAds-Official-Android.apk\n2c86805101c374126d5ec85b7b2e6047f2960a0cd8359b39bf86dc7fe3c29951  genuine-blockads/BlockAds-Official-Android-TV.apk\n' | sha256sum -c
+      - name: Verify genuine signed packages and Go tunnel
         run: |
           set -euo pipefail
-          AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
-          mkdir -p blockads-qa-apks
-          for kind in app blockadstv; do
-            apk="$(find blockads-upstream/$kind/build/outputs/apk/github/debug -name '*.apk' | head -1)"
-            test -n "$apk" && test -s "$apk"
-            "$AAPT" dump badging "$apk" | grep -F "package: name='app.pwhs.blockads.zeroplayqa'"
-            unzip -l "$apk" | grep -F 'libgojni.so'
-            cp "$apk" "blockads-qa-apks/BlockAds-Upstream-$kind-ZeroPlay-TEST.apk"
-          done
-      - name: Upload real BlockAds companion APKs (GPLv3; no release)
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          "$AAPT" dump badging genuine-blockads/BlockAds-Official-Android.apk | grep -F "package: name='app.pwhs.blockads'"
+          "$AAPT" dump badging genuine-blockads/BlockAds-Official-Android-TV.apk | grep -F "package: name='app.pwhs.blockadstv'"
+          unzip -l genuine-blockads/BlockAds-Official-Android.apk | grep -F 'libgojni.so'
+          unzip -l genuine-blockads/BlockAds-Official-Android-TV.apk | grep -F 'libgojni.so'
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify genuine-blockads/BlockAds-Official-Android.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify genuine-blockads/BlockAds-Official-Android-TV.apk
+      - name: Upload official BlockAds APKs for ZeroPlay QA
         uses: actions/upload-artifact@v4
         with:
-          name: Genuine-BlockAds-ZeroPlay-Companion-TEST
-          path: blockads-qa-apks/*.apk
-          retention-days: 5
+          name: Original-BlockAds-v7.1.2-VERIFIED-Android-and-TV
+          path: genuine-blockads/*.apk
           if-no-files-found: error
+          retention-days: 5
   vpn-adblock-qa:
     runs-on: ubuntu-latest
     timeout-minutes: 120
