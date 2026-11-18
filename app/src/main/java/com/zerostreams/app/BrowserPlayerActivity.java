@@ -62,12 +62,12 @@ public class BrowserPlayerActivity extends Activity {
         }
         if(!reader){
             Button ads=new Button(this);
-            ads.setText(ZeroVpnAdblockService.isRunning()?"VPN DNS active":blockAds?"Original blocking":"Blocking off");
+            ads.setText(ZeroVpnAdblockService.isRunning()?"VPN + Player blocker":blockAds?"Original blocking":"Blocking off");
             ads.setOnClickListener(v->{
                 if(ZeroVpnAdblockService.isRunning()){
-                    prefs.edit().putString("adBlockingMode","original")
-                        .putBoolean("blockAds",true).apply();
-                    stopService(new Intent(this,ZeroVpnAdblockService.class));
+                    // Avoid accidentally disabling protection: the Home mode switch owns VPN selection.
+                    android.widget.Toast.makeText(this,"Change VPN mode from the Home screen",android.widget.Toast.LENGTH_SHORT).show();
+                    return;
                 }else{
                     blockAds=!blockAds;
                     prefs.edit().putBoolean("blockAds",blockAds).apply();

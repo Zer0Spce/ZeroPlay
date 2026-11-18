@@ -23,6 +23,8 @@ public final class ZeroVpnAdblockService extends VpnService {
  private final Set<String> hosts=ConcurrentHashMap.newKeySet();private volatile boolean live;
  private ParcelFileDescriptor tunnel;private InputStream input;private OutputStream output;private Thread reader;private ExecutorService workers;
  private final Object writeLock=new Object();
+ private final java.util.concurrent.atomic.AtomicLong queryCount=new java.util.concurrent.atomic.AtomicLong();
+ private final java.util.concurrent.atomic.AtomicLong blockedCount=new java.util.concurrent.atomic.AtomicLong();
  static boolean isRunning(){return running;}
  static boolean suffix(String h,String d){return h.equals(d)||h.endsWith("."+d);}
  static boolean allowed(String host){for(String d:ALLOW)if(suffix(host,d))return true;return false;}
@@ -31,7 +33,10 @@ public final class ZeroVpnAdblockService extends VpnService {
   for(String d:BLOCK)if(suffix(host,d))return true;
   String x=host;while(true){if(hosts.contains(x))return true;int i=x.indexOf('.');if(i<0)return false;x=x.substring(i+1);}
  }
- @Override public void onCreate(){super.onCreate();for(String d:BLOCK)hosts.add(d);loadCached();}
+ @Override public void onCreate(){
+  super.onCreate();for(String d:BLOCK)hosts.add(d);loadCached();
+  getSharedPreferences("zero",MODE_PRIVATE).edit().putLong("vpnDnsQueryCount",0).putLong("vpnDnsBlockedCount",0).apply();
+ }
  @Override public int onStartCommand(Intent intent,int flags,int startId){
   if(intent!=null&&STOP.equals(intent.getAction())){stopSelf();return START_NOT_STICKY;}
   if(live)return START_STICKY;
@@ -43,7 +48,7 @@ public final class ZeroVpnAdblockService extends VpnService {
    if(tunnel==null)throw new IOException("Tunnel was not established");
    input=new FileInputStream(tunnel.getFileDescriptor());output=new FileOutputStream(tunnel.getFileDescriptor());
    workers=Executors.newFixedThreadPool(4);live=true;running=true;
-   getSharedPreferences("zero",MODE_PRIVATE).edit().putString(MODE,"vpn").putBoolean(ACTIVE,true).putBoolean("vpnAdblockStarting",false).putBoolean("blockAds",false).apply();
+   getSharedPreferences("zero",MODE_PRIVATE).edit().putString(MODE,"vpn").putBoolean(ACTIVE,true).putBoolean("vpnAdblockStarting",false).putBoolean("blockAds",true).apply();
    reader=new Thread(this::readLoop,"ZeroPlay-VPN-DNS");reader.setDaemon(true);reader.start();
    Thread update=new Thread(this::refreshList,"ZeroPlay-DNS-Rules");update.setDaemon(true);update.start();
    return START_STICKY;
@@ -57,7 +62,13 @@ public final class ZeroVpnAdblockService extends VpnService {
  }
  private void answer(VpnDnsPacket.Query q){
   try{
-   byte[] response=blocked(q.domain)?VpnDnsPacket.error(q,3):forward(q.dns);
+   boolean deny=blocked(q.domain);
+   long seen=queryCount.incrementAndGet(),rejected=deny?blockedCount.incrementAndGet():blockedCount.get();
+   if(seen<=5||seen%20==0||deny){
+    getSharedPreferences("zero",MODE_PRIVATE).edit()
+      .putLong("vpnDnsQueryCount",seen).putLong("vpnDnsBlockedCount",rejected).apply();
+   }
+   byte[] response=deny?VpnDnsPacket.error(q,3):forward(q.dns);
    if(response==null)response=VpnDnsPacket.error(q,2);
    byte[] ip=VpnDnsPacket.reply(q,response);
    if(ip!=null&&live) synchronized(writeLock){if(live)output.write(ip);}

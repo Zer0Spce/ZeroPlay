@@ -258,7 +258,8 @@ public class MainActivity extends Activity {
     void startVpnAdblockMode(){
         try{
             prefs.edit().putString("adBlockingMode","vpn").putBoolean("vpnAdblockStarting",true)
-                .putBoolean("blockAds",false).apply();
+                // VPN DNS is additive: NEVER disable the original WebView blocker.
+                .putBoolean("blockAds",true).apply();
             Intent intent=new Intent(this,ZeroVpnAdblockService.class);
             intent.setAction(ZeroVpnAdblockService.START);
             if(Build.VERSION.SDK_INT>=26)startForegroundService(intent);
@@ -295,7 +296,15 @@ public class MainActivity extends Activity {
         LinearLayout labels=new LinearLayout(this);labels.setOrientation(LinearLayout.VERTICAL);
         TextView title=text("Ad blocking mode",BuildConfig.TV?18:16,INK);bold(title);
         labels.addView(title);
-        labels.addView(text("LEFT: Original · RIGHT: VPN DNS (system-wide)",BuildConfig.TV?12:11,MUTED));
+        labels.addView(text("LEFT: Original · RIGHT: Original + VPN DNS",BuildConfig.TV?12:11,MUTED));
+        boolean running=ZeroVpnAdblockService.isRunning();
+        if("vpn".equals(prefs.getString("adBlockingMode","original"))){
+            long seen=prefs.getLong("vpnDnsQueryCount",0),blocked=prefs.getLong("vpnDnsBlockedCount",0);
+            String description=running?(seen>0?"DNS queries: "+seen+" · Blocked: "+blocked:
+                "VPN connected · No DNS requests captured yet"):
+                "VPN starting · Original blocker stays on";
+            labels.addView(text(description,BuildConfig.TV?12:11,running?INK:MUTED));
+        }
         row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
         Switch toggle=new Switch(this);
         boolean vpn="vpn".equals(prefs.getString("adBlockingMode","original"));

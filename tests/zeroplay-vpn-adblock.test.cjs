@@ -6,7 +6,7 @@ const player=read('app/src/main/java/com/zerostreams/app/BrowserPlayerActivity.j
 const vpn=read('app/src/main/java/com/zerostreams/app/ZeroVpnAdblockService.java');
 const manifest=read('app/src/main/AndroidManifest.xml');
 test('Home two-state toggle offers Original on left and VPN DNS on right',()=>{
- assert.match(main,/LEFT: Original · RIGHT: VPN DNS/);
+ assert.match(main,/LEFT: Original · RIGHT: Original \+ VPN DNS/);
  assert.match(main,/if\(right\)requestVpnAdblockMode\(\)/);
  assert.match(main,/else\{selectOriginalAdblockMode\(\)/);
  assert.match(main,/VpnService\.prepare\(this\)/);
@@ -48,4 +48,13 @@ test('Isolated QA embeds the same catalog secrets as production build',()=>{
  assert.match(workflow,/TMDB_API_KEY: \$\{\{ secrets\.TMDB_API_KEY \}\}/);
  assert.match(workflow,/OMDB_API_KEY: \$\{\{ secrets\.OMDB_API_KEY \}\}/);
  assert.match(workflow,/test -n "\$TMDB_API_KEY"/);
+});
+
+test('VPN does not disable original in-player blocking, including reloads',()=>{
+ assert.match(main,/putString\("adBlockingMode","vpn"\).*putBoolean\("vpnAdblockStarting",true\)[\s\S]{0,180}putBoolean\("blockAds",true\)/);
+ assert.match(vpn,/putString\(MODE,"vpn"\).*putBoolean\(ACTIVE,true\).*putBoolean\("vpnAdblockStarting",false\).*putBoolean\("blockAds",true\)/);
+ assert.doesNotMatch(vpn,/putBoolean\("blockAds",false\)/);
+ assert.match(player,/ZeroVpnAdblockService\.isRunning\(\)\?"VPN \+ Player blocker"/);
+ assert.match(vpn,/vpnDnsQueryCount/);
+ assert.match(vpn,/vpnDnsBlockedCount/);
 });
