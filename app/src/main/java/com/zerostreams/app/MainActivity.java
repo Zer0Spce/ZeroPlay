@@ -256,85 +256,64 @@ public class MainActivity extends Activity {
         browse=new ArrayList<>();
         load();
     }
-    // Launches the original, unmodified, GPLv3 BlockAds app. No imitation VPN.
+    private static final int VPN_PERMISSION_REQUEST=2691;
     private Switch adModeSwitch;
     boolean realBlockAdsSelected(){return "blockads".equals(prefs.getString("adBlockingMode","original"));}
-    String originalBlockAdsPackage(){return BuildConfig.TV?"app.pwhs.blockadstv":"app.pwhs.blockads";}
-    Intent originalBlockAdsLaunch(){
-        Intent i=new Intent(Intent.ACTION_MAIN);
-        i.setClassName(originalBlockAdsPackage(),BuildConfig.TV?
-            "app.pwhs.blockadstv.MainActivity":"app.pwhs.blockads.MainActivity");
-        return i;
-    }
     void updateAdModeSwitch(){
         if(adModeSwitch==null)return;
         adModeSwitch.setOnCheckedChangeListener(null);
-        adModeSwitch.setText(realBlockAdsSelected()?"BlockAds":"Ads");
+        boolean running=ZeroVpnAdblockService.isRunning();
+        adModeSwitch.setText(realBlockAdsSelected()?(running?"BlockAds ✓":"BlockAds…"):"Ads");
         adModeSwitch.setChecked(realBlockAdsSelected());
         adModeSwitch.setContentDescription(realBlockAdsSelected()?
-            "Real BlockAds app selected; confirm VPN connected inside BlockAds":
-            "Original ZeroPlay ad blocker; switch right to open the BlockAds app");
+            "BlockAds native VPN "+(running?"running":"starting")+" in ZeroPlay":
+            "Original ZeroPlay ad blocking, switch right to enable built-in BlockAds");
         adModeSwitch.setOnCheckedChangeListener((v,right)->{
             if(right)requestVpnAdblockMode();else selectOriginalAdblockMode();
         });
     }
     Switch subtleAdModeChip(){
-        Switch sw=new Switch(this);
-        sw.setTextSize(BuildConfig.TV?13:12);sw.setTextColor(MUTED);
+        Switch sw=new Switch(this);sw.setTextSize(BuildConfig.TV?13:12);sw.setTextColor(MUTED);
         sw.setPadding(dp(5),0,dp(6),0);sw.setMinimumHeight(dp(42));
         sw.setFocusable(true);sw.setBackground(pill(alphaColor(SURFACE,0x60),0));
         adModeSwitch=sw;updateAdModeSwitch();return sw;
     }
+    void startVpnAdblockMode(){
+        try{
+            Intent service=new Intent(this,ZeroVpnAdblockService.class);
+            service.setAction(ZeroVpnAdblockService.START);
+            if(Build.VERSION.SDK_INT>=26)startForegroundService(service);else startService(service);
+            prefs.edit().putString("adBlockingMode","blockads").putBoolean("blockAds",true).apply();
+            ui.postDelayed(this::updateAdModeSwitch,1000);
+        }catch(Exception e){
+            prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();
+            message("BlockAds could not start inside ZeroPlay: "+e.getMessage());
+            updateAdModeSwitch();
+        }
+    }
     void requestVpnAdblockMode(){
         try{
-            Intent i=originalBlockAdsLaunch();
-            if(!BuildConfig.TV)i.putExtra("extra_start_vpn",true);
-            // Upstream mobile starts via its existing widget entrypoint and shows VPN consent.
-            // Upstream TV must be manually enabled inside its original app.
-            startActivity(i);
-            stopService(new Intent(this,ZeroVpnAdblockService.class));
-            prefs.edit().putString("adBlockingMode","blockads").putBoolean("blockAds",true).apply();
-            message(BuildConfig.TV?
-                "Open BlockAds TV and enable protection. The real BlockAds VPN owns the connection.":
-                "BlockAds opened. Approve its Android VPN request; player filtering remains enabled.");
-        }catch(Exception error){
-            prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();
-            new AlertDialog.Builder(this).setTitle("Install original BlockAds first")
-                .setMessage("Install the matching official BlockAds APK from the test workflow. This mode uses its actual Go tunnel and filtering engine, not ZeroPlay's retired DNS VPN.")
-                .setPositiveButton("OK",null).show();
+            Intent permission=android.net.VpnService.prepare(this);
+            if(permission!=null)startActivityForResult(permission,VPN_PERMISSION_REQUEST);
+            else startVpnAdblockMode();
+        }catch(Exception e){
+            message("Android VPN permission unavailable: "+e.getMessage());
+            updateAdModeSwitch();
         }
-        updateAdModeSwitch();
     }
-    void finishOriginalAdblockMode(){
-        stopService(new Intent(this,ZeroVpnAdblockService.class));
-        prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true)
-            .putBoolean("vpnAdblockStarting",false).putBoolean("vpnAdblockActive",false).apply();
-        updateAdModeSwitch();
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=VPN_PERMISSION_REQUEST)return;
+        if(resultCode==RESULT_OK)startVpnAdblockMode();
+        else{prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();
+            message("VPN permission denied. Original ad blocking remains enabled.");updateAdModeSwitch();}
     }
     void selectOriginalAdblockMode(){
-        if(BuildConfig.TV&&realBlockAdsSelected()){
-            // The original upstream TV app has no exported control to stop its VPN service.
-            new AlertDialog.Builder(this).setTitle("Stop BlockAds VPN")
-                .setMessage("The original BlockAds TV app does not expose remote VPN stop. Open BlockAds TV, turn off protection, then return and confirm. The original ZeroPlay player blocker stays on.")
-                .setPositiveButton("Open BlockAds TV",(d,n)->{
-                    try{startActivity(originalBlockAdsLaunch());}catch(Exception e){message("BlockAds TV is not installed.");}
-                    updateAdModeSwitch();
-                })
-                .setNeutralButton("I stopped it",(d,n)->finishOriginalAdblockMode())
-                .setNegativeButton("Cancel",(d,n)->updateAdModeSwitch()).show();
-            updateAdModeSwitch();return;
-        }
-        try{
-            Intent stop=new Intent("app.pwhs.blockads.TASKER_STOP");
-            stop.setClassName("app.pwhs.blockads","app.pwhs.blockads.receiver.TaskerReceiver");
-            sendBroadcast(stop); // Official BlockAds Android mobile exported receiver.
-        }catch(Exception e){android.util.Log.w("ZeroPlay","Could not request BlockAds stop",e);}
-        finishOriginalAdblockMode();
-        message("Original player blocking selected. BlockAds stop requested.");
+        stopService(new Intent(this,ZeroVpnAdblockService.class));
+        prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();
+        updateAdModeSwitch();
     }
-    void homeAdBlockingSwitch(){
-        // No floating toolbar above carousel. The control lives in navigation.
-    }
+    void homeAdBlockingSwitch(){/* Home navigation owns compact mode chip. */}
     void renderHome22(List<Catalog.Item> rows,int token){
         // Apply the new requested default homepage preset only once.
         if(!prefs.getBoolean("discoveryVODPreset2258",false)){

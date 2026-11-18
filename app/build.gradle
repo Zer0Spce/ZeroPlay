@@ -87,6 +87,11 @@ android {
 }
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+    // Upstream BlockAds GPLv3 Go tunnel AAR; required ONLY for the isolated QA build.
+    // CI fetches it from the original publisher and verifies upstream SHA-256.
+    if (providers.gradleProperty('zeroVpnQaIsolated').getOrElse('false') == 'true') {
+        implementation files('libs/blockads-tunnel.aar')
+    }
     implementation 'androidx.core:core:1.15.0'
     implementation 'com.frostwire:jlibtorrent:1.2.19.0'
     implementation 'com.frostwire:jlibtorrent-android-arm:1.2.19.0'

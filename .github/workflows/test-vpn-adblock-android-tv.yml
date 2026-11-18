@@ -7,41 +7,6 @@ permissions:
   contents: read
 jobs:
 
-  official-blockads-verified-release:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@v4
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools build-tools;34.0.0'
-          log-accepted-android-sdk-licenses: false
-      - name: Download actual upstream BlockAds v7.1.2 signed APKs
-        run: |
-          set -euo pipefail
-          mkdir -p genuine-blockads
-          curl -fL --retry 3 --retry-delay 3 -o genuine-blockads/BlockAds-Official-Android.apk \
-            https://github.com/pass-with-high-score/blockads-android/releases/download/v7.1.2/app-universal-release.apk
-          curl -fL --retry 3 --retry-delay 3 -o genuine-blockads/BlockAds-Official-Android-TV.apk \
-            https://github.com/pass-with-high-score/blockads-android/releases/download/v7.1.2/blockadstv-release.apk
-          printf 'eb1f21f07a1a083f8ba3b4e3267e2b9217dacaf40e36c32250cbd4651aa3ec53  genuine-blockads/BlockAds-Official-Android.apk\n2c86805101c374126d5ec85b7b2e6047f2960a0cd8359b39bf86dc7fe3c29951  genuine-blockads/BlockAds-Official-Android-TV.apk\n' | sha256sum -c
-      - name: Verify genuine signed packages and Go tunnel
-        run: |
-          set -euo pipefail
-          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
-          "$AAPT" dump badging genuine-blockads/BlockAds-Official-Android.apk | grep -F "package: name='app.pwhs.blockads'"
-          "$AAPT" dump badging genuine-blockads/BlockAds-Official-Android-TV.apk | grep -F "package: name='app.pwhs.blockadstv'"
-          unzip -l genuine-blockads/BlockAds-Official-Android.apk | grep -F 'libgojni.so'
-          unzip -l genuine-blockads/BlockAds-Official-Android-TV.apk | grep -F 'libgojni.so'
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify genuine-blockads/BlockAds-Official-Android.apk
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify genuine-blockads/BlockAds-Official-Android-TV.apk
-      - name: Upload official BlockAds APKs for ZeroPlay QA
-        uses: actions/upload-artifact@v4
-        with:
-          name: Original-BlockAds-v7.1.2-VERIFIED-Android-and-TV
-          path: genuine-blockads/*.apk
-          if-no-files-found: error
-          retention-days: 5
   vpn-adblock-qa:
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -66,7 +31,7 @@ jobs:
           gradle-version: '8.9'
       - name: Verify VPN service, player source and toggle scope
         run: |
-          node --test tests/zeroplay-real-blockads.test.cjs
+          node --test tests/zeroplay-native-blockads.test.cjs
           node --test tests/zeroplay-vpn-isolated-identity.test.cjs
           node --test tests/zeroplay-2269-vidstuck-default.test.cjs
           node --test tests/zeroplay-2267-mapple-guard.test.cjs
@@ -80,6 +45,14 @@ jobs:
           node scripts/apply-2.2.4-volume-boost.cjs
           node scripts/apply-2.2.4.1-audio-hotfix.cjs
           node scripts/apply-custom-livetv-test.cjs
+      - name: Fetch exact upstream BlockAds Go tunnel AAR and verify SHA-256
+        run: |
+          set -euo pipefail
+          mkdir -p app/libs
+          curl -fL --retry 3 --retry-delay 3 --connect-timeout 15 -o app/libs/blockads-tunnel.aar \
+            https://github.com/pass-with-high-score/blockads-android/releases/download/tunnel-2026.11.17.35069308/tunnel-2026.11.17.35069308.aar
+          echo '9e73407a9d31b1cfb9decece22686dc0b44a804598e4ddd96f9a6374580ded6e  app/libs/blockads-tunnel.aar' | sha256sum -c
+          unzip -l app/libs/blockads-tunnel.aar | grep -F 'jni/arm64-v8a/libgojni.so'
       - name: Run Android Mobile, TV, Lite Java unit tests
         run: gradle -PzeroVpnQaIsolated=true :app:testMobileDebugUnitTest :app:testTvDebugUnitTest :app:testLiteMobileDebugUnitTest :app:testLiteTvDebugUnitTest
       - name: Compile four unsigned QA-only APKs
@@ -103,10 +76,18 @@ jobs:
             ! printf '%s\\n' "$badging" | grep -E "package: name='com\\.zerostreams\\.app\\.(mobile|tv|lite\\.mobile|lite\\.tv)'"
             echo "$edition is isolated from production: $expected ($label)"
           done
+      - name: Verify native BlockAds engine is embedded in EACH ZeroPlay APK
+        run: |
+          set -euo pipefail
+          for edition in mobile tv liteMobile liteTv; do
+            apk="app/build/outputs/apk/$edition/debug/app-$edition-debug.apk"
+            unzip -l "$apk" | grep -F 'lib/arm64-v8a/libgojni.so'
+            echo "Confirmed native Go tunnel inside ZeroPlay $edition"
+          done
       - name: Upload temporary internal QA packages; no release
         uses: actions/upload-artifact@v4
         with:
-          name: ZeroPlay-VPN-TEST-SIDE-BY-SIDE-NO-OVERWRITE
+          name: ZeroPlay-INTEGRATED-BlockAds-GO-TEST-ONE-APK
           path: |
             app/build/outputs/apk/mobile/debug/*.apk
             app/build/outputs/apk/tv/debug/*.apk

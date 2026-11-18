@@ -1,8 +1,4 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <queries>
-        <package android:name="app.pwhs.blockads" />
-        <package android:name="app.pwhs.blockadstv" />
-    </queries>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -20,8 +16,12 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
         <service android:name=".TorrentDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
-        <!-- Deliberately do not register the discarded custom VPN; the actual
-             BlockAds companion owns the only VPN service in this test. -->
+        <service android:name=".ZeroVpnAdblockService" android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="specialUse">
+            <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Native BlockAds Go tunnel inside ZeroPlay" />
+        </service>
         <activity android:name=".MainActivity" android:exported="false" />
         <activity android:name=".FixedMainActivity" android:exported="false" />
         <activity android:name=".PersonFilmographyActivity" android:exported="false" />
