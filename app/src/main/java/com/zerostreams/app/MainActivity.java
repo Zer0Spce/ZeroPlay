@@ -301,13 +301,6 @@ public class MainActivity extends Activity {
             updateAdModeSwitch();
         }
     }
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode!=VPN_PERMISSION_REQUEST)return;
-        if(resultCode==RESULT_OK)startVpnAdblockMode();
-        else{prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();
-            message("VPN permission denied. Original ad blocking remains enabled.");updateAdModeSwitch();}
-    }
     void selectOriginalAdblockMode(){
         stopService(new Intent(this,ZeroVpnAdblockService.class));
         prefs.edit().putString("adBlockingMode","original").putBoolean("blockAds",true).apply();
