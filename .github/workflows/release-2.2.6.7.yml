@@ -1,5 +1,5 @@
 name: ZeroPlay 2.2.6.7 — MappleTV Ad and Watch Options Hotfix
-## Smart Playback source selection preserves user preference and measures actual playback before reranking.
+# MappleTV-only ad cleanup and Watch options auto-hide, without modifying other providers.
 # v2.2.6.7 CI: validate MappleTV-specific overlay cleanup and inactivity behavior across Android and Windows.
 # Revalidated both isolated QA and established signed production Android app IDs.
 on:
@@ -8,7 +8,9 @@ on:
       - main
     paths:
       - '.github/workflows/release-2.2.6.7.yml'
-      - 'app/src/test/java/com/zerostreams/app/PlaybackHealth2260Test.java'\n      - 'app/src/main/assets/mappletv-guard-267.js'\n      - 'windows/assets/mappletv-guard-267.js'
+      - 'app/src/test/java/com/zerostreams/app/PlaybackHealth2260Test.java'
+      - 'app/src/main/assets/mappletv-guard-267.js'
+      - 'windows/assets/mappletv-guard-267.js'
   pull_request:
     branches: [main]
   workflow_dispatch:

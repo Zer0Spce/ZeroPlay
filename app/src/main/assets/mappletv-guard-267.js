@@ -1,12 +1,11 @@
 /* ZeroPlay MappleTV-only player overlay guard. No changes to other providers. */
 (function(){
 'use strict';
-if(location.hostname!=='mapple.fun'||!/^\\/watch\\/(?:movie|tv)\\//.test(location.pathname)||window.__zeroMappleGuard267)return;
+if(location.hostname!=='mapple.fun'||!/^\/watch\/(?:movie|tv)\//.test(location.pathname)||window.__zeroMappleGuard267)return;
 window.__zeroMappleGuard267=true;
 var lastUser=Date.now(),IDLE_MS=3000,options=new Set();
-function label(node){return String(node.getAttribute('aria-label')||node.textContent||'').trim().replace(/\\s+/g,' ').slice(0,110);}
-function action(node){return node.matches('button,[role="button"],summary')?node:node.closest('button,[role="button"],summary');}
-function isWatchOption(node){return /^watch options(?:\\s*[⌄▼▾])?$/i.test(label(node));}
+function label(node){return String(node.getAttribute('aria-label')||node.textContent||'').trim().replace(/\s+/g,' ').slice(0,110);}
+function isWatchOption(node){return /^watch options(?:\s*[⌄▼▾])?$/i.test(label(node));}
 function guardOptions(){
 var idle=Date.now()-lastUser>=IDLE_MS;
 for(var node of document.querySelectorAll('button,[role="button"],summary')){
@@ -28,11 +27,10 @@ for(var btn of options){
 }
 function adPopup(node){
 if(!node||node===document.body||node===document.documentElement||node.querySelector('video'))return false;
-var text=(node.innerText||'').replace(/\\s+/g,' ').trim().slice(0,600);
+var text=(node.innerText||'').replace(/\s+/g,' ').trim().slice(0,600);
 var adLanguage=/watch hit movies and hottest|new releases in full hd|watch movies and latest releases/i.test(text);
 var hasButtons=Array.from(node.querySelectorAll('button,[role="button"]')).some(n=>/^(continue|close)$/i.test(label(n)));
-var hasBadge=Array.from(node.querySelectorAll('span,small,div')).some(n=>n.children.length===0&&/^ad$/i.test((n.textContent||'').trim()));
-return adLanguage&&hasButtons&&hasBadge;
+return adLanguage&&hasButtons; // MappleTV's Ad badge can be outside the modal card.
 }
 function stripAds(){
 if(!window.__zeroBlockAds)return;

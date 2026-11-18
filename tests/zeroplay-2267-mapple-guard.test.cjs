@@ -6,7 +6,7 @@ test('MappleTV-only guard activates solely for exact mapple.fun watch routes',()
   const s=read(p);assert.match(s,/location.hostname!=='mapple.fun'/);assert.match(s,/watch/);
   assert.match(s,/Watch options/i);assert.match(s,/IDLE_MS=3000/);
   assert.match(s,/MutationObserver/);assert.match(s,/__zeroBlockAds/);
-  assert.match(s,/new releases in full hd/);assert.match(s,/hasButtons&&hasBadge/);
+  assert.match(s,/new releases in full hd/);assert.match(s,/return adLanguage&&hasButtons/);
  }
 });
 test('Guard is loaded for Android and Windows player content only',()=>{
