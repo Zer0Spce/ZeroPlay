@@ -31,7 +31,7 @@ const dataRoot=require('./data-directory.cjs').dataDirectory(app.getPath('appDat
 const homePanelIds=['clock','featured','top10','continue','upnext','because','watchlist','tonight','hidden','upcoming','providers','recommended','trending','popular','series','now','airing','action','comedy','horror','animation','anime','adventure','crime','documentary','drama','family','fantasy','history','music','mystery','romance','scifi','thriller','war','western','tvmovie','thrillers','recent','different','classics'];
 function normalizeHomePanelOrder(value){const out=[];for(const id of Array.isArray(value)?value:[])if(homePanelIds.includes(id)&&!out.includes(id))out.push(id);for(const id of homePanelIds)if(!out.includes(id))out.push(id);return out;}
 const channelKey=(section,c)=>require('node:crypto').createHash('sha256').update(section+'|'+c.name+'|'+c.group).digest('hex');
-const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'US',gain:1,theme:'dark',uiLayout:'youtube',source:'vidstuck',rawcastPlayback:false,uiAnimations:true,focusInfo:true,focusTrailer:true,homepageTrailer:true,previewDelay:2000,carouselSource:'popular',homePanels:['clock','featured','top10','providers','continue','upnext','because','watchlist','tonight','hidden','trending','recommended','thrillers','recent','different','classics','popular','series','now','airing'],homePanelOrder:homePanelIds.slice(),performanceMode:false,artQuality:'auto',autoSourceRecovery:false,autoBestSource:true,autoplayNext:true,skipIntroSeconds:90,skipRecapSeconds:45},customKey:''});
+const defaults=()=>({liveFavorites:[],favorites:[],planned:[],history:[],positions:{},searches:[],collections:{},notInterested:[],profiles:{},activeProfile:'Default',sourceHealth:{},settings:{region:'US',gain:1,theme:'dark',uiLayout:'youtube',source:'vidstuck',rawcastPlayback:false,uiAnimations:true,focusInfo:true,focusTrailer:true,homepageTrailer:true,previewDelay:2000,carouselSource:'popular',homePanels:['clock','featured','top10','providers','continue','upnext','because','watchlist','tonight','hidden','trending','recommended','thrillers','recent','different','classics','popular','series','now','airing'],homePanelOrder:homePanelIds.slice(),performanceMode:false,artQuality:'auto',autoSourceRecovery:false,autoBestSource:false,autoplayNext:true,skipIntroSeconds:90,skipRecapSeconds:45},customKey:''});
 function personalSnapshot(){return {favorites:state.favorites||[],planned:state.planned||[],history:state.history||[],positions:state.positions||{},searches:state.searches||[],collections:state.collections||{},notInterested:state.notInterested||[]};}
 function applyPersonal(value={}){state.favorites=Array.isArray(value.favorites)?value.favorites:[];state.planned=Array.isArray(value.planned)?value.planned:[];state.history=Array.isArray(value.history)?value.history:[];state.positions=value.positions&&typeof value.positions==='object'?value.positions:{};state.searches=Array.isArray(value.searches)?value.searches:[];state.collections=value.collections&&typeof value.collections==='object'?value.collections:{};state.notInterested=Array.isArray(value.notInterested)?value.notInterested:[];}
 function ensureProfiles(){if(!state.profiles||typeof state.profiles!=='object'||Array.isArray(state.profiles))state.profiles={};if(!state.activeProfile)state.activeProfile='Default';}
@@ -113,27 +113,16 @@ function closePlayer(){
   if(main&&!main.isDestroyed()){main.setTitle('ZeroPlay');main.webContents.focus();refresh();}
 }
 async function openPlayer(value,selected,fixture,prepare=false,sourceOverride,recovering=false){
-  value=core.cleanItem(value);let requestedSource=["vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","mappletv","vidly","vidcore","chillflix","rawcast"].includes(sourceOverride)?sourceOverride:(state.settings.source||"vidstuck");if(!sourceOverride)requestedSource=bestSource(requestedSource);const playbackSource=requestedSource==="rawcast"&&state.settings.rawcastPlayback!==true?"vidstuck":requestedSource;currentPlaybackSource=playbackSource;sourceRecoveryAttempted=recovering;lastVerifiedPlaybackKey='';const playerLoadStarted=Date.now();const saved=state.positions[core.key(value)];let position=selected?core.episode(selected):saved||{};
+  value=core.cleanItem(value);let requestedSource=["vidstuck","zxcstream","embedwave","vidsrc-sh","vidrock","vidnest","vidrift","vidfast","vidapi","mappletv","vidly","vidcore","chillflix","rawcast"].includes(sourceOverride)?sourceOverride:(state.settings.source||"vidstuck");if(!sourceOverride&&state.settings.autoBestSource===true)requestedSource=bestSource(requestedSource);const playbackSource=requestedSource==="rawcast"&&state.settings.rawcastPlayback!==true?"vidstuck":requestedSource;currentPlaybackSource=playbackSource;sourceRecoveryAttempted=recovering;lastVerifiedPlaybackKey='';const playerLoadStarted=Date.now();const saved=state.positions[core.key(value)];let position=selected?core.episode(selected):saved||{};
   if(selected&&saved&&saved.season===position.season&&saved.episode===position.episode)position=saved;
   if(playbackSource==='rawcast'&&state.settings.rawcastPlayback===true&&!fixture){if(!rawcastKey())throw Error('RawCast key required. Enable RawCast and add your key in Settings. Streaming uses your limited API quota.');const media=await rawcast.stream(value,core.episode(position));await openLive('RawCast',0,{name:value.title,...media,headers:{},vod:true,rawcastItem:value,rawcastEpisode:core.episode(position),start:position.timestamp||0});current=value;core.record(state,value,position);persist();refresh();return;}
   closePlayer();
   current=value;core.record(state,value,position);persist();refresh();
-  guard='window.__zeroMappleSession='+(playbackSource==='mappletv')+';window.__zeroTv=false;window.__zeroBlockAds=true;window.__zeroGain='+state.settings.gain+';'+fs.readFileSync(path.join(__dirname,'assets/player-guard.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/mappletv-guard-268.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-exit.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-22.js'),'utf8')+"\nif(!window.__zeroDesktopMouse){window.__zeroDesktopMouse=true;let last=0;document.addEventListener('mousemove',()=>{if(Date.now()-last<350)return;last=Date.now();if(window.__zeroRemoteActivity)window.__zeroRemoteActivity();});}";
+  guard='window.__zeroTv=false;window.__zeroBlockAds=true;window.__zeroGain='+state.settings.gain+';'+fs.readFileSync(path.join(__dirname,'assets/player-guard.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/mappletv-guard-267.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-exit.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'assets/player-22.js'),'utf8')+"\nif(!window.__zeroDesktopMouse){window.__zeroDesktopMouse=true;let last=0;document.addEventListener('mousemove',()=>{if(Date.now()-last<350)return;last=Date.now();if(window.__zeroRemoteActivity)window.__zeroRemoteActivity();});}";
   player=new WebContentsView({webPreferences:{partition:'persist:player',preload:path.join(__dirname,'player-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
   toolbar=new WebContentsView({webPreferences:{preload:path.join(__dirname,'player-tools.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webSecurity:true}});
   player.setBackgroundColor('#000000');toolbar.setBackgroundColor('#101621');
   const view=player,contents=view.webContents;
-  if(playbackSource==='mappletv'){
-    const adHosts=["doubleclick.net","googlesyndication.com","googleadservices.com","adsterra.com","adsterra.org","popads.net","popcash.net","propellerads.com","onclicka.com","onclicksuper.com","exoclick.com","exosrv.com","trafficjunky.net","juicyads.com","hilltopads.net","adnxs.com","adskeeper.com","mgid.com","taboola.com","outbrain.com","revcontent.com","pubmatic.com","rubiconproject.com","openx.net","smartadserver.com","criteo.com","criteo.net","casalemedia.com","contextweb.com","lijit.com","yieldmo.com","sovrn.com","inmobi.com","applovin.com","adsrvr.org","bidr.io","sharethrough.com","media.net","adform.net","popmyads.com"];
-    contents.session.webRequest.onBeforeRequest((details,callback)=>{
-      let cancel=false;
-      if(details.webContentsId===contents.id)try{
-        const h=new URL(details.url).hostname.toLowerCase();
-        cancel=adHosts.some(d=>h===d||h.endsWith('.'+d));
-      }catch(_){}
-      callback({cancel});
-    });
-  }
   playerHost=new PlayerHost(main,view,toolbar,{toolbar:false});installPlayerScripts(contents);
   toolbar.webContents.setWindowOpenHandler(()=>({action:'deny'}));toolbar.webContents.on('will-navigate',event=>event.preventDefault());
   await toolbar.webContents.loadFile(path.join(__dirname,'ui/player-tools.html'));toolbar.webContents.send('player-title',value.title);
@@ -218,7 +207,15 @@ async function openLive(section,index,offline){
 app.whenReady().then(async()=>{
   app.setAppUserModelId('com.zerostreams.windows');Menu.setApplicationMenu(null);
   file=path.join(app.getPath('userData'),smoke?'smoke-state.json':'library.json');state=defaults();
-  try{const saved=JSON.parse(fs.readFileSync(file,'utf8'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}if(!state.settings.providerRegionDefaultUS2258){
+  try{const saved=JSON.parse(fs.readFileSync(file,'utf8'));state={...state,...saved,settings:{...state.settings,...saved.settings}};}catch{}
+  if(!state.settings.vidstuckDefault269Migrated){
+    state.settings.source='vidstuck';
+    state.settings.autoBestSource=false;
+    state.settings.autoSourceRecovery=false;
+    state.settings.vidstuckDefault269Migrated=true;
+    state.sourceHealth={};
+  }
+  if(!state.settings.providerRegionDefaultUS2258){
     // 2.2.5.8: previous releases seeded PH even when nobody selected a country.
     // Move that old default to US once; preserve any other explicit region choice.
     if(!state.settings.region||state.settings.region==='PH')state.settings.region='US';
@@ -329,7 +326,7 @@ app.whenReady().then(async()=>{
     try{
       const result=await main.webContents.executeJavaScript(
         'window.zero.state().then(data=>({version:data.version,rail:!!document.querySelector(\'[data-nav="Home"]\'),status:!!document.querySelector(\'#status\')}))');
-      if(!/^2\.2\.6\.8$/.test(result.version)||!result.rail||!result.status)
+      if(!/^2\.2\.6\.9$/.test(result.version)||!result.rail||!result.status)
         throw Error('Desktop interface did not initialize: '+JSON.stringify(result));
       console.log('ZERO_WINDOWS_UI_SMOKE_PASS '+JSON.stringify(result));
       app.exit(0);

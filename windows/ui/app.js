@@ -23,7 +23,17 @@ document.addEventListener('change',event=>{
 document.addEventListener('change',event=>{const kind=event.target.dataset.sort;if(!kind)return;const value=event.target.value;if(kind==='titles'){titleSort=value;if(category==='Library')renderLibrary();else reorderTitles();}if(kind==='channels'){channelSort=value;renderPlaylist();}if(kind==='sports'){sportsSort=value;renderSports();}});
 function reorderTitles(){const grid=$('#catalog-grid');if(!grid)return;const items=[...loadedKeys].map(id=>titles.get(id)).filter(Boolean);grid.innerHTML=sortedTitles(items).map(item=>card(item)).join('');}
 const sources=[['vidstuck','VidStuck'],['zxcstream','ZXCStream (Beta)'],['embedwave','Embedwave (BETA)'],['vidsrc-sh','VidSrc [Offline]'],['vidrock','Vidrock.to [Offline]'],['vidnest','VidNest'],['vidrift','VidRift'],['vidfast','VidFast'],['vidapi','VidAPI'],['mappletv','MappleTV (4K HDR)'],['vidly','Vidly (4K)'],['vidcore','Vidcore (4K)'],['chillflix','Chillflix (4K)'],['rawcast','RawCast · Limited quota']];
-function sourceOverrides(){try{return JSON.parse(localStorage.getItem('zero-title-sources')||'{}')||{};}catch{return {};}}
+function sourceOverrides(){
+  try {
+    const value=JSON.parse(localStorage.getItem('zero-title-sources')||'{}')||{};
+    if(localStorage.getItem('zero-title-sources-269-migrated')!=='1'){
+      for(const key of Object.keys(value))if(value[key]==='vidly')delete value[key];
+      localStorage.setItem('zero-title-sources',JSON.stringify(value));
+      localStorage.setItem('zero-title-sources-269-migrated','1');
+    }
+    return value;
+  }catch{return {};}
+}
 function playbackSourceValid(id){return sources.some(([sourceId])=>sourceId===id);}
 function sourceFor(item){const global=state?.settings?.source;if(!item)return playbackSourceValid(global)?global:'vidstuck';const once=oneTimeSources.get(key(item));if(playbackSourceValid(once))return once;const saved=sourceOverrides()[key(item)];if(playbackSourceValid(saved))return saved;return playbackSourceValid(global)?global:'vidstuck';}
 function sourceName(id){return sources.find(x=>x[0]===id)?.[1]||'VidStuck';}

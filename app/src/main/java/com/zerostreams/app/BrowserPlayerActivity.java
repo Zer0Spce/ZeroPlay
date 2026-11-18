@@ -112,10 +112,10 @@ public class BrowserPlayerActivity extends Activity {
         web.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest request){
                 if(tvPlayer&&request.isForMainFrame()&&request.hasGesture()&&java.util.Arrays.asList("vidstuck.cc","zxcstream.cc","embedwave.cc","vidsrc.sh","vidrock.to","vidnest.fun","embed.vidrift.net","vidfast.vc","vaplayer.ru","mapple.fun","vidly.pro","vidcore.org","www.chillflix.pw").contains(request.getUrl().getHost())&&!("zxcstream.cc".equals(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).startsWith("/player/"):(java.util.Arrays.asList("vidrock.to","vidnest.fun","vidfast.vc","vidly.pro").contains(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).matches("/(movie|tv)/.*"):("mapple.fun".equals(request.getUrl().getHost())?String.valueOf(request.getUrl().getPath()).startsWith("/watch/"):String.valueOf(request.getUrl().getPath()).startsWith("/embed/"))))){confirmExit();return true;}
-                return (blockAds&&(AdBlockRules.blocks(request.getUrl().getHost())||(MappleAdRules.isMapple(currentAddress)&&MappleAdRules.blocks(request.getUrl().toString())))) || !"https".equals(request.getUrl().getScheme()) || (request.isForMainFrame()&&!PlaybackSources.trusted(request.getUrl().toString()));
+                return (blockAds&&AdBlockRules.blocks(request.getUrl().getHost())) || !"https".equals(request.getUrl().getScheme()) || (request.isForMainFrame()&&!PlaybackSources.trusted(request.getUrl().toString()));
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest request){
-                if(blockAds&&!request.isForMainFrame()&&(AdBlockRules.blocks(request.getUrl().getHost())||(MappleAdRules.isMapple(currentAddress)&&MappleAdRules.blocks(request.getUrl().toString()))))return new WebResourceResponse("text/plain","UTF-8",new java.io.ByteArrayInputStream(new byte[0]));
+                if(blockAds&&!request.isForMainFrame()&&AdBlockRules.blocks(request.getUrl().getHost()))return new WebResourceResponse("text/plain","UTF-8",new java.io.ByteArrayInputStream(new byte[0]));
                 return null;
             }
             @Override public void onPageFinished(WebView v,String url){
@@ -419,13 +419,13 @@ public class BrowserPlayerActivity extends Activity {
         try(java.io.InputStream guardInput=getAssets().open("player-guard.js");
             java.io.InputStream tvInput=getAssets().open("tv-player-input.js");
             java.io.InputStream v22Input=getAssets().open("player-22.js");
-            java.io.InputStream mappleInput=getAssets().open("mappletv-guard-268.js");
+            java.io.InputStream mappleInput=getAssets().open("mappletv-guard-267.js");
             java.io.ByteArrayOutputStream guardOutput=new java.io.ByteArrayOutputStream();
             java.io.ByteArrayOutputStream tvOutput=new java.io.ByteArrayOutputStream();java.io.ByteArrayOutputStream v22Output=new java.io.ByteArrayOutputStream();java.io.ByteArrayOutputStream mappleOutput=new java.io.ByteArrayOutputStream()){
             byte[] buffer=new byte[4096];int count;
             while((count=guardInput.read(buffer))!=-1)guardOutput.write(buffer,0,count);
             while((count=tvInput.read(buffer))!=-1)tvOutput.write(buffer,0,count);while((count=v22Input.read(buffer))!=-1)v22Output.write(buffer,0,count);while((count=mappleInput.read(buffer))!=-1)mappleOutput.write(buffer,0,count);
-            playerGuard="window.__zeroMappleSession="+MappleAdRules.isMapple(currentAddress)+";window.__zeroTv="+tvPlayer+";window.__zeroBlockAds="+blockAds+";window.__zeroGain="+prefs.getFloat("audioBoost",1f)+";"+guardOutput.toString("UTF-8")+(tvPlayer?tvOutput.toString("UTF-8"):"")+(liteTvPlayer?"":v22Output.toString("UTF-8"))+mappleOutput.toString("UTF-8");
+            playerGuard="window.__zeroTv="+tvPlayer+";window.__zeroBlockAds="+blockAds+";window.__zeroGain="+prefs.getFloat("audioBoost",1f)+";"+guardOutput.toString("UTF-8")+(tvPlayer?tvOutput.toString("UTF-8"):"")+(liteTvPlayer?"":v22Output.toString("UTF-8"))+mappleOutput.toString("UTF-8");
             if(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)){
                 androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web,playerGuard,java.util.Collections.singleton("*"));
             }else{
