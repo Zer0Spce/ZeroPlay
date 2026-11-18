@@ -7,7 +7,8 @@ public class PlaybackHealth2260Test {
   for(String bad:new String[]{"rawcast","vidsrc-sh","vidrock","someprovider"})
    assertFalse(PlaybackHealth.automatic(bad));
   assertTrue(PlaybackHealth.automatic("vidstuck"));
-  assertEquals(7,PlaybackHealth.AUTOMATIC.size());
+  assertEquals(11,PlaybackHealth.AUTOMATIC.size());
+  for(String added:new String[]{"mappletv","vidly","vidcore","chillflix"}) assertTrue(PlaybackHealth.automatic(added));
  }
  @Test public void repeatedFailureTriggersCooldownNotPermanentBlock(){
   long now=2000000;
