@@ -34,6 +34,14 @@ jobs:
       NEXSTREAM_API_KEY: ${{ secrets.NEXSTREAM_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+      - name: Verify NexStream credential is provided securely
+        shell: bash
+        run: |
+          if [[ ! "$NEXSTREAM_API_KEY" =~ ^nx_[A-Za-z0-9]+$ ]]; then
+            echo "::error::Missing NEXSTREAM_API_KEY repository Actions secret. Refusing incomplete v2.2.7 release."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -162,12 +170,21 @@ jobs:
     env:
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      NEXSTREAM_API_KEY: ${{ secrets.NEXSTREAM_API_KEY }}
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
       ZERO_2263_PRODUCTION: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Verify NexStream credential is provided securely
+        shell: bash
+        run: |
+          if [[ ! "$NEXSTREAM_API_KEY" =~ ^nx_[A-Za-z0-9]+$ ]]; then
+            echo "::error::Missing NEXSTREAM_API_KEY repository Actions secret. Refusing incomplete v2.2.7 release."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
