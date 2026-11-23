@@ -1,42 +1,49 @@
 <p align="center"><img src="windows/assets/zeroplay-home-logo.png" alt="ZeroPlay official red Zero and white Play logo" width="650"></p>
 
-# 🎬 ZeroPlay 2.2.6.5
+# 🎬 ZeroPlay 2.2.7
 
 ### Movies. Series. Anime. Live TV. Sports. Your own space to watch.
 
-ZeroPlay 2.2.6.5 focuses on playback reliability, discovery, update recovery, TV-series progress, performance and cleaner carousels across **Android, Android TV / Google TV and Windows**. The old player and library foundations remain intact.
+ZeroPlay 2.2.7 improves VidRift playback controls, adds NexStream and EmbedMaster source integrations, and preserves existing discovery and playback features across **Android, Android TV / Google TV and Windows**. The old player and library foundations remain intact.
 
-**[⬇️ Latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 Full 2.2.6.5 release notes](docs/releases/v2.2.6.5.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Screenshots](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
+**[⬇️ Latest release](https://github.com/Zer0Spce/ZeroPlay/releases/latest)** · **[📋 Full 2.2.7 release notes](docs/releases/v2.2.7.md)** · **[📺 TV controls](docs/android-tv-controls.md)** · **[🖼️ Screenshots](#-real-app-screenshots)** · **[🔧 Fix history](#-fixes-and-improvements)**
 
-> **Existing users:** Official Android 2.2.6.5 builds preserve the standard production package IDs and signing, unlike separate TEST editions. If the updater in an older Windows build fails, extract the 2.2.6.5 ZIP manually.
+> **Existing users:** Official Android 2.2.7 builds preserve the standard production package IDs and signing, unlike separate TEST editions. If the updater in an older Windows build fails, extract the 2.2.7 ZIP manually.
+
+## What's new in 2.2.7
+
+- **VidRift:** fade player controls after 3.2 seconds of inactivity, wake on interaction, and preserve controls while paused.
+- **NexStream:** movie and TV embed integration; API key must be configured securely, and domain restrictions may apply.
+- **EmbedMaster:** movie and TV embed integration with documented URL routes and onyx player skin.
+- **VidStuck remains the default source**, with alternative sources manually selectable.
 
 ## ⬇️ Choose your edition
 
 | Edition | Download | What you get |
 | --- | --- | --- |
-| Android | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.5/ZeroPlay-2.2.6.5-Android.apk) | Phone/tablet |
-| Android TV / Google TV | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.5/ZeroPlay-2.2.6.5-Android-TV.apk) | Remote-friendly TV |
-| Android Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.5/ZeroPlay-2.2.6.5-Android-Lite.apk) | Lightweight mobile |
-| Android TV Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.5/ZeroPlay-2.2.6.5-Android-TV-Lite.apk) | Lightweight TV |
-| Windows x64 | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.5/ZeroPlay-2.2.6.5-Windows-x64.zip) | Portable ZIP with standalone updater |
-| SHA256 checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.6.5/SHA256SUMS.txt) | Verify downloaded artifacts |
+| Android | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.7/ZeroPlay-2.2.7-Android.apk) | Phone/tablet |
+| Android TV / Google TV | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.7/ZeroPlay-2.2.7-Android-TV.apk) | Remote-friendly TV |
+| Android Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.7/ZeroPlay-2.2.7-Android-Lite.apk) | Lightweight mobile |
+| Android TV Lite | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.7/ZeroPlay-2.2.7-Android-TV-Lite.apk) | Lightweight TV |
+| Windows x64 | [Download](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.7/ZeroPlay-2.2.7-Windows-x64.zip) | Portable ZIP with standalone updater |
+| SHA256 checksums | [SHA256SUMS.txt](https://github.com/Zer0Spce/ZeroPlay/releases/download/v2.2.7/SHA256SUMS.txt) | Verify downloaded artifacts |
 
 Android requires Android 6.0+. Windows requires Windows 10/11 x64.
 
-## ⭐ What's new in ZeroPlay 2.2.6.5
+## ⭐ What's new in ZeroPlay 2.2.7
 
-**2.2.6.5 Home Speed Fix:** The featured carousel now uses *What's Popular on TMDB*, refreshed at every application startup, without streaming-provider lookups, logos or Refresh Picks. Android restores disk-cached popular picks immediately while refreshing TMDB in the background. Windows shows Popular titles before all other discovery shelves finish and no longer fetches eight streaming-provider catalogs for the hero. Playback, the Streaming Provider Hub, Continue Watching, and updates remain intact.
+**2.2.7 Home Speed Fix:** The featured carousel now uses *What's Popular on TMDB*, refreshed at every application startup, without streaming-provider lookups, logos or Refresh Picks. Android restores disk-cached popular picks immediately while refreshing TMDB in the background. Windows shows Popular titles before all other discovery shelves finish and no longer fetches eight streaming-provider catalogs for the hero. Playback, the Streaming Provider Hub, Continue Watching, and updates remain intact.
 
 
 **Nine approved items:** Windows Updater 3.0 & Crash Recovery; Startup/Update Regression Tests; Smart Playback Source 2.0; Top 10 Streaming Carousel 2.0; Streaming Provider Hub; TV Series Tracker; Smart Watchlist 2.0; Movie & TV Details 2.0; Performance Boost.
 
-**2.2.6.5 release:** Android TV now uses the **actual launched carousel renderer** (not its unused base method), with a working top-right **Refresh picks** control. Streaming-provider wordmarks appear below movie metadata on Android and Windows; the redundant service-name text beside a visible logo has been removed. A name is still shown when the logo is unavailable. All approved 2.2.6 features remain.\n\n**Previous 2.2.6.3 hotfix:** Android TV carousel title artwork now belongs to the left-aligned content column. TV trailers containing baked-in centered logos no longer overlay the hero; other platform trailer behavior is unchanged. Refresh picks now sits visibly at the top-right corner of the TV carousel, outside the narrow action row.\n\n**Previous 2.2.6.2 fixes:** Android TV streaming/provider logos use alpha-cropped bundled drawable resources, with artwork anchored to the left; Continue Watching is restored from saved progress and watch history, and a TV-only Refresh picks button is alongside Watch now and More info. Windows UI and playback stay unchanged.\n\n**Previously in 2.2.6.1:** Android TV carousel titles, facts and synopsis are left aligned; logos use all eight bundled providers with a visible fallback; the provider catalog Sort/Genre/disclaimer bar is removed across platforms while provider browsing remains.
+**2.2.7 release:** Android TV now uses the **actual launched carousel renderer** (not its unused base method), with a working top-right **Refresh picks** control. Streaming-provider wordmarks appear below movie metadata on Android and Windows; the redundant service-name text beside a visible logo has been removed. A name is still shown when the logo is unavailable. All approved 2.2.6 features remain.\n\n**Previous 2.2.6.3 hotfix:** Android TV carousel title artwork now belongs to the left-aligned content column. TV trailers containing baked-in centered logos no longer overlay the hero; other platform trailer behavior is unchanged. Refresh picks now sits visibly at the top-right corner of the TV carousel, outside the narrow action row.\n\n**Previous 2.2.6.2 fixes:** Android TV streaming/provider logos use alpha-cropped bundled drawable resources, with artwork anchored to the left; Continue Watching is restored from saved progress and watch history, and a TV-only Refresh picks button is alongside Watch now and More info. Windows UI and playback stay unchanged.\n\n**Previously in 2.2.6.1:** Android TV carousel titles, facts and synopsis are left aligned; logos use all eight bundled providers with a visible fallback; the provider catalog Sort/Genre/disclaimer bar is removed across platforms while provider browsing remains.
 
 **Usability fixes:** The large red TOP 10 NEW STREAMING MOVIES · US headline is gone; each streaming-provider wordmark is a compact logo **above the movie title** on Windows and Android. Android TV Modern UI no longer shows temporary technical status text above its carousel. Android and Android TV actor filmography cards now open selected movie/show details by tap or remote OK.
 
 **Removed at owner's request:** Universal Search 2.0 and Live TV & PPV Guide 2.0. The original basic title search and Live TV / Live PPV / Live Sports remain functional.
 
-[Complete release feature breakdown and changes](docs/releases/v2.2.6.5.md).
+[Complete release feature breakdown and changes](docs/releases/v2.2.7.md).
 
 [![ZeroPlay app screenshot](docs/screenshots/2.2/windows-home.png)](docs/screenshots/2.2/windows-home.png)
 
