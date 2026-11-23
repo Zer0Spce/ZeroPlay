@@ -419,12 +419,13 @@ public class BrowserPlayerActivity extends Activity {
             java.io.InputStream tvInput=getAssets().open("tv-player-input.js");
             java.io.InputStream v22Input=getAssets().open("player-22.js");
             java.io.InputStream mappleInput=getAssets().open("mappletv-guard-267.js");
+            java.io.InputStream vidriftInput=getAssets().open("vidrift-idle-227.js");
             java.io.ByteArrayOutputStream guardOutput=new java.io.ByteArrayOutputStream();
-            java.io.ByteArrayOutputStream tvOutput=new java.io.ByteArrayOutputStream();java.io.ByteArrayOutputStream v22Output=new java.io.ByteArrayOutputStream();java.io.ByteArrayOutputStream mappleOutput=new java.io.ByteArrayOutputStream()){
+            java.io.ByteArrayOutputStream tvOutput=new java.io.ByteArrayOutputStream();java.io.ByteArrayOutputStream v22Output=new java.io.ByteArrayOutputStream();java.io.ByteArrayOutputStream mappleOutput=new java.io.ByteArrayOutputStream();java.io.ByteArrayOutputStream vidriftOutput=new java.io.ByteArrayOutputStream()){
             byte[] buffer=new byte[4096];int count;
             while((count=guardInput.read(buffer))!=-1)guardOutput.write(buffer,0,count);
-            while((count=tvInput.read(buffer))!=-1)tvOutput.write(buffer,0,count);while((count=v22Input.read(buffer))!=-1)v22Output.write(buffer,0,count);while((count=mappleInput.read(buffer))!=-1)mappleOutput.write(buffer,0,count);
-            playerGuard="window.__zeroTv="+tvPlayer+";window.__zeroBlockAds="+blockAds+";window.__zeroGain="+prefs.getFloat("audioBoost",1f)+";"+guardOutput.toString("UTF-8")+(tvPlayer?tvOutput.toString("UTF-8"):"")+(liteTvPlayer?"":v22Output.toString("UTF-8"))+mappleOutput.toString("UTF-8");
+            while((count=tvInput.read(buffer))!=-1)tvOutput.write(buffer,0,count);while((count=v22Input.read(buffer))!=-1)v22Output.write(buffer,0,count);while((count=mappleInput.read(buffer))!=-1)mappleOutput.write(buffer,0,count);while((count=vidriftInput.read(buffer))!=-1)vidriftOutput.write(buffer,0,count);
+            playerGuard="window.__zeroTv="+tvPlayer+";window.__zeroBlockAds="+blockAds+";window.__zeroGain="+prefs.getFloat("audioBoost",1f)+";"+guardOutput.toString("UTF-8")+(tvPlayer?tvOutput.toString("UTF-8"):"")+(liteTvPlayer?"":v22Output.toString("UTF-8"))+mappleOutput.toString("UTF-8")+vidriftOutput.toString("UTF-8");
             if(androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)){
                 androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web,playerGuard,java.util.Collections.singleton("*"));
             }else{
