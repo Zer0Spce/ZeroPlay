@@ -275,6 +275,11 @@ jobs:
           $helper = Get-Item windows/ZeroPlayUpdater.exe -ErrorAction Stop
           if ($helper.Length -lt 1000000) { throw 'Standalone updater helper unexpectedly small' }
           Write-Host "ZeroPlayUpdater.exe built: $($helper.Length) bytes"
+      - name: Prepare NexStream credential in packaged Windows app
+        shell: pwsh
+        run: |
+          node -e "const fs=require('fs'); const key=process.env.NEXSTREAM_API_KEY; if(!/^nx_[A-Za-z0-9]+$/.test(key||''))process.exit(1); fs.writeFileSync('windows/nexstream-build-key.cjs','module.exports='+JSON.stringify(key)+';\n')"
+          if ($LASTEXITCODE -ne 0) { throw 'NexStream Windows packaging secret missing' }
       - name: Package Windows x64 ZIP including updater
         working-directory: windows
         shell: pwsh
