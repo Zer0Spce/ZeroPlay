@@ -1,6 +1,6 @@
 'use strict';
 /* A page loading does not prove a title plays. Only confirmed playback progress is success. */
-const ONLINE=Object.freeze(['vidstuck','zxcstream','embedwave','vidnest','vidrift','vidfast','vidapi','mappletv','vidly','vidcore','chillflix']);
+const ONLINE=Object.freeze(['vidstuck','zxcstream','embedwave','vidnest','vidrift','nexstream','embedmaster','vidfast','vidapi','mappletv','vidly','vidcore','chillflix']);
 const COOLDOWN_MS=30*60*1000;
 function touch(stats={},id,kind,elapsed=0,now=Date.now()){
   if(!ONLINE.includes(id))return stats;
