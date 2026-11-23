@@ -17,6 +17,8 @@ android {
         buildConfigField 'String', 'BUILD_REVISION', groovy.json.JsonOutput.toJson((System.getenv('GITHUB_SHA') ?: 'local').take(8))
         buildConfigField 'String', 'DEFAULT_TMDB_KEY', groovy.json.JsonOutput.toJson(System.getenv('TMDB_API_KEY') ?: '')
         buildConfigField 'String', 'DEFAULT_OMDB_KEY', groovy.json.JsonOutput.toJson(System.getenv('OMDB_API_KEY') ?: '')
+        // Credential supplied only through the build environment; never commit it to public source.
+        buildConfigField 'String', 'NEXSTREAM_API_KEY', groovy.json.JsonOutput.toJson(System.getenv('NEXSTREAM_API_KEY') ?: '')
         buildConfigField 'String', 'DEFAULT_TSP_KEY', groovy.json.JsonOutput.toJson('')
     }
     flavorDimensions += 'device'
