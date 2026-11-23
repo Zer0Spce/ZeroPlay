@@ -286,7 +286,9 @@ public class MainActivity extends Activity {
                 "thrillers","recent","different","classics","providers","now");
             prefs.edit().putStringSet("homePanels",enabled).putBoolean("discoveryVODPreset2258",true).apply();
         }
-        homeAdBlockingSwitch();
+        // Android TV: keep ad filtering on but do not place its toggle above Home.
+        // Users can still configure it under Settings > Player.
+        if(!BuildConfig.TV)homeAdBlockingSwitch();
         List<Catalog.Item> clean=Zero22.visible(prefs,rows),resumes=continuing(),
             movies=new ArrayList<>(),shows=new ArrayList<>(),
             upcoming=new ArrayList<>(),trending=new ArrayList<>(),
