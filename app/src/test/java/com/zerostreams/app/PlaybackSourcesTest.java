@@ -41,7 +41,7 @@ public class PlaybackSourcesTest {
         assertTrue(PlaybackSources.trusted("https://embed.vidrift.net/embed/movie/1"));assertTrue(PlaybackSources.trusted("https://vidfast.vc/movie/1"));assertTrue(PlaybackSources.trusted("https://vaplayer.ru/embed/movie/1"));
         for(String origin:new String[]{"https://mapple.fun/watch/movie/1","https://vidly.pro/movie/1","https://vidcore.org/embed/movie/1","https://www.chillflix.pw/embed/movie/1"})assertTrue(PlaybackSources.trusted(origin));
         assertFalse(PlaybackSources.trusted("https://mapple.fun.attacker.example/watch/movie/1"));
-        assertFalse(PlaybackSources.trusted("https://embed.vidrift.net.attacker.example/embed/movie/1"));assertEquals(14,PlaybackSources.IDS.length);assertEquals(0,PlaybackSources.index("unknown"));}
+        assertFalse(PlaybackSources.trusted("https://embed.vidrift.net.attacker.example/embed/movie/1"));assertEquals(16,PlaybackSources.IDS.length);assertEquals(0,PlaybackSources.index("unknown"));}
     @Test(expected=IllegalArgumentException.class) public void rawcastRequiresSecureApi(){PlaybackSources.url("550","movie",1,1,"rawcast");}
     @Test(expected=IllegalArgumentException.class) public void rejectsMalformedIds(){PlaybackSources.url("../private","movie",1,1,"vidstuck");}
 }
