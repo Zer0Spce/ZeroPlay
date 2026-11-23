@@ -14,7 +14,7 @@ final class PlaybackSources {
             ?"https://"+host+"/watch/"+type+"/"+id+(type.equals("tv")?"-"+season+"-"+episode:"")
             :provider.equals("vidrift")||provider.equals("vidapi")||provider.equals("vidcore")||provider.equals("chillflix")
             ?"https://"+host+"/embed/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")
-            :provider.equals("vidrock")||provider.equals("vidnest")||provider.equals("vidfast")||provider.equals("vidly")
+            :provider.equals("vidrock")||provider.equals("vidnest")||provider.equals("vidfast")||provider.equals("vidly")||provider.equals("embedmaster")
             ?"https://"+host+"/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")
             :provider.equals("zxcstream")
             ?"https://"+host+"/player/"+type+"/"+id+(type.equals("tv")?"/"+season+"/"+episode:"")+"?domainAd=zeroplay&color=DF2531&autoplay=true"
