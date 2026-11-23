@@ -1,0 +1,134 @@
+name: ZeroPlay 2.2.7 Android TV hotfix repackage
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hotfix-2.2.7-android-tv.yml'
+      - 'tests/zeroplay-227-android-tv-ad-toggle.test.cjs'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeroplay-227-android-tv-hotfix
+  cancel-in-progress: true
+jobs:
+  android_tv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      NEXSTREAM_API_KEY: ${{ secrets.NEXSTREAM_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify the UI-only fix and untouched player ad filtering
+        run: |
+          node --test tests/zeroplay-227-android-tv-ad-toggle.test.cjs
+          node tests/default-player-controls-regression.test.cjs
+          node --test tests/zeroplay-227-sources-and-vidrift.test.cjs
+          test -n "$NEXSTREAM_API_KEY"
+      - name: Prepare existing v2.2.7 application with TV hotfix versionCode 76
+        run: |
+          set -euo pipefail
+          node scripts/apply-2.2.4-volume-boost.cjs
+          node scripts/apply-2.2.4.1-audio-hotfix.cjs
+          node scripts/apply-custom-livetv-test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs');const p='app/build.gradle';let s=fs.readFileSync(p,'utf8');
+          if(!s.includes("versionName '2.2.5-test1'")||!s.includes('versionCode 51'))throw Error('Unexpected base config');
+          s=s.replace("versionName '2.2.5-test1'","versionName '2.2.7'").replace('versionCode 51','versionCode 76');
+          fs.writeFileSync(p,s);
+          NODE
+      - name: Render required streaming provider wordmarks
+        run: |
+          python3 -m venv "$RUNNER_TEMP/logo-env"
+          "$RUNNER_TEMP/logo-env/bin/python" -m pip install -q CairoSVG==2.7.1 Pillow==11.3.0
+          "$RUNNER_TEMP/logo-env/bin/python" scripts/render-provider-wordmarks.py
+      - name: Test Android TV editions
+        run: gradle :app:testTvReleaseUnitTest :app:testLiteTvReleaseUnitTest
+      - name: Build and verify replacement signed TV APKs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/zeroplay-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          chmod 600 "$ANDROID_KEYSTORE_FILE"
+          gradle :app:assembleTvRelease :app:assembleLiteTvRelease
+          mkdir -p release-builds
+          cp app/build/outputs/apk/tv/release/app-tv-release.apk release-builds/ZeroPlay-2.2.7-Android-TV.apk
+          cp app/build/outputs/apk/liteTv/release/app-liteTv-release.apk release-builds/ZeroPlay-2.2.7-Android-TV-Lite.apk
+          for apk in release-builds/*.apk; do
+            check=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk" 2>&1) || true
+            printf '%s\n' "$check" | grep -F 'Verified using v1 scheme (JAR signing): true'
+            printf '%s\n' "$check" | grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true'
+            printf '%s\n' "$check" | grep -F 'Number of signers: 1'
+            if printf '%s\n' "$check" | grep -E '(^ERROR:|DOES NOT VERIFY|FAILED TO VERIFY|^Exception)'; then exit 1; fi
+            meta=$("$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk")
+            printf '%s\n' "$meta" | grep -F "versionCode='76'"
+            printf '%s\n' "$meta" | grep -F "versionName='2.2.7'"
+            case "$(basename "$apk")" in
+              ZeroPlay-2.2.7-Android-TV.apk) expected='com.zerostreams.app.tv' ;;
+              ZeroPlay-2.2.7-Android-TV-Lite.apk) expected='com.zerostreams.app.lite.tv' ;;
+              *) exit 1 ;;
+            esac
+            printf '%s\n' "$meta" | grep -F "package: name='$expected'"
+          done
+      - name: Android TV lint
+        run: gradle --continue :app:lintTvRelease :app:lintLiteTvRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZeroPlay-2.2.7-Android-TV-Hotfix
+          path: release-builds/*.apk
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+  republish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [android_tv]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ZeroPlay-2.2.7-Android-TV-Hotfix
+          path: hotfix
+      - name: Replace ONLY Android TV assets and refresh checksums and notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view v2.2.7 --repo "$GITHUB_REPOSITORY"
+          test -s hotfix/ZeroPlay-2.2.7-Android-TV.apk
+          test -s hotfix/ZeroPlay-2.2.7-Android-TV-Lite.apk
+          gh release upload v2.2.7 hotfix/*.apk --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p verify-assets
+          gh release download v2.2.7 --repo "$GITHUB_REPOSITORY" --dir verify-assets --pattern '*.apk'
+          gh release download v2.2.7 --repo "$GITHUB_REPOSITORY" --dir verify-assets --pattern '*.zip'
+          test "$(find verify-assets -name '*.apk' | wc -l)" -eq 4
+          test "$(find verify-assets -name '*.zip' | wc -l)" -eq 1
+          (cd verify-assets && sha256sum ./*.apk ./*.zip > SHA256SUMS.txt)
+          gh release upload v2.2.7 verify-assets/SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+          gh release edit v2.2.7 --repo "$GITHUB_REPOSITORY" --notes-file docs/releases/v2.2.7.md --latest
+          echo 'Android TV v2.2.7 hotfix reissued: versionCode 76; mobile and Windows assets untouched.'
