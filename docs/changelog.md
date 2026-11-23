@@ -1,8 +1,15 @@
 # ZeroPlay — complete release history
 
-Current release: **2.2.1**. This archive includes all 25 published GitHub release records available during the 2.2 documentation refresh. The previously missing 2.0.1 record was restored from its published release description. Historical additions, removed experiments and old known issues describe their release; use the [current README](../README.md) for today’s behavior.
+Current release: **2.2.7**. This archive includes all 25 published GitHub release records available during the 2.2 documentation refresh. The previously missing 2.0.1 record was restored from its published release description. Historical additions, removed experiments and old known issues describe their release; use the [current README](../README.md) for today’s behavior.
 
 <details open>
+<summary><strong>ZeroPlay 2.2.7</strong></summary>
+
+See [ZeroPlay v2.2.7 full release notes](releases/v2.2.7.md) for VidRift idle controls, NexStream and EmbedMaster source integration, and platform updates.
+
+</details>
+
+<details>
 <summary><strong>ZeroPlay 2.2.1</strong></summary>
 
 # ZeroPlay 2.2.1 — Home, Resume & Player Polish
